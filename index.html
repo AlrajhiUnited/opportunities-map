@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>خريطة الفرص العقارية - إسقاط تسلسلي وزوم عند الإغلاق</title>
+    <title>خريطة الفرص العقارية - هيكلة محسنة</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <style>
-        /* كل أنماط CSS الأصلية تبقى هنا كما هي (بما في ذلك dropIn animation) */
+        /* كل أنماط CSS الأصلية تبقى هنا كما هي */
         :root { --color-gold: #BD9A5F; --color-light-gray: #F5F5F5; --color-card-bg: #F5F5F5; --color-dark-gold: #C89638; --color-white: #FFFFFF; --color-black: #333; --color-shadow-light: #ffffff; --color-shadow-dark: #d4d4d4; --color-status-suitable: #28a745; --color-status-unsuitable: #dc3545; --color-status-evaluating: #ffc107; --font-main: 'Cairo', sans-serif; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--font-main); direction: rtl; background-color: var(--color-light-gray); }
@@ -34,7 +34,7 @@
         #city-navigator { position: absolute; top: 15px; left: 15px; z-index: 1010; background: rgba(255, 255, 255, 0.9); padding: 8px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); max-height: 80vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; opacity: 0; visibility: hidden; transition: opacity 0.3s 0.2s ease-out, visibility 0.3s 0.2s ease-out; } #city-navigator.visible { opacity: 1; visibility: visible; } #city-navigator h4 { margin: 0 0 5px 0; font-size: 0.85em; color: var(--color-black); border-bottom: 1px solid #eee; padding-bottom: 4px; } #city-navigator ul { list-style: none; padding: 0; margin: 0; } #city-navigator li { padding: 6px 8px; margin-bottom: 3px; cursor: pointer; border-radius: 4px; transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease; display: flex; align-items: center; gap: 6px; border: 1px solid #eee; font-size: 0.9em; } #city-navigator li:last-child { margin-bottom: 0; } #city-navigator li:hover, #city-navigator li.active { background-color: var(--color-gold); color: var(--color-white); border-color: var(--color-dark-gold); } #city-navigator .city-number { font-weight: bold; color: var(--color-dark-gold); background-color: #eee; border-radius: 50%; width: 22px; height: 22px; display: inline-flex; justify-content: center; align-items: center; font-size: 0.8em; transition: background-color 0.2s ease, color 0.2s ease; flex-shrink: 0; } #city-navigator li:hover .city-number, #city-navigator li.active .city-number { background-color: var(--color-white); color: var(--color-gold); }
         .status-filters { display: none; gap: 5px; border-top: 1px solid #eee; padding-top: 8px; flex-wrap: wrap; } #city-navigator.show-status-filters .status-filters { display: flex; } .status-filters button { font-family: var(--font-main); padding: 4px 8px; border: 1px solid var(--color-gold); background-color: var(--color-white); color: var(--color-gold); border-radius: 4px; cursor: pointer; transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease; font-size: 0.8em; flex-grow: 1; } .status-filters button:hover, .status-filters button.active { background-color: var(--color-gold); color: var(--color-white); }
         #city-summary-counts-container { display: none; border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px; } #city-navigator.show-status-filters #city-summary-counts-container { display: block; } #city-summary-counts-container h5 { margin: 0 0 6px 0; font-size: 0.85em; color: var(--color-black); display: flex; align-items: center; gap: 5px; } #city-summary-counts-container h5 i { color: var(--color-gold); } .summary-counts { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-start; } .summary-counts span { white-space: nowrap; font-size: 0.85em; } .summary-counts strong { margin-right: 3px; font-weight: 700; font-size: 0.95em; } .summary-status-filter { cursor: pointer; transition: opacity 0.2s ease; padding: 1px 3px; border-radius: 3px; } .summary-status-filter:hover { background-color: rgba(0,0,0,0.05); opacity: 0.8; } .summary-counts .suitable { color: var(--color-status-suitable); } .summary-counts .evaluating { color: #ca9b00; } .summary-counts .unsuitable { color: var(--color-status-unsuitable); }
-        .marker-icon-wrapper { opacity: 0; animation: dropIn 0.7s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards; } /* الأنيميشن يعمل */
+        .marker-icon-wrapper { opacity: 0; animation: dropIn 0.7s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards; }
         .custom-marker-icon { color: var(--color-white); border-radius: 50%; border: 2px solid var(--color-white); box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3); width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; font-weight: bold; text-align: center; cursor: pointer; transform-origin: center center; transition: transform 0.2s ease-out, box-shadow 0.3s ease-out; position: relative; overflow: visible; } .opportunity-marker .custom-marker-icon { background: linear-gradient(to bottom, var(--color-gold), var(--color-dark-gold)); font-size: 14px; } .opportunity-marker .custom-marker-icon::after { content: ''; position: absolute; width: calc(100% + 16px); height: calc(100% + 16px); top: -10px; left: -10px; border-radius: 50%; border: 2px solid transparent; border-top-color: var(--color-dark-gold); animation: spinClockwise 2.5s linear infinite; } .opportunity-marker.marker-icon-wrapper { width: 32px; height: 32px; z-index: 600; } .city-marker .custom-marker-icon { background: var(--color-dark-gold); border-width: 3px; font-size: 16px; } .city-marker.marker-icon-wrapper { width: 38px; height: 38px; z-index: 700 !important; } @keyframes spinClockwise { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } } @keyframes dropIn { 0% { transform: translateY(-200px) scale(0.8); opacity: 0; } 60% { transform: translateY(10px) scale(1.05); opacity: 1; } 100% { transform: translateY(0) scale(1); opacity: 1; } } .leaflet-marker-icon:hover .custom-marker-icon { transform: scale(1.2); } .marker-selected .custom-marker-icon { box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4), 0 0 0 4px rgba(189, 154, 95, 0.5); } .marker-selected.opportunity-marker .custom-marker-icon::after { animation: none; border-top-color: transparent; }
         .info-card { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100%); width: 90%; max-width: 480px; background-color: var(--color-card-bg); border-radius: 15px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08); z-index: 2000; opacity: 0; visibility: hidden; transition: opacity 0.4s ease-out, transform 0.4s ease-out, visibility 0.4s; overflow: hidden; border-top: 5px solid var(--color-gold); display: flex; flex-direction: column; max-height: 80vh; } .info-card.visible { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); } .info-card-header { display: flex; align-items: center; padding: 15px 20px 15px 60px; position: relative; flex-shrink: 0; } .title-badge-wrapper { display: flex; align-items: center; flex-grow: 1; background-color: var(--color-card-bg); padding: 10px 15px; border-radius: 10px; box-shadow: 4px 4px 8px var(--color-shadow-dark), -4px -4px 8px var(--color-shadow-light); justify-content: space-between; } #info-card-title { color: var(--color-black); font-size: 1.2em; font-weight: 700; margin: 0; } .status-badge { padding: 4px 10px; border-radius: 15px; font-size: 0.8em; font-weight: bold; color: var(--color-white); text-align: center; white-space: nowrap; flex-shrink: 0; } .status-badge.status-suitable { background-color: var(--color-status-suitable); } .status-badge.status-unsuitable { background-color: var(--color-status-unsuitable); } .status-badge.status-evaluating { background-color: var(--color-status-evaluating); color: var(--color-black); } .info-card-close { position: absolute; top: 50%; left: 20px; transform: translateY(-50%); background: none; border: none; font-size: 26px; line-height: 1; font-weight: bold; color: #aaa; cursor: pointer; padding: 0; z-index: 10; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; } .info-card-close:hover { color: var(--color-black); }
         #info-card-details { padding: 15px 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px 20px; background-color: var(--color-light-gray); border-top: 1px solid #eee; overflow-y: auto; flex-grow: 1; } .detail-item { background-color: var(--color-card-bg); padding: 10px 12px; border-radius: 8px; box-shadow: 3px 3px 6px var(--color-shadow-dark), -3px -3px 6px var(--color-shadow-light); transition: box-shadow 0.25s ease-out; } .detail-item:hover { box-shadow: 4px 4px 8px var(--color-shadow-dark), -4px -4px 8px var(--color-shadow-light); } .detail-item .label { display: block; font-size: 0.75em; color: #777; margin-bottom: 4px; } .detail-item .label i { margin-left: 5px; color: var(--color-gold); font-size: 0.9em; width: 14px; text-align: center; } .detail-item .value { font-size: 0.95em; font-weight: 600; color: var(--color-black); display: block; word-wrap: break-word; } .detail-item .value.highlight { color: var(--color-dark-gold); font-weight: 700; font-size: 1em; } .detail-item.notes-item { grid-column: 1 / -1; } .detail-item.notes-item .value { font-size: 0.9em; font-weight: 400; line-height: 1.5; white-space: pre-wrap; color: #555; }
@@ -43,7 +43,6 @@
         .currency-symbol { height: 0.9em; width: auto; vertical-align: middle; margin-right: 3px; }
         @media (max-width: 768px) { /* ... Media queries ... */ }
         @media (max-width: 480px) { /* ... Media queries ... */ }
-        /* ## تم حذف CSS الخاص بـ MarkerCluster ## */
     </style>
 </head>
 <body>
@@ -80,289 +79,892 @@
     <script>
         // Wrap entire script in a try-catch for global errors
         try {
-            document.addEventListener('DOMContentLoaded', async () => {
+            // ---===[ 1. الإعدادات العامة Configuration ]===---
+            const config = {
+                jsonUrl: 'opportunities.json', // مسار ملف البيانات
+                initialView: { center: [23.8859, 45.0792], zoom: 6 }, // العرض الأولي للخريطة
+                cityViews: { // إعدادات عرض المدن
+                    "الرياض": { center: [24.85, 46.65], zoom: 10 },
+                    "أبها": { center: [18.22, 42.54], zoom: 12 },
+                    "all": { center: [23.8859, 45.0792], zoom: 6 }
+                },
+                zoomThresholds: { // مستويات التقريب للتبديل التلقائي
+                    cityToOpportunities: 10,
+                    opportunitiesToCity: 9
+                },
+                maxDistanceForCitySwitch: 150000, // أقصى مسافة للتبديل للمدينة عند التقريب
+                currencySymbolHtml: ' <img src="img/Saudi_Riyal_Symbol.png" alt="SAR" class="currency-symbol">', // رمز العملة
+                animationBaseDelayMs: 100, // التأخير الأساسي بين إسقاط كل علامة (مللي ثانية)
+                notAvailableText: 'غير متوفر', // النص الافتراضي للقيم غير المتوفرة
+                mapTileUrl: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                mapMaxZoom: 19,
+                mapAttribution: '© <a href="http://www.openstreetmap.org/copyright">OSM</a>'
+            };
 
-                // ----- جلب البيانات من ملف JSON -----
-                let opportunitiesData = [];
-                const loadingScreen=document.getElementById('loading-screen');
+            // ---===[ 2. حالة التطبيق State ]===---
+            const state = {
+                map: null, // سيتم تهيئة الخريطة لاحقاً
+                opportunitiesData: [], // ستحمل البيانات هنا
+                cityMarkers: [], // علامات المدن المعروضة
+                displayedOpportunityMarkers: [], // علامات الفرص المعروضة
+                currentCityFilter: 'all', // فلتر المدينة الحالي
+                currentStatusFilter: 'all', // فلتر الحالة الحالي
+                activeMarkerWrapperElement: null, // لتتبع العلامة المحددة
+                activeCityListItem: null, // لتتبع عنصر المدينة النشط في القائمة
+                currentViewMode: 'cities', // وضع العرض الحالي (مدن أو فرص)
+                cityListForMarkers: [], // قائمة المدن المحسوبة للعرض
+                dom: {} // لتخزين عناصر DOM التي يتم الوصول إليها بشكل متكرر
+            };
+
+            // ---===[ 3. الدوال المساعدة Utilities / Helpers ]===---
+
+            /**
+             * جلب عناصر DOM وتخزينها في state.dom لتجنب التكرار
+             */
+            const cacheDomElements = () => {
+                state.dom.loadingScreen = document.getElementById('loading-screen');
+                state.dom.mapContainer = document.getElementById('map-container');
+                state.dom.mapElement = document.getElementById('map');
+                state.dom.cityNavigatorList = document.getElementById('city-list');
+                state.dom.fullscreenButton = document.getElementById('fullscreen-button');
+                state.dom.fullscreenIcon = state.dom.fullscreenButton?.querySelector('i');
+                state.dom.zoomAllButton = document.getElementById('zoom-all-button');
+                state.dom.infoCard = document.getElementById('info-card');
+                state.dom.infoCardCloseBtn = document.getElementById('info-card-close');
+                // عناصر بطاقة المعلومات
+                state.dom.infoCardTitle = document.getElementById('info-card-title');
+                state.dom.infoCardStatusBadge = document.getElementById('info-card-status-badge');
+                state.dom.infoCardArea = document.getElementById('info-card-area');
+                state.dom.infoCardBuyPrice = document.getElementById('info-card-buy-price');
+                state.dom.infoCardTotalCost = document.getElementById('info-card-total-cost');
+                state.dom.infoCardDevCost = document.getElementById('info-card-dev-cost');
+                state.dom.infoCardOtherCosts = document.getElementById('info-card-other-costs');
+                state.dom.infoCardDesignCost = document.getElementById('info-card-design-cost');
+                state.dom.infoCardExecCost = document.getElementById('info-card-exec-cost');
+                state.dom.infoCardEstSales = document.getElementById('info-card-est-sales');
+                state.dom.infoCardCommValue = document.getElementById('info-card-comm-value');
+                state.dom.infoCardCommExecPrice = document.getElementById('info-card-comm-exec-price');
+                state.dom.infoCardResArea = document.getElementById('info-card-res-area');
+                state.dom.infoCardResValue = document.getElementById('info-card-res-value');
+                state.dom.infoCardResExecPrice = document.getElementById('info-card-res-exec-price');
+                state.dom.infoCardRoiText = document.getElementById('info-card-roi-text');
+                state.dom.infoCardRoiBar = document.getElementById('info-card-roi-bar');
+                state.dom.infoCardRoiNA = document.getElementById('info-card-roi-na');
+                state.dom.infoCardIrrPie = document.getElementById('info-card-irr-pie');
+                state.dom.infoCardIrrText = document.getElementById('info-card-irr-text');
+                state.dom.infoCardIrrNA = document.getElementById('info-card-irr-na');
+                state.dom.infoCardBreakeven = document.getElementById('info-card-breakeven');
+                state.dom.infoCardNotes = document.getElementById('info-card-notes');
+                state.dom.infoCardGmapsLink = document.getElementById('info-card-gmaps-link');
+                // عناصر النافيجيشن والفلتر
+                state.dom.cityNavigatorPanel = document.getElementById('city-navigator');
+                state.dom.statusFilterDiv = state.dom.cityNavigatorPanel?.querySelector('.status-filters');
+                state.dom.statusFilterButtons = state.dom.statusFilterDiv ? Array.from(state.dom.statusFilterDiv.querySelectorAll('button')) : [];
+                // عناصر ملخص المدينة
+                state.dom.citySummaryContainer = document.getElementById('city-summary-counts-container');
+                state.dom.summarySuitableCount = document.getElementById('summary-suitable-count');
+                state.dom.summaryEvaluatingCount = document.getElementById('summary-evaluating-count');
+                state.dom.summaryUnsuitableCount = document.getElementById('summary-unsuitable-count');
+                state.dom.summaryStatusFiltersContainer = state.dom.citySummaryContainer?.querySelector('.summary-counts');
+
+                 // التحقق من العناصر الهامة
+                 if (!state.dom.mapContainer || !state.dom.mapElement || !state.dom.cityNavigatorList || !state.dom.infoCard) {
+                    console.error("Critical DOM elements missing!");
+                    if(state.dom.loadingScreen) state.dom.loadingScreen.style.display = 'none';
+                    return false; // فشل العثور على عناصر ضرورية
+                 }
+                 return true; // نجح
+            };
+
+            /**
+             * دالة مساعدة للتحقق من قيمة وعرضها أو عرض نص "غير متوفر"
+             * @param {HTMLElement} el - عنصر DOM لتحديثه
+             * @param {*} value - القيمة المراد عرضها
+             * @param {object} options - خيارات إضافية { isCurrency: bool, unit: string }
+             */
+            const updateElementContent = (el, value, options = {}) => {
+                if (!el) return;
+                const { isCurrency = false, unit = '' } = options;
+                const naText = config.notAvailableText;
+                let displayValue = naText;
+                let useHtml = false;
+
+                if (value !== undefined && value !== null && value !== 'غير متوفر' && String(value).trim() !== '') {
+                    const stringValue = String(value);
+                    if (isCurrency) {
+                        const numValue = parseFloat(stringValue.replace(/,/g, ''));
+                        if (!isNaN(numValue)) {
+                            displayValue = numValue.toLocaleString('en-US', { maximumFractionDigits: 2 }) + config.currencySymbolHtml + (unit ? ` ${unit}` : '');
+                            useHtml = true;
+                        } else {
+                            displayValue = stringValue + config.currencySymbolHtml + (unit ? ` ${unit}` : ''); // عرض كما هو إذا لم يكن رقماً صالحاً
+                             useHtml = true;
+                        }
+                    } else {
+                        displayValue = stringValue + (unit ? ` ${unit}` : '');
+                    }
+                }
+
+                if (useHtml) {
+                    el.innerHTML = displayValue;
+                } else {
+                    el.textContent = displayValue;
+                }
+                 // إضافة/إزالة فئة للتمييز (اختياري)
+                 if (displayValue === naText) {
+                     el.classList.add('not-available');
+                 } else {
+                     el.classList.remove('not-available');
+                 }
+            };
+
+            /**
+             * تحديث شريط التقدم (ROI)
+             */
+             const updateProgressBar = (value, barEl, textEl, naEl) => {
+                 if (!barEl || !textEl || !naEl) return;
+                 const container = barEl.closest('.progress-bar-container');
+                 if (!container) return;
+                 const naText = config.notAvailableText;
+                 let percent = NaN;
+
+                 if (value && value !== naText && String(value).includes('%')) {
+                      percent = parseFloat(String(value).replace('%', ''));
+                 }
+
+                 if (!isNaN(percent)) {
+                     container.style.display = 'block';
+                     naEl.style.display = 'none';
+                     textEl.textContent = `${percent.toFixed(1)}%`;
+                     setTimeout(() => { barEl.style.width = `${Math.min(percent, 100)}%`; }, 50);
+                 } else {
+                     container.style.display = 'none';
+                     naEl.style.display = 'block';
+                     naEl.textContent = (value === undefined || value === null || String(value).trim() === '' || value === naText) ? naText : 'غير صالح';
+                     barEl.style.width = '0%';
+                 }
+             };
+
+            /**
+             * تحديث المخطط الدائري (IRR)
+             */
+             const updatePieChart = (value, pieEl, textEl, naEl) => {
+                 if (!pieEl || !textEl || !naEl) return;
+                 const container = pieEl.closest('.pie-chart-container');
+                 if (!container) return;
+                 const naText = config.notAvailableText;
+                 let percent = NaN;
+
+                 if (value && value !== naText && String(value).includes('%')) {
+                     percent = parseFloat(String(value).replace('%', ''));
+                 }
+
+                 if (!isNaN(percent)) {
+                     container.style.display = 'block';
+                     naEl.style.display = 'none';
+                     textEl.textContent = `${percent.toFixed(1)}%`;
+                     const percentageValue = Math.min(percent, 100); // حد أقصى 100% للعرض
+                     const gradient = `conic-gradient(var(--color-dark-gold) 0% ${percentageValue}%, #e9ecef ${percentageValue}% 100%)`;
+                     setTimeout(() => { pieEl.style.background = gradient; }, 50);
+                 } else {
+                     container.style.display = 'none';
+                     naEl.style.display = 'block';
+                     naEl.textContent = (value === undefined || value === null || String(value).trim() === '' || value === naText) ? naText : 'غير صالح';
+                     pieEl.style.background = '';
+                 }
+             };
+
+
+            // ---===[ 4. دوال تهيئة وعرض الخريطة والعلامات ]===---
+
+            /**
+             * تهيئة خريطة Leaflet وتخزينها في state.map
+             * @returns {boolean} - هل تمت التهيئة بنجاح
+             */
+            const initializeMap = () => {
+                if (!state.dom.mapElement) return false;
                 try {
-                    const response = await fetch('opportunities.json');
-                    if (!response.ok) { console.error(`Failed to fetch opportunities.json. Status: ${response.status} ${response.statusText}`); throw new Error(`HTTP error! status: ${response.status}`); }
-                    opportunitiesData = await response.json();
-                    console.log('Data loaded successfully:', opportunitiesData.length, 'opportunities found.');
-                } catch (fetchError) {
-                    console.error("Could not load or parse opportunities data:", fetchError);
-                    alert("حدث خطأ أثناء تحميل بيانات الفرص. لا يمكن عرض الخريطة.");
-                    if(loadingScreen) loadingScreen.style.display = 'none'; return;
+                    state.map = L.map(state.dom.mapElement, {
+                        attributionControl: false,
+                        zoomControl: false // سنضيفه يدوياً للتحكم بالموضع
+                    }).setView(config.initialView.center, config.initialView.zoom);
+
+                    L.tileLayer(config.mapTileUrl, {
+                         maxZoom: config.mapMaxZoom,
+                         attribution: config.mapAttribution // إضافة المصدر هنا مباشرة
+                    }).addTo(state.map);
+
+                    L.control.zoom({ position: 'bottomleft' }).addTo(state.map); // إضافة أزرار الزوم
+                    console.log("Map initialized successfully.");
+                    return true;
+                } catch (mapInitError) {
+                    console.error("Leaflet map initialization failed:", mapInitError);
+                    return false;
                 }
-                // ----- نهاية جلب البيانات -----
+            };
 
-                // --- DOM Elements ---
-                const mapContainer=document.getElementById('map-container');
-                const cityNavigatorList=document.getElementById('city-list');
-                const fullscreenButton=document.getElementById('fullscreen-button');
-                const fullscreenIcon=fullscreenButton?fullscreenButton.querySelector('i'):null;
-                const zoomAllButton=document.getElementById('zoom-all-button');
-                const infoCard=document.getElementById('info-card');
-                const infoCardCloseBtn=document.getElementById('info-card-close');
-                const infoCardTitle=document.getElementById('info-card-title');
-                const infoCardStatusBadge=document.getElementById('info-card-status-badge');
-                const infoCardArea=document.getElementById('info-card-area');
-                const infoCardBuyPrice=document.getElementById('info-card-buy-price');
-                const infoCardTotalCost=document.getElementById('info-card-total-cost');
-                const infoCardDevCost=document.getElementById('info-card-dev-cost');
-                const infoCardOtherCosts=document.getElementById('info-card-other-costs');
-                const infoCardDesignCost=document.getElementById('info-card-design-cost');
-                const infoCardExecCost=document.getElementById('info-card-exec-cost');
-                const infoCardEstSales=document.getElementById('info-card-est-sales');
-                const infoCardCommValue=document.getElementById('info-card-comm-value');
-                const infoCardCommExecPrice=document.getElementById('info-card-comm-exec-price');
-                const infoCardResArea=document.getElementById('info-card-res-area');
-                const infoCardResValue=document.getElementById('info-card-res-value');
-                const infoCardResExecPrice=document.getElementById('info-card-res-exec-price');
-                const infoCardRoiText=document.getElementById('info-card-roi-text');
-                const infoCardRoiBar=document.getElementById('info-card-roi-bar');
-                const infoCardRoiNA=document.getElementById('info-card-roi-na');
-                const infoCardIrrPie=document.getElementById('info-card-irr-pie');
-                const infoCardIrrText=document.getElementById('info-card-irr-text');
-                const infoCardIrrNA=document.getElementById('info-card-irr-na');
-                const infoCardBreakeven=document.getElementById('info-card-breakeven');
-                const infoCardNotes=document.getElementById('info-card-notes');
-                const infoCardGmapsLink=document.getElementById('info-card-gmaps-link');
-                const cityNavigatorPanel = document.getElementById('city-navigator');
-                const statusFilterDiv = cityNavigatorPanel ? cityNavigatorPanel.querySelector('.status-filters') : null;
-                const statusFilterButtons = statusFilterDiv ? statusFilterDiv.querySelectorAll('button') : [];
-                const citySummaryContainer = document.getElementById('city-summary-counts-container');
-                const summarySuitableCount = document.getElementById('summary-suitable-count');
-                const summaryEvaluatingCount = document.getElementById('summary-evaluating-count');
-                const summaryUnsuitableCount = document.getElementById('summary-unsuitable-count');
-                const summaryStatusFiltersContainer = citySummaryContainer ? citySummaryContainer.querySelector('.summary-counts') : null;
-
-                // Early exit check
-                if (!mapContainer || !document.getElementById('map') || !loadingScreen || !cityNavigatorList || !infoCard || !statusFilterDiv || !statusFilterButtons || statusFilterButtons.length === 0 || !citySummaryContainer || !summarySuitableCount || !summaryEvaluatingCount || !summaryUnsuitableCount || !summaryStatusFiltersContainer) {
-                    console.error("Critical DOM elements missing!"); if(loadingScreen) loadingScreen.style.display = 'none'; return;
-                }
-
-                // --- Map Initialization ---
-                let map = null;
+             /**
+             * تحريك الخريطة لمدينة معينة
+             * @param {string} cityName - اسم المدينة أو 'all'
+             */
+            const flyToCity = (cityName) => {
                 try {
-                    map = L.map('map', { attributionControl: false, zoomControl: false }).setView([23.8859, 45.0792], 6);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
-                    L.control.attribution({position: 'bottomleft', prefix: false}).addTo(map).addAttribution('© <a href="http://www.openstreetmap.org/copyright">OSM</a>');
-                } catch (mapInitError) { console.error("Leaflet map initialization failed:", mapInitError); if(loadingScreen) loadingScreen.style.display = 'none'; return; }
-                L.control.zoom({ position: 'bottomleft' }).addTo(map);
-                const cityViews = { "الرياض": { center: [24.85, 46.65], zoom: 10 }, "أبها": { center: [18.22, 42.54], zoom: 12 }, "all": { center: [23.8859, 45.0792], zoom: 6 } };
-
-                // --- Variables ---
-                let cityMarkers = [];
-                let displayedOpportunityMarkers = []; // <<-- العودة لاستخدام هذه المصفوفة
-                // let opportunityMarkersGroup = null; // <<-- تم حذف متغير مجموعة التجميع
-                let currentCityFilter = 'all';
-                let currentStatusFilter = 'all';
-                let activeMarkerWrapperElement = null;
-                let activeCityListItem = null;
-                const currencySymbolHTML = ' <img src="img/Saudi_Riyal_Symbol.png" alt="SAR" class="currency-symbol">';
-                const cityViewZoomThreshold = 9;
-                const opportunityViewZoomThreshold = 10;
-                const maxDistanceForCitySwitch = 150000;
-                let currentViewMode = 'cities';
-                let cityListForMarkers = [];
-
-                // --- Functions ---
-
-                function displayCityNavigator() { /* ... نفس الكود السابق ... */ try { if(!cityNavigatorList || !opportunitiesData) return; const cities=[...new Set(opportunitiesData.map(op=>op.city).filter(Boolean))]; cities.sort((a, b) => { if (a === 'الرياض') return -1; if (b === 'الرياض') return 1; if (a === 'أبها') return -1; if (b === 'أبها') return 1; return a.localeCompare(b); }); cityNavigatorList.innerHTML='';const allLi=document.createElement('li');allLi.textContent='كل المدن';allLi.dataset.city='all';if(currentCityFilter==='all'){allLi.classList.add('active');activeCityListItem=allLi;}allLi.addEventListener('click',handleCitySelection);cityNavigatorList.appendChild(allLi);cities.forEach((city,index)=>{const li=document.createElement('li');const cityNumber=document.createElement('span');cityNumber.className='city-number';cityNumber.textContent=index+1;li.appendChild(cityNumber);li.appendChild(document.createTextNode(` ${city}`));li.dataset.city=city;if(currentCityFilter===city){li.classList.add('active');activeCityListItem=li;}li.addEventListener('click',handleCitySelection);cityNavigatorList.appendChild(li);}); } catch (error) { console.error("Error in displayCityNavigator:", error); } }
-                function flyToCity(cityName) { /* ... نفس الكود السابق ... */ try{const view=cityViews[cityName]||cityViews['all'];if(map && map.flyTo) { map.flyTo(view.center,view.zoom,{duration:1.5}); } }catch(error){console.error("Error in flyToCity:",error);} }
-                function showInfoCard(opportunity){ /* ... نفس الكود السابق ... */ try{if(!infoCard || !opportunity){return;}infoCardTitle.textContent=opportunity.name || 'لا يوجد اسم';let sC='',sT=opportunity.status;switch(opportunity.status){case'مناسبة':sC='status-suitable';break;case'غير مناسبة':sC='status-unsuitable';break;case'قيد التقييم':default:sC='status-evaluating';sT='قيد التقييم';}if(infoCardStatusBadge){infoCardStatusBadge.className=`status-badge ${sC}`;infoCardStatusBadge.textContent=sT;}const displayValue=(el,val,isCur=false,unit='')=>{if(!el){return;}const naText='غير متوفر';if(val!==undefined&&val!==null&&val!=='غير متوفر'&&String(val).trim()!==''){if(isCur){const nV=parseFloat(String(val).replace(/,/g,''));if(!isNaN(nV)){const fN=nV.toLocaleString('en-US',{maximumFractionDigits:2});el.innerHTML=fN+currencySymbolHTML+(unit?` ${unit}`:'');}else{el.innerHTML=String(val)+currencySymbolHTML+(unit?` ${unit}`:'');}}else{el.textContent=val;}}else{el.textContent=naText;}};displayValue(infoCardArea,opportunity.area);displayValue(infoCardBuyPrice,opportunity.buy_price_sqm,true);displayValue(infoCardTotalCost,opportunity.total_cost,true);displayValue(infoCardDevCost,opportunity.dev_cost,true,opportunity.dev_cost_unit||'');displayValue(infoCardOtherCosts,opportunity.other_costs,true);displayValue(infoCardDesignCost,opportunity.design_cost,true);displayValue(infoCardExecCost,opportunity.execution_cost,true);displayValue(infoCardEstSales,opportunity.est_sales,true);displayValue(infoCardCommValue,opportunity.comm_value,true);displayValue(infoCardCommExecPrice,opportunity.comm_exec_price,true);displayValue(infoCardResArea,opportunity.res_area);displayValue(infoCardResValue,opportunity.res_value,true);displayValue(infoCardResExecPrice,opportunity.res_exec_price,true);displayValue(infoCardBreakeven,opportunity.breakeven,true);displayValue(infoCardNotes,opportunity.notes||'-');const displayPercentageBar=(v,b,t,na)=>{if(!b||!t||!na)return;const c=b.closest('.progress-bar-container');if(!c)return;const naText='غير متوفر';let p=NaN;if(v&&v!=='غير متوفر'&&String(v).includes('%')){p=parseFloat(String(v).replace('%',''));}if(!isNaN(p)){c.style.display='block';na.style.display='none';t.textContent=`${p.toFixed(1)}%`;setTimeout(()=>{b.style.width=`${Math.min(p,100)}%`;},50);}else{c.style.display='none';na.style.display='block';na.textContent=(v === undefined || v === null || String(v).trim() === '' || String(v) === 'غير متوفر') ? naText : 'غير صالح';b.style.width='0%';}};const displayPercentagePie=(v,pieEl,textEl,naEl)=>{if(!pieEl||!textEl||!naEl){return;}const container=pieEl.closest('.pie-chart-container');if(!container)return;const naText='غير متوفر';let p=NaN;if(v&&v!=='غير متوفر'&&String(v).includes('%')){p=parseFloat(String(v).replace('%',''));}if(!isNaN(p)){container.style.display='block';naEl.style.display='none';textEl.textContent=`${p.toFixed(1)}%`;const percentageValue=Math.min(p,100);const gradient=`conic-gradient(var(--color-dark-gold) 0% ${percentageValue}%, #e9ecef ${percentageValue}% 100%)`;setTimeout(()=>{pieEl.style.background=gradient;},50);}else{container.style.display='none';naEl.style.display='block';naEl.textContent=(v === undefined || v === null || String(v).trim() === '' || String(v) === 'غير متوفر') ? naText : 'غير صالح';pieEl.style.background='';}};displayPercentageBar(opportunity.roi,infoCardRoiBar,infoCardRoiText,infoCardRoiNA);displayPercentagePie(opportunity.irr,infoCardIrrPie,infoCardIrrText,infoCardIrrNA);if(infoCardGmapsLink)infoCardGmapsLink.href=opportunity.googleMapsLink||'#';infoCard.classList.add('visible');}catch(error){console.error("Error in showInfoCard:",error);}}
-
-                // --- دالة إخفاء البطاقة المعدلة ---
-                function hideInfoCard(){
-                    try{
-                        if(infoCard)infoCard.classList.remove('visible');
-                        if(activeMarkerWrapperElement){
-                            activeMarkerWrapperElement.classList.remove('marker-selected');
-                            activeMarkerWrapperElement=null;
-                        }
-                        // إزالة تأثيرات النسبة المئوية
-                        setTimeout(()=>{
-                            if(infoCardRoiBar)infoCardRoiBar.style.width='0%';
-                            if(infoCardIrrPie)infoCardIrrPie.style.background='';
-                        }, 400); // انتظر انتهاء انميشن الإخفاء
-
-                        // ++ إضافة: التقريب لاحتواء كل النقاط الحالية ++
-                        // أولاً، نحدد ما هي النقاط التي يجب عرضها
-                        let coordsToZoom;
-                        if (currentCityFilter === 'all') {
-                            // إذا كان العرض "كل المدن"، استخدم إحداثيات المدن
-                             coordsToZoom = cityListForMarkers
-                                .map(city => city.coords)
-                                .filter(Boolean); // تأكد من عدم وجود إحداثيات فارغة
-                        } else {
-                             // إذا كانت هناك مدينة محددة، اعرض كل الفرص فيها (بغض النظر عن فلتر الحالة السابق)
-                             coordsToZoom = opportunitiesData
-                                 .filter(op => op && op.city === currentCityFilter && op.coords)
-                                 .map(op => op.coords);
-                        }
-                        // تأخير بسيط قبل التقريب لإعطاء فرصة للبطاقة للاختفاء
-                        setTimeout(() => {
-                            zoomToShowMarkers(coordsToZoom);
-                        }, 100);
-                        // ++ نهاية الإضافة ++
-
-                    } catch(error){
-                        console.error("Error in hideInfoCard:",error);
+                    const view = config.cityViews[cityName] || config.cityViews['all'];
+                    if (state.map && state.map.flyTo) {
+                        state.map.flyTo(view.center, view.zoom, { duration: 1.5 });
                     }
+                } catch (error) {
+                    console.error(`Error flying to city ${cityName}:`, error);
                 }
+            };
 
-                function zoomToShowMarkers(coordsArray=null){ try{ if(!map) return; const tC=coordsArray; if(tC && Array.isArray(tC) && tC.length > 0){ try { const b = L.latLngBounds(tC); map.flyToBounds(b, { paddingTopLeft: [30, 230], paddingBottomRight: [60, 30], maxZoom: 16, duration: 1.0 }); } catch(boundsError) { console.error("Error creating or flying to bounds:", boundsError, tC); if (currentCityFilter !== 'all') flyToCity(currentCityFilter); else flyToCity('all'); } } else if (currentCityFilter !== 'all') { flyToCity(currentCityFilter); } else { flyToCity('all'); } } catch(error){ console.error("Error in zoomToShowMarkers:", error); } }
+            /**
+             * تقريب الخريطة لاحتواء مجموعة من الإحداثيات
+             * @param {Array<Array<number>>} coordsArray - مصفوفة الإحداثيات
+             */
+             const zoomToShowMarkers = (coordsArray = null) => {
+                 try {
+                     if (!state.map) return;
+                     const validCoords = coordsArray && Array.isArray(coordsArray)
+                         ? coordsArray.filter(coord => Array.isArray(coord) && coord.length === 2)
+                         : [];
 
-                // --- دالة عرض العلامات المعدلة (بدون تجميع) ---
-                function displayFilteredMarkers() {
-                    try {
-                        if (!map || !opportunitiesData) return;
-                        if (currentCityFilter === 'all') { displayCityMarkers(); return; }
-                        clearCityMarkers(); // حذف علامات المدن
-                        clearOpportunityMarkers(); // <<-- حذف علامات الفرص القديمة
-                        hideInfoCard();
+                     if (validCoords.length > 0) {
+                         try {
+                             const bounds = L.latLngBounds(validCoords);
+                             state.map.flyToBounds(bounds, {
+                                 paddingTopLeft: [30, 230], // مساحة للناف بار
+                                 paddingBottomRight: [60, 30], // مساحة للبطاقة والأزرار
+                                 maxZoom: 16,
+                                 duration: 1.0
+                             });
+                         } catch (boundsError) {
+                             console.error("Error creating or flying to bounds:", boundsError, validCoords);
+                             flyToCity(state.currentCityFilter); // fallback
+                         }
+                     } else if (state.currentCityFilter !== 'all') {
+                         flyToCity(state.currentCityFilter);
+                     } else {
+                         flyToCity('all');
+                     }
+                 } catch (error) {
+                     console.error("Error in zoomToShowMarkers:", error);
+                 }
+             };
 
-                        activeMarkerWrapperElement = null;
-                        currentViewMode = 'opportunities';
-                        if (cityNavigatorPanel) cityNavigatorPanel.classList.add('show-status-filters');
-                        updateSummaryPanel(currentCityFilter);
+            /**
+             * إنشاء علامة فرصة واحدة
+             * @param {object} opportunity - بيانات الفرصة
+             * @param {number} index - ترتيب العلامة للأنيميشن
+             * @returns {L.Marker|null}
+             */
+            const createOpportunityMarker = (opportunity, index) => {
+                 if (!opportunity || !opportunity.coords || !Array.isArray(opportunity.coords) || opportunity.coords.length !== 2) {
+                     console.warn(`Skipping opportunity with invalid coords: ${opportunity?.id || 'unknown ID'}`);
+                     return null;
+                 }
+                 const animationDelay = (index * config.animationBaseDelayMs) + 'ms';
+                 const displayId = index + 1; // رقم تسلسلي للعرض
+                 const iconHtml = ` <div class="marker-icon-wrapper opportunity-marker" style="animation-delay: ${animationDelay};"> <div class="custom-marker-icon">${displayId}</div> </div>`;
+                 const customIcon = L.divIcon({ html: iconHtml, className: '', iconSize: [32, 32], iconAnchor: [16, 16] });
 
-                        const filteredData = opportunitiesData.filter(op => op && op.city === currentCityFilter && (currentStatusFilter === 'all' || op.status === currentStatusFilter));
-                        const filteredCoords = [];
+                 try {
+                     const marker = L.marker(opportunity.coords, { icon: customIcon });
+                     marker.opportunityData = opportunity; // ربط البيانات بالعلامة
 
-                        if (filteredData.length === 0) {
-                            console.log("No opportunities match filters.");
-                            return; // لا يوجد شيء لعرضه
+                     marker.on('click', handleMarkerClick); // استخدام دالة معالج الحدث
+
+                     return marker;
+                 } catch (markerError) {
+                     console.error("Error creating marker:", markerError, "for opportunity:", opportunity);
+                     return null;
+                 }
+            };
+
+            /**
+             * إنشاء علامة مدينة واحدة
+             * @param {object} cityInfo - بيانات المدينة { name, coords, displayId }
+             * @returns {L.Marker|null}
+             */
+            const createCityMarker = (cityInfo) => {
+                 if (!cityInfo || !cityInfo.coords || !Array.isArray(cityInfo.coords) || cityInfo.coords.length !== 2) {
+                    console.warn("Skipping city with invalid info:", cityInfo);
+                    return null;
+                 }
+                 try {
+                     const animationDelay = ((cityInfo.displayId - 1) * (config.animationBaseDelayMs * 2)) + 'ms'; // تأخير أكبر للمدن
+                     const iconHtml = ` <div class="marker-icon-wrapper city-marker" style="animation-delay: ${animationDelay};"> <div class="custom-marker-icon">${cityInfo.displayId}</div> </div>`;
+                     const customIcon = L.divIcon({ html: iconHtml, className: '', iconSize: [38, 38], iconAnchor: [19, 19] });
+                     const marker = L.marker(cityInfo.coords, { icon: customIcon, zIndexOffset: 100 });
+
+                     marker.on('click', () => handleCityMarkerClick(cityInfo.name)); // استدعاء المعالج باسم المدينة
+
+                     return marker;
+                 } catch (cityMarkerError) {
+                     console.error("Error creating city marker:", cityMarkerError, "for city:", cityInfo);
+                     return null;
+                 }
+            };
+
+            /**
+             * مسح علامات الفرص المعروضة حالياً
+             */
+            const clearOpportunityMarkers = () => {
+                try {
+                    state.displayedOpportunityMarkers.forEach(marker => {
+                        if (marker && state.map && state.map.hasLayer(marker)) {
+                            state.map.removeLayer(marker);
                         }
-
-                        filteredData.forEach((opportunity, index) => {
-                            if (!opportunity || !opportunity.coords || !Array.isArray(opportunity.coords) || opportunity.coords.length !== 2) {
-                                console.warn(`Skipping opportunity with invalid coords: ${opportunity?.id || 'unknown ID'}`);
-                                return;
-                            }
-                            filteredCoords.push(opportunity.coords);
-
-                            const animationDelay = (index * 500) + 'ms'; // <<-- تأخير الأنيميشن التسلسلي
-                            const displayId = index + 1;
-                            const iconHtml = ` <div class="marker-icon-wrapper opportunity-marker" style="animation-delay: ${animationDelay};"> <div class="custom-marker-icon">${displayId}</div> </div>`; // تطبيق الأنيميشن
-                            const customIcon = L.divIcon({ html: iconHtml, className: '', iconSize: [32, 32], iconAnchor: [16, 16] });
-
-                            try {
-                                const marker = L.marker(opportunity.coords, { icon: customIcon });
-                                marker.opportunityData = opportunity; // ربط البيانات بالعلامة
-
-                                marker.on('click', (e) => {
-                                    try {
-                                        const clickedOpportunity = e.target.opportunityData; if (!clickedOpportunity) return;
-                                        if (activeMarkerWrapperElement) { activeMarkerWrapperElement.classList.remove('marker-selected'); }
-                                        const wrapperElement = e.target._icon; if (wrapperElement) { wrapperElement.classList.add('marker-selected'); activeMarkerWrapperElement = wrapperElement; }
-                                        const currentZoom = map.getZoom();
-                                        map.setView(clickedOpportunity.coords, Math.max(currentZoom, 16), { animate: true, duration: 0.5 });
-                                        showInfoCard(clickedOpportunity);
-                                    } catch (clickError) { console.error("Error during marker click:", clickError); }
-                                });
-
-                                // ++ إضافة العلامة مباشرة للخريطة ++
-                                marker.addTo(map);
-                                // ++ تخزين المرجع للعلامة لحذفها لاحقاً ++
-                                displayedOpportunityMarkers.push(marker);
-
-                            } catch (markerError) {
-                                console.error("Error creating marker:", markerError, "for opportunity:", opportunity);
-                            }
-                        });
-
-                        // التقريب لعرض العلامات المضافة
-                        if (filteredCoords.length > 0) {
-                            // تأخير بسيط للسماح للأنيميشن بالبدء قبل التقريب
-                            setTimeout(() => {
-                                zoomToShowMarkers(filteredCoords);
-                            }, 150);
-                        } else {
-                            flyToCity(currentCityFilter);
-                        }
-                    } catch (error) {
-                        console.error("Error in displayFilteredMarkers:", error);
-                    }
-                }
-
-                // --- دالة حذف علامات الفرص المعدلة ---
-                function clearOpportunityMarkers() {
-                    try {
-                        displayedOpportunityMarkers.forEach(marker => {
-                            if (marker && map && map.hasLayer(marker)) {
-                                map.removeLayer(marker);
-                            }
-                        });
-                        displayedOpportunityMarkers = []; // إفراغ المصفوفة
-                    } catch (e) {
-                        console.error("Error clearing opportunity markers:", e);
-                    }
-                }
-
-                function clearCityMarkers() { /* ... نفس الكود السابق ... */ try { cityMarkers.forEach(marker => {if(marker && map && map.hasLayer(marker)) map.removeLayer(marker);}); cityMarkers = []; } catch(e) { console.error("Error clearing city markers:", e); } }
-                function displayCityMarkers() { /* ... نفس الكود السابق مع استدعاء clearOpportunityMarkers المعدلة ... */ try { if (!map || !opportunitiesData) return; clearOpportunityMarkers(); clearCityMarkers(); hideInfoCard(); currentViewMode = 'cities'; const cities = [...new Set(opportunitiesData.map(op => op?.city).filter(Boolean))]; cities.sort((a, b) => { if (a === 'الرياض') return -1; if (b === 'الرياض') return 1; if (a === 'أبها') return -1; if (b === 'أبها') return 1; return a.localeCompare(b); }); cityListForMarkers = cities.map((cityName, index) => ({ name: cityName, coords: cityViews[cityName]?.center || null, displayId: index + 1 })).filter(city => city && city.coords && Array.isArray(city.coords) && city.coords.length === 2); cityListForMarkers.forEach((cityInfo) => { try { const animationDelay = ((cityInfo.displayId-1) * 200) + 'ms'; const iconHtml = ` <div class="marker-icon-wrapper city-marker" style="animation-delay: ${animationDelay};"> <div class="custom-marker-icon">${cityInfo.displayId}</div> </div>`; const customIcon = L.divIcon({ html: iconHtml, className: '', iconSize: [38, 38], iconAnchor: [19, 19] }); const marker = L.marker(cityInfo.coords, { icon: customIcon, zIndexOffset: 100 }); marker.on('click', (e) => { try { const cityLi = cityNavigatorList.querySelector(`li[data-city="${cityInfo.name}"]`); if (cityLi) { handleCitySelection({ currentTarget: cityLi }); } } catch (cityClickError) { console.error("Error during city marker click:", cityClickError); } }); marker.addTo(map); cityMarkers.push(marker); } catch(cityMarkerError) { console.error("Error creating city marker:", cityMarkerError, "for city:", cityInfo); } }); if(citySummaryContainer) citySummaryContainer.style.display = 'none'; } catch (error) { console.error("Error in displayCityMarkers:", error); } }
-                function updateSummaryPanel(cityName) { /* ... نفس الكود السابق ... */ if (!citySummaryContainer || !summarySuitableCount || !summaryEvaluatingCount || !summaryUnsuitableCount || !opportunitiesData ) return; if (cityName === 'all') { citySummaryContainer.style.display = 'none'; return; } let suitable = 0, evaluating = 0, unsuitable = 0; opportunitiesData.forEach(op => { if (op && op.city === cityName) { if (op.status === 'مناسبة') suitable++; else if (op.status === 'قيد التقييم') evaluating++; else if (op.status === 'غير مناسبة') unsuitable++; } }); summarySuitableCount.textContent = suitable; summaryEvaluatingCount.textContent = evaluating; summaryUnsuitableCount.textContent = unsuitable; citySummaryContainer.style.display = 'block'; }
-                function handleCitySelection(e) { /* ... نفس الكود السابق ... */ try { const clickedElement = e.currentTarget; if (!clickedElement || !clickedElement.dataset) return; const selectedCity = clickedElement.dataset.city; currentCityFilter = selectedCity; if(activeCityListItem) { activeCityListItem.classList.remove('active'); } const newActiveLi = cityNavigatorList.querySelector(`li[data-city="${selectedCity}"]`); if(newActiveLi){ newActiveLi.classList.add('active'); activeCityListItem = newActiveLi; } flyToCity(currentCityFilter); currentStatusFilter = 'all'; if (statusFilterButtons) { statusFilterButtons.forEach(btn => btn.classList.remove('active')); const allStatusBtn = statusFilterDiv?.querySelector('button[data-status="all"]'); if(allStatusBtn) allStatusBtn.classList.add('active'); } updateSummaryPanel(currentCityFilter); if (currentCityFilter === 'all') { currentViewMode = 'cities'; if (cityNavigatorPanel) cityNavigatorPanel.classList.remove('show-status-filters'); if(citySummaryContainer) citySummaryContainer.style.display = 'none'; clearOpportunityMarkers(); displayCityMarkers(); } else { currentViewMode = 'opportunities'; if (cityNavigatorPanel) cityNavigatorPanel.classList.add('show-status-filters'); if(citySummaryContainer) citySummaryContainer.style.display = 'block'; clearCityMarkers(); displayFilteredMarkers(); } } catch (error) { console.error("Error in handleCitySelection:", error); } }
-                function handleStatusFilterClick(e) { /* ... نفس الكود السابق ... */ try { if (!e || !e.currentTarget) return; currentStatusFilter = e.currentTarget.getAttribute('data-status'); if(statusFilterButtons) statusFilterButtons.forEach(btn => btn.classList.remove('active')); e.currentTarget.classList.add('active'); displayFilteredMarkers(); } catch (error) { console.error("Error handling status filter click:", error); } }
-                function handleSummaryPanelClick(e) { /* ... نفس الكود السابق ... */ try { if(!e || !e.target) return; const targetSpan = e.target.closest('.summary-status-filter'); if (!targetSpan || !targetSpan.dataset) return; const statusToFilter = targetSpan.dataset.status; if (!statusToFilter) return; const correspondingButton = statusFilterDiv?.querySelector(`button[data-status="${statusToFilter}"]`); if (correspondingButton) { currentStatusFilter = statusToFilter; if(statusFilterButtons) statusFilterButtons.forEach(btn => { if (btn.dataset.status === statusToFilter) { btn.classList.add('active'); } else { btn.classList.remove('active'); } }); displayFilteredMarkers(); } } catch (error) { console.error("Error handling summary panel click:", error); } }
-                function handleZoomEnd() { /* ... نفس الكود السابق ... */ try { if (!map || !cityNavigatorList) return; const currentZoom = map.getZoom(); if (currentViewMode === 'opportunities' && currentCityFilter !== 'all' && currentZoom < cityViewZoomThreshold) { const allCitiesLi = cityNavigatorList.querySelector('li[data-city="all"]'); if (allCitiesLi) handleCitySelection({ currentTarget: allCitiesLi }); } else if (currentViewMode === 'cities' && currentCityFilter === 'all' && currentZoom >= opportunityViewZoomThreshold) { const mapCenter = map.getCenter(); let closestCity = null; let minDist = Infinity; cityListForMarkers.forEach(cityInfo => { if(cityInfo.coords) { try{ const dist = mapCenter.distanceTo(L.latLng(cityInfo.coords)); if (dist < minDist) { minDist = dist; closestCity = cityInfo; } } catch(distError){ console.warn("Could not calculate distance for city:", cityInfo, distError); } } }); if (closestCity && minDist < maxDistanceForCitySwitch) { const cityLi = cityNavigatorList.querySelector(`li[data-city="${closestCity.name}"]`); if (cityLi) handleCitySelection({ currentTarget: cityLi }); } } } catch(e) { console.error("Error in handleZoomEnd:", e); } }
-
-                // --- Event Listeners ---
-                if (statusFilterButtons) { statusFilterButtons.forEach(button => { button.addEventListener('click', handleStatusFilterClick); }); }
-                if (infoCardCloseBtn) infoCardCloseBtn.addEventListener('click', hideInfoCard); // سيقوم بالتقريب الآن
-                if (map) { map.on('click', (e) => { if (e.originalEvent.target.closest('.leaflet-marker-icon') === null && e.originalEvent.target.closest('.leaflet-popup') === null) { if (infoCard && infoCard.classList.contains('visible')) { hideInfoCard(); } } }); map.on('zoomend', handleZoomEnd); }
-                if (fullscreenButton) { fullscreenButton.addEventListener('click', () => { try { if (!document.fullscreenElement) { if(mapContainer.requestFullscreen) mapContainer.requestFullscreen().catch(err => { console.error(`Fullscreen request failed: ${err.message}`); }); else console.warn("Fullscreen API not supported"); if(fullscreenIcon) fullscreenIcon.classList.replace('fa-expand', 'fa-compress'); } else { if(document.exitFullscreen) document.exitFullscreen(); if(fullscreenIcon) fullscreenIcon.classList.replace('fa-compress', 'fa-expand'); } } catch (fsError) { console.error("Fullscreen Error:", fsError);} });}
-                if (document) { document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && fullscreenIcon) { fullscreenIcon.classList.replace('fa-compress', 'fa-expand'); } });}
-                // مستمع زر zoomAllButton المعدل
-                if (zoomAllButton) { zoomAllButton.addEventListener('click', () => {
-                    try {
-                        if (!map || !opportunitiesData) return;
-                        let coordsForZoom;
-                        if (currentCityFilter === 'all') {
-                            // عرض كل المدن
-                            coordsForZoom = cityListForMarkers.map(c => c.coords).filter(Boolean);
-                        } else {
-                             // عرض كل الفرص في المدينة والحالة المحددة حالياً
-                             coordsForZoom = opportunitiesData
-                                 .filter(op => op && op.city === currentCityFilter && (currentStatusFilter === 'all' || op.status === currentStatusFilter) && op.coords)
-                                 .map(op => op.coords);
-                        }
-                        // إذا لم نجد إحداثيات (ربما لا توجد فرص مطابقة للفلتر)
-                        if (!coordsForZoom || coordsForZoom.length === 0) {
-                             // إذا كنا في عرض مدينة، ابق فيها، وإلا اذهب لعرض كل المدن
-                             if (currentCityFilter !== 'all') { flyToCity(currentCityFilter); } else { flyToCity('all'); }
-                        } else {
-                             zoomToShowMarkers(coordsForZoom); // استخدم الدالة العامة للتقريب
-                        }
-                    } catch (zaError) { console.error("Zoom All Error:", zaError);}
-                });}
-                if (cityNavigatorPanel) { cityNavigatorPanel.addEventListener('click', handleSummaryPanelClick); }
-
-                // --- Initial Load Actions ---
-                if (map) {
-                    map.whenReady(() => {
-                        try {
-                            if (opportunitiesData.length === 0) { console.warn("No data available when map is ready."); if(loadingScreen) {loadingScreen.classList.add('hidden'); setTimeout(() => { if(loadingScreen) loadingScreen.remove(); }, 500); } return; }
-                            if (!cityNavigatorList || !cityNavigatorPanel) throw new Error("City Navigator elements not found");
-                            displayCityNavigator();
-                            if (loadingScreen) { loadingScreen.classList.add('hidden'); setTimeout(() => { if(loadingScreen) loadingScreen.remove(); }, 500); }
-                            if (cityNavigatorPanel) cityNavigatorPanel.classList.add('visible');
-                            currentCityFilter = 'all'; currentStatusFilter = 'all'; currentViewMode = 'cities';
-                            const initialActiveCityItem = cityNavigatorList.querySelector('li[data-city="all"]'); if (initialActiveCityItem) { initialActiveCityItem.classList.add('active'); activeCityListItem = initialActiveCityItem; }
-                            const initialActiveStatusButton = statusFilterDiv?.querySelector('button[data-status="all"]'); if(initialActiveStatusButton) { initialActiveStatusButton.classList.add('active'); }
-                            if (cityNavigatorPanel) cityNavigatorPanel.classList.remove('show-status-filters'); if (citySummaryContainer) citySummaryContainer.style.display = 'none';
-                            displayCityMarkers(); flyToCity('all');
-                        } catch (error) { console.error("Error during map.whenReady execution:", error); if(loadingScreen) {loadingScreen.classList.add('hidden'); setTimeout(() => { if(loadingScreen) loadingScreen.remove(); }, 500); } alert("حدث خطأ فادح عند تهيئة الخريطة. يرجى التحقق من Console."); }
                     });
-                } else { console.error("Map object not initialized."); if(loadingScreen) loadingScreen.style.display = 'none'; }
+                    state.displayedOpportunityMarkers = [];
+                } catch (e) {
+                    console.error("Error clearing opportunity markers:", e);
+                }
+            };
 
-            }); // End DOMContentLoaded
+            /**
+             * مسح علامات المدن المعروضة حالياً
+             */
+            const clearCityMarkers = () => {
+                try {
+                    state.cityMarkers.forEach(marker => {
+                        if (marker && state.map && state.map.hasLayer(marker)) {
+                            state.map.removeLayer(marker);
+                        }
+                    });
+                    state.cityMarkers = [];
+                } catch (e) {
+                    console.error("Error clearing city markers:", e);
+                }
+            };
+
+            /**
+             * عرض علامات الفرص المفلترة
+             */
+            const displayFilteredMarkers = () => {
+                try {
+                    if (!state.map || !state.opportunitiesData) return;
+                    if (state.currentCityFilter === 'all') { displayCityMarkers(); return; } // لا تعرض فرص إذا كان الفلتر "الكل"
+
+                    clearCityMarkers();
+                    clearOpportunityMarkers(); // مسح العلامات السابقة
+                    hideInfoCard();
+
+                    state.activeMarkerWrapperElement = null;
+                    state.currentViewMode = 'opportunities';
+                    if (state.dom.cityNavigatorPanel) state.dom.cityNavigatorPanel.classList.add('show-status-filters');
+                    updateSummaryPanel(state.currentCityFilter); // تحديث ملخص المدينة
+
+                    const filteredData = state.opportunitiesData.filter(op =>
+                        op && op.city === state.currentCityFilter && (state.currentStatusFilter === 'all' || op.status === state.currentStatusFilter)
+                    );
+
+                    if (filteredData.length === 0) {
+                        console.log("No opportunities match filters.");
+                         // يمكن إظهار رسالة للمستخدم هنا
+                        return;
+                    }
+
+                    const filteredCoords = [];
+                    filteredData.forEach((opportunity, index) => {
+                        const marker = createOpportunityMarker(opportunity, index);
+                        if (marker) {
+                            marker.addTo(state.map);
+                            state.displayedOpportunityMarkers.push(marker);
+                            if (opportunity.coords) filteredCoords.push(opportunity.coords); // جمع الإحداثيات الصالحة فقط
+                        }
+                    });
+
+                    // التقريب لعرض العلامات المضافة
+                    if (filteredCoords.length > 0) {
+                        setTimeout(() => zoomToShowMarkers(filteredCoords), 150); // تأخير بسيط للأنيميشن
+                    } else {
+                        flyToCity(state.currentCityFilter); // إذا لم تكن هناك إحداثيات صالحة
+                    }
+                } catch (error) {
+                    console.error("Error in displayFilteredMarkers:", error);
+                }
+            };
+
+            /**
+             * عرض علامات المدن
+             */
+             const displayCityMarkers = () => {
+                 try {
+                     if (!state.map || !state.opportunitiesData) return;
+                     clearOpportunityMarkers(); // مسح علامات الفرص
+                     clearCityMarkers(); // مسح علامات المدن القديمة
+                     hideInfoCard();
+                     state.currentViewMode = 'cities';
+
+                     // الحصول على قائمة فريدة للمدن من البيانات
+                     const cities = [...new Set(state.opportunitiesData.map(op => op?.city).filter(Boolean))];
+                     cities.sort((a, b) => { if (a === 'الرياض') return -1; if (b === 'الرياض') return 1; if (a === 'أبها') return -1; if (b === 'أبها') return 1; return a.localeCompare(b); });
+
+                     // بناء قائمة المدن مع إحداثياتها من config
+                     state.cityListForMarkers = cities
+                         .map((cityName, index) => ({
+                             name: cityName,
+                             coords: config.cityViews[cityName]?.center || null, // جلب الإحداثيات من config
+                             displayId: index + 1
+                         }))
+                         .filter(city => city && city.coords && Array.isArray(city.coords) && city.coords.length === 2); // التأكد من صلاحية البيانات
+
+                     state.cityListForMarkers.forEach((cityInfo) => {
+                         const marker = createCityMarker(cityInfo);
+                         if (marker) {
+                             marker.addTo(state.map);
+                             state.cityMarkers.push(marker);
+                         }
+                     });
+
+                     if (state.dom.citySummaryContainer) state.dom.citySummaryContainer.style.display = 'none'; // إخفاء ملخص المدينة
+                 } catch (error) {
+                     console.error("Error in displayCityMarkers:", error);
+                 }
+             };
+
+
+            // ---===[ 5. دوال تحديث واجهة المستخدم (UI) ]===---
+
+            /**
+             * إظهار بطاقة المعلومات لفرصة محددة
+             * @param {object} opportunity - بيانات الفرصة
+             */
+             const showInfoCard = (opportunity) => {
+                 try {
+                     if (!state.dom.infoCard || !opportunity) return;
+
+                     // تحديث العنوان وشارة الحالة
+                     updateElementContent(state.dom.infoCardTitle, opportunity.name || 'لا يوجد اسم');
+                     let statusClass = '';
+                     let statusText = opportunity.status;
+                     switch (opportunity.status) {
+                         case 'مناسبة': statusClass = 'status-suitable'; break;
+                         case 'غير مناسبة': statusClass = 'status-unsuitable'; break;
+                         case 'قيد التقييم': default: statusClass = 'status-evaluating'; statusText = 'قيد التقييم'; break;
+                     }
+                     if (state.dom.infoCardStatusBadge) {
+                         state.dom.infoCardStatusBadge.className = `status-badge ${statusClass}`;
+                         state.dom.infoCardStatusBadge.textContent = statusText;
+                     }
+
+                     // تحديث باقي الحقول باستخدام الدالة المساعدة
+                     updateElementContent(state.dom.infoCardArea, opportunity.area);
+                     updateElementContent(state.dom.infoCardBuyPrice, opportunity.buy_price_sqm, { isCurrency: true });
+                     updateElementContent(state.dom.infoCardTotalCost, opportunity.total_cost, { isCurrency: true });
+                     updateElementContent(state.dom.infoCardDevCost, opportunity.dev_cost, { isCurrency: true, unit: opportunity.dev_cost_unit || '' });
+                     updateElementContent(state.dom.infoCardOtherCosts, opportunity.other_costs, { isCurrency: true });
+                     updateElementContent(state.dom.infoCardDesignCost, opportunity.design_cost, { isCurrency: true });
+                     updateElementContent(state.dom.infoCardExecCost, opportunity.execution_cost, { isCurrency: true });
+                     updateElementContent(state.dom.infoCardEstSales, opportunity.est_sales, { isCurrency: true });
+                     updateElementContent(state.dom.infoCardCommValue, opportunity.comm_value, { isCurrency: true });
+                     updateElementContent(state.dom.infoCardCommExecPrice, opportunity.comm_exec_price, { isCurrency: true });
+                     updateElementContent(state.dom.infoCardResArea, opportunity.res_area);
+                     updateElementContent(state.dom.infoCardResValue, opportunity.res_value, { isCurrency: true });
+                     updateElementContent(state.dom.infoCardResExecPrice, opportunity.res_exec_price, { isCurrency: true });
+                     updateElementContent(state.dom.infoCardBreakeven, opportunity.breakeven, { isCurrency: true });
+                     updateElementContent(state.dom.infoCardNotes, opportunity.notes || '-');
+
+                     // تحديث النسب المئوية
+                     updateProgressBar(opportunity.roi, state.dom.infoCardRoiBar, state.dom.infoCardRoiText, state.dom.infoCardRoiNA);
+                     updatePieChart(opportunity.irr, state.dom.infoCardIrrPie, state.dom.infoCardIrrText, state.dom.infoCardIrrNA);
+
+                     // تحديث رابط خرائط جوجل
+                     if (state.dom.infoCardGmapsLink) state.dom.infoCardGmapsLink.href = opportunity.googleMapsLink || '#';
+
+                     state.dom.infoCard.classList.add('visible');
+
+                 } catch (error) {
+                     console.error("Error in showInfoCard:", error);
+                 }
+             };
+
+            /**
+             * إخفاء بطاقة المعلومات والتقريب لاحتواء العلامات
+             */
+             const hideInfoCard = () => {
+                 try {
+                     if (state.dom.infoCard) state.dom.infoCard.classList.remove('visible');
+                     if (state.activeMarkerWrapperElement) {
+                         state.activeMarkerWrapperElement.classList.remove('marker-selected');
+                         state.activeMarkerWrapperElement = null;
+                     }
+                     // Reset progress bars after animation
+                     setTimeout(() => {
+                         if (state.dom.infoCardRoiBar) state.dom.infoCardRoiBar.style.width = '0%';
+                         if (state.dom.infoCardIrrPie) state.dom.infoCardIrrPie.style.background = '';
+                     }, 400);
+
+                     // Zoom out to fit current view
+                     let coordsToZoom;
+                     if (state.currentCityFilter === 'all') {
+                         coordsToZoom = state.cityListForMarkers.map(city => city.coords).filter(Boolean);
+                     } else {
+                         // Zoom to fit all opportunities in the current city (status filter is ignored on close)
+                         coordsToZoom = state.opportunitiesData
+                             .filter(op => op && op.city === state.currentCityFilter && op.coords)
+                             .map(op => op.coords);
+                     }
+                      // Delay zoom slightly
+                     setTimeout(() => {
+                        zoomToShowMarkers(coordsToZoom);
+                     }, 100);
+
+                 } catch (error) {
+                     console.error("Error in hideInfoCard:", error);
+                 }
+             };
+
+            /**
+             * عرض قائمة المدن في الناف بار
+             */
+             const displayCityNavigator = () => {
+                 try {
+                     if (!state.dom.cityNavigatorList || !state.opportunitiesData) return;
+                     const cities = [...new Set(state.opportunitiesData.map(op => op?.city).filter(Boolean))];
+                     cities.sort((a, b) => { if (a === 'الرياض') return -1; if (b === 'الرياض') return 1; if (a === 'أبها') return -1; if (b === 'أبها') return 1; return a.localeCompare(b); });
+
+                     state.dom.cityNavigatorList.innerHTML = ''; // Clear previous list
+
+                     // Add "All Cities" option
+                     const allLi = document.createElement('li');
+                     allLi.textContent = 'كل المدن';
+                     allLi.dataset.city = 'all';
+                     if (state.currentCityFilter === 'all') {
+                         allLi.classList.add('active');
+                         state.activeCityListItem = allLi;
+                     }
+                     allLi.addEventListener('click', handleCitySelection);
+                     state.dom.cityNavigatorList.appendChild(allLi);
+
+                     // Add individual cities
+                     cities.forEach((city, index) => {
+                         const li = document.createElement('li');
+                         const cityNumber = document.createElement('span');
+                         cityNumber.className = 'city-number';
+                         cityNumber.textContent = index + 1;
+                         li.appendChild(cityNumber);
+                         li.appendChild(document.createTextNode(` ${city}`));
+                         li.dataset.city = city;
+                         if (state.currentCityFilter === city) {
+                             li.classList.add('active');
+                             state.activeCityListItem = li;
+                         }
+                         li.addEventListener('click', handleCitySelection);
+                         state.dom.cityNavigatorList.appendChild(li);
+                     });
+                 } catch (error) {
+                     console.error("Error in displayCityNavigator:", error);
+                 }
+             };
+
+            /**
+             * تحديث لوحة ملخص المدينة
+             * @param {string} cityName - اسم المدينة
+             */
+            const updateSummaryPanel = (cityName) => {
+                 const container = state.dom.citySummaryContainer;
+                 if (!container || !state.dom.summarySuitableCount || !state.dom.summaryEvaluatingCount || !state.dom.summaryUnsuitableCount || !state.opportunitiesData) return;
+
+                 if (cityName === 'all') {
+                     container.style.display = 'none';
+                     return;
+                 }
+
+                 let suitable = 0, evaluating = 0, unsuitable = 0;
+                 state.opportunitiesData.forEach(op => {
+                     if (op && op.city === cityName) {
+                         if (op.status === 'مناسبة') suitable++;
+                         else if (op.status === 'قيد التقييم') evaluating++;
+                         else if (op.status === 'غير مناسبة') unsuitable++;
+                     }
+                 });
+
+                 state.dom.summarySuitableCount.textContent = suitable;
+                 state.dom.summaryEvaluatingCount.textContent = evaluating;
+                 state.dom.summaryUnsuitableCount.textContent = unsuitable;
+                 container.style.display = 'block';
+             };
+
+
+            // ---===[ 6. معالجات الأحداث Event Handlers ]===---
+
+            /** معالج النقر على علامة فرصة */
+            const handleMarkerClick = (e) => {
+                 try {
+                     const clickedOpportunity = e.target.opportunityData; if (!clickedOpportunity) return;
+                     if (state.activeMarkerWrapperElement) { state.activeMarkerWrapperElement.classList.remove('marker-selected'); }
+                     const wrapperElement = e.target._icon; if (wrapperElement) { wrapperElement.classList.add('marker-selected'); state.activeMarkerWrapperElement = wrapperElement; }
+                     const currentZoom = state.map.getZoom();
+                     state.map.setView(clickedOpportunity.coords, Math.max(currentZoom, 16), { animate: true, duration: 0.5 });
+                     showInfoCard(clickedOpportunity);
+                 } catch (clickError) { console.error("Error during marker click:", clickError); }
+             };
+
+             /** معالج النقر على علامة مدينة */
+            const handleCityMarkerClick = (cityName) => {
+                 try {
+                     const cityLi = state.dom.cityNavigatorList?.querySelector(`li[data-city="${cityName}"]`);
+                     if (cityLi) {
+                         handleCitySelection({ currentTarget: cityLi }); // استدعاء معالج اختيار المدينة
+                     }
+                 } catch (cityClickError) {
+                     console.error("Error during city marker click:", cityClickError);
+                 }
+            };
+
+
+            /** معالج اختيار مدينة من القائمة */
+             const handleCitySelection = (e) => {
+                 try {
+                     const clickedElement = e.currentTarget; if (!clickedElement || !clickedElement.dataset) return;
+                     const selectedCity = clickedElement.dataset.city;
+                     state.currentCityFilter = selectedCity;
+
+                     // تحديث العنصر النشط في القائمة
+                     if (state.activeCityListItem) { state.activeCityListItem.classList.remove('active'); }
+                     const newActiveLi = state.dom.cityNavigatorList?.querySelector(`li[data-city="${selectedCity}"]`);
+                     if (newActiveLi) { newActiveLi.classList.add('active'); state.activeCityListItem = newActiveLi; }
+
+                     flyToCity(state.currentCityFilter); // تحريك الخريطة
+
+                     // إعادة تعيين فلتر الحالة
+                     state.currentStatusFilter = 'all';
+                     if (state.dom.statusFilterButtons) {
+                        state.dom.statusFilterButtons.forEach(btn => btn.classList.remove('active'));
+                        const allStatusBtn = state.dom.statusFilterDiv?.querySelector('button[data-status="all"]');
+                        if(allStatusBtn) allStatusBtn.classList.add('active');
+                     }
+
+                     updateSummaryPanel(state.currentCityFilter); // تحديث الملخص
+
+                     // تحديث العرض على الخريطة وإظهار/إخفاء الفلاتر
+                     if (state.currentCityFilter === 'all') {
+                         state.currentViewMode = 'cities';
+                         if (state.dom.cityNavigatorPanel) state.dom.cityNavigatorPanel.classList.remove('show-status-filters');
+                         if (state.dom.citySummaryContainer) state.dom.citySummaryContainer.style.display = 'none';
+                         clearOpportunityMarkers();
+                         displayCityMarkers();
+                     } else {
+                         state.currentViewMode = 'opportunities';
+                         if (state.dom.cityNavigatorPanel) state.dom.cityNavigatorPanel.classList.add('show-status-filters');
+                         if (state.dom.citySummaryContainer) state.dom.citySummaryContainer.style.display = 'block';
+                         clearCityMarkers();
+                         displayFilteredMarkers(); // ستعرض العلامات مع الأنيميشن
+                     }
+                 } catch (error) {
+                     console.error("Error in handleCitySelection:", error);
+                 }
+             };
+
+            /** معالج النقر على أزرار فلتر الحالة */
+             const handleStatusFilterClick = (e) => {
+                 try {
+                     if (!e || !e.currentTarget) return;
+                     state.currentStatusFilter = e.currentTarget.getAttribute('data-status');
+                     if(state.dom.statusFilterButtons) state.dom.statusFilterButtons.forEach(btn => btn.classList.remove('active'));
+                     e.currentTarget.classList.add('active');
+                     displayFilteredMarkers(); // إعادة عرض العلامات بالفلتر الجديد
+                 } catch (error) {
+                     console.error("Error handling status filter click:", error);
+                 }
+             };
+
+            /** معالج النقر على ملخص الحالة */
+             const handleSummaryPanelClick = (e) => {
+                 try {
+                     if(!e || !e.target) return;
+                     const targetSpan = e.target.closest('.summary-status-filter'); if (!targetSpan || !targetSpan.dataset) return;
+                     const statusToFilter = targetSpan.dataset.status; if (!statusToFilter) return;
+                     const correspondingButton = state.dom.statusFilterDiv?.querySelector(`button[data-status="${statusToFilter}"]`);
+                     if (correspondingButton) {
+                         state.currentStatusFilter = statusToFilter;
+                         if(state.dom.statusFilterButtons) state.dom.statusFilterButtons.forEach(btn => {
+                             if (btn.dataset.status === statusToFilter) { btn.classList.add('active'); }
+                             else { btn.classList.remove('active'); }
+                         });
+                         displayFilteredMarkers();
+                     }
+                 } catch (error) {
+                     console.error("Error handling summary panel click:", error);
+                 }
+             };
+
+            /** معالج انتهاء التقريب/التصغير التلقائي */
+             const handleZoomEnd = () => {
+                 try {
+                     if (!state.map || !state.dom.cityNavigatorList) return;
+                     const currentZoom = state.map.getZoom();
+
+                     // التبديل من فرص إلى مدن عند التصغير الشديد
+                     if (state.currentViewMode === 'opportunities' && state.currentCityFilter !== 'all' && currentZoom < config.zoomThresholds.opportunitiesToCity) {
+                         const allCitiesLi = state.dom.cityNavigatorList.querySelector('li[data-city="all"]');
+                         if (allCitiesLi) handleCitySelection({ currentTarget: allCitiesLi });
+                     }
+                     // التبديل من مدن إلى أقرب مدينة عند التقريب الكافي
+                     else if (state.currentViewMode === 'cities' && state.currentCityFilter === 'all' && currentZoom >= config.zoomThresholds.cityToOpportunities) {
+                         const mapCenter = state.map.getCenter();
+                         let closestCity = null;
+                         let minDist = Infinity;
+
+                         state.cityListForMarkers.forEach(cityInfo => {
+                             if(cityInfo.coords) {
+                                 try{
+                                     const dist = mapCenter.distanceTo(L.latLng(cityInfo.coords));
+                                     if (dist < minDist) { minDist = dist; closestCity = cityInfo; }
+                                 } catch(distError){ console.warn("Could not calculate distance for city:", cityInfo, distError); }
+                             }
+                         });
+
+                         if (closestCity && minDist < config.maxDistanceForCitySwitch) {
+                             const cityLi = state.dom.cityNavigatorList.querySelector(`li[data-city="${closestCity.name}"]`);
+                             if (cityLi) handleCitySelection({ currentTarget: cityLi });
+                         }
+                     }
+                 } catch(e) {
+                     console.error("Error in handleZoomEnd:", e);
+                 }
+             };
+
+             /** معالج النقر على زر ملء الشاشة */
+             const handleFullscreenClick = () => {
+                 try {
+                     if (!document.fullscreenElement) {
+                         if(state.dom.mapContainer?.requestFullscreen) {
+                             state.dom.mapContainer.requestFullscreen().catch(err => { console.error(`Fullscreen request failed: ${err.message}`); });
+                         } else {
+                             console.warn("Fullscreen API not supported or element not found");
+                         }
+                         if(state.dom.fullscreenIcon) state.dom.fullscreenIcon.classList.replace('fa-expand', 'fa-compress');
+                     } else {
+                         if(document.exitFullscreen) document.exitFullscreen();
+                         if(state.dom.fullscreenIcon) state.dom.fullscreenIcon.classList.replace('fa-compress', 'fa-expand');
+                     }
+                 } catch (fsError) { console.error("Fullscreen Error:", fsError);}
+             };
+
+             /** معالج تغيير حالة ملء الشاشة */
+             const handleFullscreenChange = () => {
+                  if (!document.fullscreenElement && state.dom.fullscreenIcon) {
+                      state.dom.fullscreenIcon.classList.replace('fa-compress', 'fa-expand');
+                  }
+             };
+
+            /** معالج النقر على زر تقريب الكل */
+             const handleZoomAllClick = () => {
+                 try {
+                     if (!state.map || !state.opportunitiesData) return;
+                     let coordsForZoom;
+
+                     if (state.currentCityFilter === 'all') {
+                         coordsForZoom = state.cityListForMarkers.map(c => c.coords).filter(Boolean);
+                     } else {
+                          coordsForZoom = state.opportunitiesData
+                              .filter(op => op && op.city === state.currentCityFilter && (state.currentStatusFilter === 'all' || op.status === state.currentStatusFilter) && op.coords)
+                              .map(op => op.coords);
+                     }
+
+                     if (!coordsForZoom || coordsForZoom.length === 0) {
+                         if (state.currentCityFilter !== 'all') { flyToCity(state.currentCityFilter); }
+                         else { flyToCity('all'); }
+                     } else {
+                         zoomToShowMarkers(coordsForZoom);
+                     }
+                 } catch (zaError) { console.error("Zoom All Error:", zaError);}
+             };
+
+            /**
+             * ربط كل معالجات الأحداث
+             */
+            const setupEventListeners = () => {
+                 // فلتر الحالة
+                 if (state.dom.statusFilterButtons) {
+                     state.dom.statusFilterButtons.forEach(button => { button.addEventListener('click', handleStatusFilterClick); });
+                 }
+                 // إغلاق البطاقة
+                 if (state.dom.infoCardCloseBtn) state.dom.infoCardCloseBtn.addEventListener('click', hideInfoCard);
+                 // النقر على الخريطة (لإغلاق البطاقة)
+                 if (state.map) {
+                     state.map.on('click', (e) => {
+                         if (e.originalEvent.target.closest('.leaflet-marker-icon') === null && e.originalEvent.target.closest('.leaflet-popup') === null) {
+                             if (state.dom.infoCard && state.dom.infoCard.classList.contains('visible')) { hideInfoCard(); }
+                         }
+                     });
+                     state.map.on('zoomend', handleZoomEnd);
+                 }
+                 // ملء الشاشة
+                 if (state.dom.fullscreenButton) { state.dom.fullscreenButton.addEventListener('click', handleFullscreenClick); }
+                 document.addEventListener('fullscreenchange', handleFullscreenChange);
+                 // تقريب الكل
+                 if (state.dom.zoomAllButton) { state.dom.zoomAllButton.addEventListener('click', handleZoomAllClick); }
+                 // النقر على ملخص الحالة
+                 if (state.dom.cityNavigatorPanel) { state.dom.cityNavigatorPanel.addEventListener('click', handleSummaryPanelClick); } // Note: This catches clicks on the panel, including summary
+            };
+
+            // ---===[ 7. دالة التهيئة الرئيسية Main Initialization Function ]===---
+            const initApp = () => {
+                // 1. جلب عناصر DOM
+                if (!cacheDomElements()) return; // توقف إذا فشل جلب العناصر
+
+                // 2. تهيئة الخريطة
+                if (!initializeMap()) return; // توقف إذا فشلت تهيئة الخريطة
+
+                // 3. إعداد واجهة المستخدم الأولية
+                displayCityNavigator();
+                if (state.dom.cityNavigatorPanel) state.dom.cityNavigatorPanel.classList.add('visible');
+                // تعيين الفلاتر الافتراضية (تم تعيينها في state)
+                const initialActiveCityItem = state.dom.cityNavigatorList?.querySelector(`li[data-city="${state.currentCityFilter}"]`);
+                if (initialActiveCityItem) { initialActiveCityItem.classList.add('active'); state.activeCityListItem = initialActiveCityItem; }
+                const initialActiveStatusButton = state.dom.statusFilterDiv?.querySelector(`button[data-status="${state.currentStatusFilter}"]`);
+                if(initialActiveStatusButton) initialActiveStatusButton.classList.add('active');
+                if (state.dom.cityNavigatorPanel) state.dom.cityNavigatorPanel.classList.remove('show-status-filters');
+                if (state.dom.citySummaryContainer) state.dom.citySummaryContainer.style.display = 'none';
+
+                 // 4. عرض العلامات الأولية (علامات المدن)
+                 displayCityMarkers();
+                 flyToCity('all'); // البدء بعرض كل المدن
+
+                 // 5. ربط معالجات الأحداث
+                 setupEventListeners();
+
+                 // 6. إخفاء شاشة التحميل
+                 if (state.dom.loadingScreen) {
+                    state.dom.loadingScreen.classList.add('hidden');
+                    setTimeout(() => { state.dom.loadingScreen?.remove(); }, 500); // إزالتها بعد الانتهاء من التلاشي
+                 }
+                 console.log("Application Initialized.");
+            };
+
+
+            // ---===[ 8. نقطة البداية Entry Point ]===---
+            document.addEventListener('DOMContentLoaded', async () => {
+                try {
+                    // جلب البيانات أولاً
+                    const response = await fetch(config.jsonUrl);
+                    if (!response.ok) {
+                        console.error(`Failed to fetch ${config.jsonUrl}. Status: ${response.status} ${response.statusText}`);
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    state.opportunitiesData = await response.json(); // تخزين البيانات في state
+                    console.log('Data loaded successfully:', state.opportunitiesData.length, 'opportunities found.');
+
+                    // بدء تهيئة التطبيق بعد تحميل البيانات
+                    initApp();
+
+                } catch (error) {
+                    console.error("Could not load or initialize the application:", error);
+                    alert("حدث خطأ أثناء تحميل بيانات أو تهيئة التطبيق. لا يمكن عرض الخريطة.");
+                    const loading = document.getElementById('loading-screen'); // محاولة الوصول مباشرة
+                    if(loading) loading.style.display = 'none';
+                }
+            });
+
         } catch (globalError) {
+            // خطأ فادح جداً خارج نطاق التحميل الرئيسي
             console.error("!!! Global JavaScript Error:", globalError);
-            const loading = document.getElementById('loading-screen'); if (loading) loading.style.display = 'none';
+            const loading = document.getElementById('loading-screen');
+            if (loading) loading.style.display = 'none';
             alert("حدث خطأ عام فادح في الصفحة. يرجى التحقق من Console.");
         }
     </script>
