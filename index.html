@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>خريطة الفرص العقارية - تحسين الملخص والفلتر</title>
+    <title>خريطة الفرص العقارية - النسخة النهائية المعدلة</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
@@ -36,8 +36,7 @@
         #city-summary-counts-container.visible { opacity: 1; visibility: visible; }
         #city-summary-counts-container h5 { margin: 0 0 8px 0; font-size: 0.9em; color: var(--color-black); display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
         #city-summary-counts-container h5 i { color: var(--color-gold); }
-        /* ++ تنسيق اسم المدينة في الملخص ++ */
-        .summary-city-highlight { color: var(--color-dark-gold); font-weight: 700; }
+        .summary-city-highlight { color: var(--color-dark-gold); font-weight: 700; margin-right: 4px; /* مسافة بسيطة */ }
         #city-summary-counts-container .summary-counts { display: flex; flex-direction: column; gap: 5px; align-items: flex-start; }
         #city-summary-counts-container .summary-counts span { white-space: nowrap; font-size: 0.9em; }
         #city-summary-counts-container .summary-counts strong { margin-right: 4px; font-weight: 700; font-size: 1em; }
@@ -77,7 +76,8 @@
 
     <div id="map-container">
         <div id="loading-screen"><div class="spinner"></div><p>جاري تحميل الخريطة...</p></div>
-        <div id="city-navigator"> <h4>اختر المدينة:</h4> <ul id="city-list"></ul>
+        <div id="city-navigator">
+            <h4>اختر المدينة:</h4> <ul id="city-list"></ul>
             <div class="status-filters">
                 <button data-status="all" class="active">الكل</button> <button data-status="مناسبة">مناسبة</button> <button data-status="قيد التقييم">قيد التقييم</button> <button data-status="غير مناسبة">غير مناسبة</button>
             </div>
@@ -168,7 +168,7 @@
                 state.dom.cityNavigatorPanel = document.getElementById('city-navigator');
                 state.dom.statusFilterDiv = state.dom.cityNavigatorPanel?.querySelector('.status-filters');
                 state.dom.statusFilterButtons = state.dom.statusFilterDiv ? Array.from(state.dom.statusFilterDiv.querySelectorAll('button')) : [];
-                state.dom.citySummaryContainer = document.getElementById('city-summary-counts-container'); // الوصول للملخص
+                state.dom.citySummaryContainer = document.getElementById('city-summary-counts-container');
                 state.dom.summarySuitableCount = document.getElementById('summary-suitable-count');
                 state.dom.summaryEvaluatingCount = document.getElementById('summary-evaluating-count');
                 state.dom.summaryUnsuitableCount = document.getElementById('summary-unsuitable-count');
@@ -194,20 +194,109 @@
 
             // ---===[ 5. دوال تحديث واجهة المستخدم (UI) ]===---
             const showInfoCard = (opportunity) => { try { if (!state.dom.infoCard || !opportunity) return; updateElementContent(state.dom.infoCardTitle, opportunity.name || 'لا يوجد اسم'); let statusClass = '', statusText = opportunity.status; switch (opportunity.status) { case 'مناسبة': statusClass = 'status-suitable'; break; case 'غير مناسبة': statusClass = 'status-unsuitable'; break; case 'قيد التقييم': default: statusClass = 'status-evaluating'; statusText = 'قيد التقييم'; break; } if (state.dom.infoCardStatusBadge) { state.dom.infoCardStatusBadge.className = `status-badge ${statusClass}`; state.dom.infoCardStatusBadge.textContent = statusText; } updateElementContent(state.dom.infoCardArea, opportunity.area); updateElementContent(state.dom.infoCardBuyPrice, opportunity.buy_price_sqm, { isCurrency: true }); updateElementContent(state.dom.infoCardTotalCost, opportunity.total_cost, { isCurrency: true }); updateElementContent(state.dom.infoCardDevCost, opportunity.dev_cost, { isCurrency: true, unit: opportunity.dev_cost_unit || '' }); updateElementContent(state.dom.infoCardOtherCosts, opportunity.other_costs, { isCurrency: true }); updateElementContent(state.dom.infoCardDesignCost, opportunity.design_cost, { isCurrency: true }); updateElementContent(state.dom.infoCardExecCost, opportunity.execution_cost, { isCurrency: true }); updateElementContent(state.dom.infoCardEstSales, opportunity.est_sales, { isCurrency: true }); updateElementContent(state.dom.infoCardCommValue, opportunity.comm_value, { isCurrency: true }); updateElementContent(state.dom.infoCardCommExecPrice, opportunity.comm_exec_price, { isCurrency: true }); updateElementContent(state.dom.infoCardResArea, opportunity.res_area); updateElementContent(state.dom.infoCardResValue, opportunity.res_value, { isCurrency: true }); updateElementContent(state.dom.infoCardResExecPrice, opportunity.res_exec_price, { isCurrency: true }); updateElementContent(state.dom.infoCardBreakeven, opportunity.breakeven, { isCurrency: true }); updateElementContent(state.dom.infoCardNotes, opportunity.notes || '-'); updateProgressBar(opportunity.roi, state.dom.infoCardRoiBar, state.dom.infoCardRoiText, state.dom.infoCardRoiNA); updatePieChart(opportunity.irr, state.dom.infoCardIrrPie, state.dom.infoCardIrrText, state.dom.infoCardIrrNA); if (state.dom.infoCardGmapsLink) state.dom.infoCardGmapsLink.href = opportunity.googleMapsLink || '#'; state.dom.infoCard.classList.add('visible'); } catch (error) { console.error("Error in showInfoCard:", error); } };
-            const hideInfoCard = () => { try { if (state.dom.infoCard) state.dom.infoCard.classList.remove('visible'); if (state.activeMarkerWrapperElement) { state.activeMarkerWrapperElement.classList.remove('marker-selected'); state.activeMarkerWrapperElement = null; } setTimeout(() => { if (state.dom.infoCardRoiBar) state.dom.infoCardRoiBar.style.width = '0%'; if (state.dom.infoCardIrrPie) state.dom.infoCardIrrPie.style.background = ''; }, 400); let coordsToZoom; if (state.currentCityFilter === 'all') { coordsToZoom = state.cityListForMarkers.map(city => city.coords).filter(Boolean); } else { coordsToZoom = state.opportunitiesData .filter(op => op && op.city === state.currentCityFilter && op.coords) .map(op => op.coords); } setTimeout(() => { zoomToShowMarkers(coordsToZoom); }, 100); } catch (error) { console.error("Error in hideInfoCard:", error); } };
+            // ++ دالة إخفاء البطاقة المعدلة لإلغاء الفلتر ++
+            const hideInfoCard = () => {
+                try {
+                    // 1. إخفاء البطاقة وإزالة التحديد
+                    if (state.dom.infoCard) state.dom.infoCard.classList.remove('visible');
+                    if (state.activeMarkerWrapperElement) {
+                        state.activeMarkerWrapperElement.classList.remove('marker-selected');
+                        state.activeMarkerWrapperElement = null;
+                    }
+                    // إزالة تأثيرات النسبة المئوية
+                    setTimeout(() => {
+                        if (state.dom.infoCardRoiBar) state.dom.infoCardRoiBar.style.width = '0%';
+                        if (state.dom.infoCardIrrPie) state.dom.infoCardIrrPie.style.background = '';
+                    }, 400);
+
+                    // 2. إعادة تعيين فلتر الحالة داخليياً
+                    state.currentStatusFilter = 'all';
+
+                    // 3. تحديث أزرار فلتر الحالة بصرياً
+                    if (state.dom.statusFilterButtons && state.dom.statusFilterDiv) {
+                        state.dom.statusFilterButtons.forEach(btn => btn.classList.remove('active'));
+                        const allStatusBtn = state.dom.statusFilterDiv.querySelector('button[data-status="all"]');
+                        if (allStatusBtn) allStatusBtn.classList.add('active');
+                    }
+
+                    // 4. إعادة عرض العلامات (ستعرض كل العلامات للمدينة الحالية)
+                    //    أو التقريب إذا كان العرض "كل المدن"
+                    if (state.currentCityFilter !== 'all') {
+                         setTimeout(() => {
+                            displayFilteredMarkers(); // سيعيد الرسم بالفلتر 'all' ويتولى التقريب
+                         }, 50);
+                    } else {
+                        const coordsToZoom = state.cityListForMarkers.map(city => city.coords).filter(Boolean);
+                        setTimeout(() => {
+                            zoomToShowMarkers(coordsToZoom); // فقط تقريب إذا كنا في عرض الكل
+                         }, 100);
+                    }
+
+                } catch (error) {
+                    console.error("Error in hideInfoCard:", error);
+                }
+            };
             const displayCityNavigator = () => { try { if (!state.dom.cityNavigatorList || !state.opportunitiesData) return; const cities = [...new Set(state.opportunitiesData.map(op => op?.city).filter(Boolean))]; cities.sort((a, b) => { if (a === 'الرياض') return -1; if (b === 'الرياض') return 1; if (a === 'أبها') return -1; if (b === 'أبها') return 1; return a.localeCompare(b); }); state.dom.cityNavigatorList.innerHTML = ''; const allLi = document.createElement('li'); allLi.textContent = 'كل المدن'; allLi.dataset.city = 'all'; if (state.currentCityFilter === 'all') { allLi.classList.add('active'); state.activeCityListItem = allLi; } allLi.addEventListener('click', handleCitySelection); state.dom.cityNavigatorList.appendChild(allLi); cities.forEach((city, index) => { const li = document.createElement('li'); const cityNumber = document.createElement('span'); cityNumber.className = 'city-number'; cityNumber.textContent = index + 1; li.appendChild(cityNumber); li.appendChild(document.createTextNode(` ${city}`)); li.dataset.city = city; if (state.currentCityFilter === city) { li.classList.add('active'); state.activeCityListItem = li; } li.addEventListener('click', handleCitySelection); state.dom.cityNavigatorList.appendChild(li); }); } catch (error) { console.error("Error in displayCityNavigator:", error); } };
-            const updateSummaryPanel = (cityName) => { const container = state.dom.citySummaryContainer; if(state.dom.summaryCityName) { state.dom.summaryCityName.textContent = cityName === 'all' ? '' : cityName; } if (!container || !state.dom.summarySuitableCount || !state.dom.summaryEvaluatingCount || !state.dom.summaryUnsuitableCount || !state.opportunitiesData || cityName === 'all') return; let suitable = 0, evaluating = 0, unsuitable = 0; state.opportunitiesData.forEach(op => { if (op && op.city === cityName) { if (op.status === 'مناسبة') suitable++; else if (op.status === 'قيد التقييم') evaluating++; else if (op.status === 'غير مناسبة') unsuitable++; } }); state.dom.summarySuitableCount.textContent = suitable; state.dom.summaryEvaluatingCount.textContent = evaluating; state.dom.summaryUnsuitableCount.textContent = unsuitable; };
+            // ++ دالة تحديث الملخص المعدلة ++
+            const updateSummaryPanel = (cityName) => {
+                const container = state.dom.citySummaryContainer;
+                if(state.dom.summaryCityName) {
+                    state.dom.summaryCityName.textContent = cityName === 'all' ? '' : cityName; // تحديث اسم المدينة
+                }
+                if (!container || !state.dom.summarySuitableCount || !state.dom.summaryEvaluatingCount || !state.dom.summaryUnsuitableCount || !state.opportunitiesData || cityName === 'all') {
+                    return; // لا تعرض الأرقام إذا كان الفلتر 'all'
+                }
+                let suitable = 0, evaluating = 0, unsuitable = 0;
+                state.opportunitiesData.forEach(op => { if (op && op.city === cityName) { if (op.status === 'مناسبة') suitable++; else if (op.status === 'قيد التقييم') evaluating++; else if (op.status === 'غير مناسبة') unsuitable++; } });
+                state.dom.summarySuitableCount.textContent = suitable;
+                state.dom.summaryEvaluatingCount.textContent = evaluating;
+                state.dom.summaryUnsuitableCount.textContent = unsuitable;
+            };
 
             // ---===[ 6. معالجات الأحداث Event Handlers ]===---
             const handleMarkerClick = (e) => { try { const clickedOpportunity = e.target.opportunityData; if (!clickedOpportunity) return; if (state.activeMarkerWrapperElement) { state.activeMarkerWrapperElement.classList.remove('marker-selected'); } const wrapperElement = e.target._icon; if (wrapperElement) { wrapperElement.classList.add('marker-selected'); state.activeMarkerWrapperElement = wrapperElement; } const currentZoom = state.map.getZoom(); state.map.setView(clickedOpportunity.coords, Math.max(currentZoom, 16), { animate: true, duration: 0.5 }); showInfoCard(clickedOpportunity); } catch (clickError) { console.error("Error during marker click:", clickError); } };
             const handleCityMarkerClick = (cityName) => { try { const cityLi = state.dom.cityNavigatorList?.querySelector(`li[data-city="${cityName}"]`); if (cityLi) { handleCitySelection({ currentTarget: cityLi }); } } catch (cityClickError) { console.error("Error during city marker click:", cityClickError); } };
-            const handleCitySelection = (e) => { try { const clickedElement = e.currentTarget; if (!clickedElement || !clickedElement.dataset) return; const selectedCity = clickedElement.dataset.city; state.currentCityFilter = selectedCity; if (state.activeCityListItem) { state.activeCityListItem.classList.remove('active'); } const newActiveLi = state.dom.cityNavigatorList?.querySelector(`li[data-city="${selectedCity}"]`); if(newActiveLi){ newActiveLi.classList.add('active'); state.activeCityListItem = newActiveLi; } flyToCity(state.currentCityFilter); state.currentStatusFilter = 'all'; if (state.dom.statusFilterButtons) { state.dom.statusFilterButtons.forEach(btn => btn.classList.remove('active')); const allStatusBtn = state.dom.statusFilterDiv?.querySelector('button[data-status="all"]'); if(allStatusBtn) allStatusBtn.classList.add('active'); } updateSummaryPanel(state.currentCityFilter); if (state.currentCityFilter === 'all') { state.currentViewMode = 'cities'; state.dom.cityNavigatorPanel?.classList.remove('show-status-filters'); state.dom.citySummaryContainer?.classList.remove('visible'); clearOpportunityMarkers(); displayCityMarkers(); } else { state.currentViewMode = 'opportunities'; state.dom.cityNavigatorPanel?.classList.add('show-status-filters'); state.dom.citySummaryContainer?.classList.add('visible'); clearCityMarkers(); displayFilteredMarkers(); } } catch (error) { console.error("Error in handleCitySelection:", error); } };
+            // ++ معالج اختيار المدينة المعدل للتحكم بالملخص ++
+            const handleCitySelection = (e) => {
+                try {
+                    const clickedElement = e.currentTarget; if (!clickedElement || !clickedElement.dataset) return;
+                    const selectedCity = clickedElement.dataset.city;
+                    state.currentCityFilter = selectedCity;
+                    if (state.activeCityListItem) { state.activeCityListItem.classList.remove('active'); }
+                    const newActiveLi = state.dom.cityNavigatorList?.querySelector(`li[data-city="${selectedCity}"]`);
+                    if(newActiveLi){ newActiveLi.classList.add('active'); state.activeCityListItem = newActiveLi; }
+                    flyToCity(state.currentCityFilter);
+                    state.currentStatusFilter = 'all'; // دائماً أعد للكل عند تغيير المدينة
+                    if (state.dom.statusFilterButtons) {
+                        state.dom.statusFilterButtons.forEach(btn => btn.classList.remove('active'));
+                        const allStatusBtn = state.dom.statusFilterDiv?.querySelector('button[data-status="all"]');
+                        if(allStatusBtn) allStatusBtn.classList.add('active');
+                    }
+                    updateSummaryPanel(state.currentCityFilter); // حدث الأرقام واسم المدينة
+                    if (state.currentCityFilter === 'all') {
+                        state.currentViewMode = 'cities';
+                        state.dom.cityNavigatorPanel?.classList.remove('show-status-filters');
+                        state.dom.citySummaryContainer?.classList.remove('visible'); // إخفاء الملخص
+                        clearOpportunityMarkers();
+                        displayCityMarkers();
+                    } else {
+                        state.currentViewMode = 'opportunities';
+                        state.dom.cityNavigatorPanel?.classList.add('show-status-filters');
+                        state.dom.citySummaryContainer?.classList.add('visible'); // إظهار الملخص
+                        clearCityMarkers();
+                        displayFilteredMarkers();
+                    }
+                } catch (error) {
+                    console.error("Error in handleCitySelection:", error);
+                }
+            };
             const handleStatusFilterClick = (e) => { try { if (!e || !e.currentTarget) return; state.currentStatusFilter = e.currentTarget.getAttribute('data-status'); if(state.dom.statusFilterButtons) state.dom.statusFilterButtons.forEach(btn => btn.classList.remove('active')); e.currentTarget.classList.add('active'); displayFilteredMarkers(); } catch (error) { console.error("Error handling status filter click:", error); } };
             const handleSummaryPanelClick = (e) => { try { if(!e || !e.target) return; const targetSpan = e.target.closest('.summary-status-filter'); if (!targetSpan || !targetSpan.dataset) return; const statusToFilter = targetSpan.dataset.status; if (!statusToFilter) return; const correspondingButton = state.dom.statusFilterDiv?.querySelector(`button[data-status="${statusToFilter}"]`); if (correspondingButton) { state.currentStatusFilter = statusToFilter; if(state.dom.statusFilterButtons) state.dom.statusFilterButtons.forEach(btn => { if (btn.dataset.status === statusToFilter) { btn.classList.add('active'); } else { btn.classList.remove('active'); } }); displayFilteredMarkers(); } } catch (error) { console.error("Error handling summary panel click:", error); } };
             const handleZoomEnd = () => { try { if (!state.map || !state.dom.cityNavigatorList) return; const currentZoom = state.map.getZoom(); if (state.currentViewMode === 'opportunities' && state.currentCityFilter !== 'all' && currentZoom < config.zoomThresholds.opportunitiesToCity) { const allCitiesLi = state.dom.cityNavigatorList.querySelector('li[data-city="all"]'); if (allCitiesLi) handleCitySelection({ currentTarget: allCitiesLi }); } else if (state.currentViewMode === 'cities' && state.currentCityFilter === 'all' && currentZoom >= config.zoomThresholds.cityToOpportunities) { const mapCenter = state.map.getCenter(); let closestCity = null; let minDist = Infinity; state.cityListForMarkers.forEach(cityInfo => { if(cityInfo.coords) { try{ const dist = mapCenter.distanceTo(L.latLng(cityInfo.coords)); if (dist < minDist) { minDist = dist; closestCity = cityInfo; } } catch(distError){ console.warn("Could not calculate distance for city:", cityInfo, distError); } } }); if (closestCity && minDist < config.maxDistanceForCitySwitch) { const cityLi = state.dom.cityNavigatorList.querySelector(`li[data-city="${closestCity.name}"]`); if (cityLi) handleCitySelection({ currentTarget: cityLi }); } } } catch(e) { console.error("Error in handleZoomEnd:", e); } };
             const handleFullscreenClick = () => { try { if (!document.fullscreenElement) { if(state.dom.mapContainer?.requestFullscreen) { state.dom.mapContainer.requestFullscreen().catch(err => { console.error(`Fullscreen request failed: ${err.message}`); }); } else { console.warn("Fullscreen API not supported or element not found"); } if(state.dom.fullscreenIcon) state.dom.fullscreenIcon.classList.replace('fa-expand', 'fa-compress'); } else { if(document.exitFullscreen) document.exitFullscreen(); if(state.dom.fullscreenIcon) state.dom.fullscreenIcon.classList.replace('fa-compress', 'fa-expand'); } } catch (fsError) { console.error("Fullscreen Error:", fsError);} };
             const handleFullscreenChange = () => { if (!document.fullscreenElement && state.dom.fullscreenIcon) { state.dom.fullscreenIcon.classList.replace('fa-compress', 'fa-expand'); } };
             const handleZoomAllClick = () => { try { if (!state.map || !state.opportunitiesData) return; let coordsForZoom; if (state.currentCityFilter === 'all') { coordsForZoom = state.cityListForMarkers.map(c => c.coords).filter(Boolean); } else { coordsForZoom = state.opportunitiesData .filter(op => op && op.city === state.currentCityFilter && (state.currentStatusFilter === 'all' || op.status === state.currentStatusFilter) && op.coords) .map(op => op.coords); } if (!coordsForZoom || coordsForZoom.length === 0) { if (state.currentCityFilter !== 'all') { flyToCity(state.currentCityFilter); } else { flyToCity('all'); } } else { zoomToShowMarkers(coordsForZoom); } } catch (zaError) { console.error("Zoom All Error:", zaError);} };
+            // ++ دالة ربط المستمعين المعدلة ++
             const setupEventListeners = () => {
                 if (state.dom.statusFilterButtons) { state.dom.statusFilterButtons.forEach(button => { button.addEventListener('click', handleStatusFilterClick); }); }
                 if (state.dom.infoCardCloseBtn) state.dom.infoCardCloseBtn.addEventListener('click', hideInfoCard);
