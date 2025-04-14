@@ -244,7 +244,7 @@
                             }
                             filteredCoords.push(opportunity.coords);
 
-                            const animationDelay = (index * 100) + 'ms'; // <<-- تأخير الأنيميشن التسلسلي
+                            const animationDelay = (index * 300) + 'ms'; // <<-- تأخير الأنيميشن التسلسلي
                             const displayId = index + 1;
                             const iconHtml = ` <div class="marker-icon-wrapper opportunity-marker" style="animation-delay: ${animationDelay};"> <div class="custom-marker-icon">${displayId}</div> </div>`; // تطبيق الأنيميشن
                             const customIcon = L.divIcon({ html: iconHtml, className: '', iconSize: [32, 32], iconAnchor: [16, 16] });
