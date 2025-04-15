@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>خريطة الفرص العقارية - مع Tooltip</title>
+    <title>خريطة الفرص العقارية - تعديل عنوان الملخص</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
@@ -70,24 +70,8 @@
             #city-summary-counts-container .summary-counts span { font-size: 0.75em; }
             #city-summary-counts-container .summary-counts strong { font-size: 0.85em; }
         }
-
-        /* ++ تنسيق Tooltip المخصص لعلامات الفرص ++ */
-        .opportunity-tooltip {
-            font-family: var(--font-main);
-            background-color: rgba(0, 0, 0, 0.75);
-            color: var(--color-white);
-            border: none;
-            border-radius: 4px;
-            padding: 4px 8px;
-            font-size: 0.85em;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-            white-space: nowrap;
-        }
-        /* إزالة سهم Tooltip الافتراضي */
-        .leaflet-tooltip.opportunity-tooltip::before {
-             border: none;
-        }
-         /* -- نهاية تنسيق Tooltip -- */
+        .opportunity-tooltip { font-family: var(--font-main); background-color: rgba(0, 0, 0, 0.75); color: var(--color-white); border: none; border-radius: 4px; padding: 4px 8px; font-size: 0.85em; box-shadow: 0 1px 3px rgba(0,0,0,0.3); white-space: nowrap; }
+        .leaflet-tooltip.opportunity-tooltip::before { border: none; }
     </style>
 </head>
 <body>
@@ -105,7 +89,7 @@
         <div id="map"></div>
 
         <div id="city-summary-counts-container">
-             <h5><i class="fas fa-map-marked-alt"></i> ملخص حالة مدينة <span id="summary-city-name" class="summary-city-highlight"></span></h5>
+             <h5><i class="fas fa-map-marked-alt"></i> ملخص فرص مدينة <span id="summary-city-name" class="summary-city-highlight"></span></h5>
              <div class="summary-counts">
                  <span class="suitable summary-status-filter" data-status="مناسبة" title="تصفية حسب المناسبة"><i class="fas fa-check-circle"></i> مناسبة: <strong id="summary-suitable-count">0</strong></span>
                  <span class="evaluating summary-status-filter" data-status="قيد التقييم" title="تصفية حسب قيد التقييم"><i class="fas fa-tasks"></i> قيد التقييم: <strong id="summary-evaluating-count">0</strong></span>
@@ -203,30 +187,7 @@
             const initializeMap = () => { if (!state.dom.mapElement) return false; try { state.map = L.map(state.dom.mapElement, { attributionControl: false, zoomControl: false }).setView(config.initialView.center, config.initialView.zoom); L.tileLayer(config.mapTileUrl, { maxZoom: config.mapMaxZoom, attribution: config.mapAttribution }).addTo(state.map); L.control.zoom({ position: 'bottomleft' }).addTo(state.map); console.log("Map initialized successfully."); return true; } catch (mapInitError) { console.error("Leaflet map initialization failed:", mapInitError); return false; } };
             const flyToCity = (cityName) => { try{ const view = config.cityViews[cityName] || config.cityViews['all']; if (state.map && state.map.flyTo) { state.map.flyTo(view.center, view.zoom, { duration: 1.5 }); } }catch(error){console.error(`Error flying to city ${cityName}:`, error);} };
             const zoomToShowMarkers = (coordsArray = null) => { try { if (!state.map) return; const validCoords = coordsArray && Array.isArray(coordsArray) ? coordsArray.filter(coord => Array.isArray(coord) && coord.length === 2) : []; if (validCoords.length > 0) { try { const bounds = L.latLngBounds(validCoords); state.map.flyToBounds(bounds, { paddingTopLeft: [30, (state.dom.cityNavigatorPanel?.offsetWidth || 0) + 30], paddingBottomRight: [(state.dom.infoCard?.offsetHeight || 0) + 30, (state.dom.citySummaryContainer?.offsetWidth || 0) + 30], maxZoom: 16, duration: 1.0 }); } catch(boundsError) { console.error("Error creating or flying to bounds:", boundsError, validCoords); flyToCity(state.currentCityFilter); } } else if (state.currentCityFilter !== 'all') { flyToCity(state.currentCityFilter); } else { flyToCity('all'); } } catch (error) { console.error("Error in zoomToShowMarkers:", error); } };
-            // ++ دالة إنشاء علامة الفرصة المعدلة لإضافة Tooltip ++
-            const createOpportunityMarker = (opportunity, index) => {
-                 if (!opportunity || !opportunity.coords || !Array.isArray(opportunity.coords) || opportunity.coords.length !== 2) { console.warn(`Skipping opportunity with invalid coords: ${opportunity?.id || 'unknown ID'}`); return null; }
-                 const animationDelay = (index * config.animationBaseDelayMs) + 'ms';
-                 const displayId = index + 1;
-                 const iconHtml = ` <div class="marker-icon-wrapper opportunity-marker" style="animation-delay: ${animationDelay};"> <div class="custom-marker-icon">${displayId}</div> </div>`;
-                 const customIcon = L.divIcon({ html: iconHtml, className: '', iconSize: [32, 32], iconAnchor: [16, 16] });
-                 try {
-                     const marker = L.marker(opportunity.coords, { icon: customIcon });
-                     marker.opportunityData = opportunity;
-                     marker.on('click', handleMarkerClick);
-
-                     // ربط Tooltip باسم الفرصة
-                     if (opportunity && opportunity.name) {
-                         marker.bindTooltip(opportunity.name, {
-                             direction: 'top',
-                             offset: [0, -18],
-                             sticky: true,
-                             className: 'opportunity-tooltip' // فئة CSS مخصصة
-                         });
-                     }
-                     return marker;
-                 } catch (markerError) { console.error("Error creating marker:", markerError, "for opportunity:", opportunity); return null; }
-            };
+            const createOpportunityMarker = (opportunity, index) => { if (!opportunity || !opportunity.coords || !Array.isArray(opportunity.coords) || opportunity.coords.length !== 2) { console.warn(`Skipping opportunity with invalid coords: ${opportunity?.id || 'unknown ID'}`); return null; } const animationDelay = (index * config.animationBaseDelayMs) + 'ms'; const displayId = index + 1; const iconHtml = ` <div class="marker-icon-wrapper opportunity-marker" style="animation-delay: ${animationDelay};"> <div class="custom-marker-icon">${displayId}</div> </div>`; const customIcon = L.divIcon({ html: iconHtml, className: '', iconSize: [32, 32], iconAnchor: [16, 16] }); try { const marker = L.marker(opportunity.coords, { icon: customIcon }); marker.opportunityData = opportunity; marker.on('click', handleMarkerClick); if (opportunity && opportunity.name) { marker.bindTooltip(opportunity.name, { direction: 'top', offset: [0, -18], sticky: true, className: 'opportunity-tooltip' }); } return marker; } catch (markerError) { console.error("Error creating marker:", markerError, "for opportunity:", opportunity); return null; } };
             const createCityMarker = (cityInfo) => { if (!cityInfo || !cityInfo.coords || !Array.isArray(cityInfo.coords) || cityInfo.coords.length !== 2) { console.warn("Skipping city with invalid info:", cityInfo); return null; } try { const animationDelay = ((cityInfo.displayId - 1) * (config.animationBaseDelayMs * 1.5)) + 'ms'; const iconHtml = ` <div class="marker-icon-wrapper city-marker" style="animation-delay: ${animationDelay};"> <div class="custom-marker-icon">${cityInfo.displayId}</div> </div>`; const customIcon = L.divIcon({ html: iconHtml, className: '', iconSize: [38, 38], iconAnchor: [19, 19] }); const marker = L.marker(cityInfo.coords, { icon: customIcon, zIndexOffset: 100 }); marker.on('click', () => handleCityMarkerClick(cityInfo.name)); return marker; } catch (cityMarkerError) { console.error("Error creating city marker:", cityMarkerError, "for city:", cityInfo); return null; } };
             const clearOpportunityMarkers = () => { try { state.displayedOpportunityMarkers.forEach(marker => { if (marker && state.map && state.map.hasLayer(marker)) { state.map.removeLayer(marker); } }); state.displayedOpportunityMarkers = []; } catch (e) { console.error("Error clearing opportunity markers:", e); } };
             const clearCityMarkers = () => { try { state.cityMarkers.forEach(marker => { if (marker && state.map && state.map.hasLayer(marker)) { state.map.removeLayer(marker); } }); state.cityMarkers = []; } catch (e) { console.error("Error clearing city markers:", e); } };
@@ -262,7 +223,7 @@
                 } catch (error) { console.error("Error in hideInfoCard:", error); }
             };
             const displayCityNavigator = () => { try { if (!state.dom.cityNavigatorList || !state.opportunitiesData) return; const cities = [...new Set(state.opportunitiesData.map(op => op?.city).filter(Boolean))]; cities.sort((a, b) => { if (a === 'الرياض') return -1; if (b === 'الرياض') return 1; if (a === 'أبها') return -1; if (b === 'أبها') return 1; return a.localeCompare(b); }); state.dom.cityNavigatorList.innerHTML = ''; const allLi = document.createElement('li'); allLi.textContent = 'كل المدن'; allLi.dataset.city = 'all'; if (state.currentCityFilter === 'all') { allLi.classList.add('active'); state.activeCityListItem = allLi; } allLi.addEventListener('click', handleCitySelection); state.dom.cityNavigatorList.appendChild(allLi); cities.forEach((city, index) => { const li = document.createElement('li'); const cityNumber = document.createElement('span'); cityNumber.className = 'city-number'; cityNumber.textContent = index + 1; li.appendChild(cityNumber); li.appendChild(document.createTextNode(` ${city}`)); li.dataset.city = city; if (state.currentCityFilter === city) { li.classList.add('active'); state.activeCityListItem = li; } li.addEventListener('click', handleCitySelection); state.dom.cityNavigatorList.appendChild(li); }); } catch (error) { console.error("Error in displayCityNavigator:", error); } };
-            // ++ دالة تحديث الملخص المعدلة لتحديث اسم المدينة ++
+            // ++ دالة تحديث الملخص المعدلة ++
             const updateSummaryPanel = (cityName) => {
                 const container = state.dom.citySummaryContainer;
                 if(state.dom.summaryCityName) { // تحديث اسم المدينة
@@ -291,13 +252,13 @@
                     const newActiveLi = state.dom.cityNavigatorList?.querySelector(`li[data-city="${selectedCity}"]`);
                     if(newActiveLi){ newActiveLi.classList.add('active'); state.activeCityListItem = newActiveLi; }
                     flyToCity(state.currentCityFilter);
-                    state.currentStatusFilter = 'all'; // دائماً أعد للكل عند تغيير المدينة
+                    state.currentStatusFilter = 'all';
                     if (state.dom.statusFilterButtons) {
                         state.dom.statusFilterButtons.forEach(btn => btn.classList.remove('active'));
                         const allStatusBtn = state.dom.statusFilterDiv?.querySelector('button[data-status="all"]');
                         if(allStatusBtn) allStatusBtn.classList.add('active');
                     }
-                    updateSummaryPanel(state.currentCityFilter); // حدث الأرقام واسم المدينة
+                    updateSummaryPanel(state.currentCityFilter);
                     if (state.currentCityFilter === 'all') {
                         state.currentViewMode = 'cities';
                         state.dom.cityNavigatorPanel?.classList.remove('show-status-filters');
