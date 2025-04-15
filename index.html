@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>خريطة الفرص العقارية - تعديل عنوان الملخص</title>
+    <title>خريطة الفرص العقارية - النسخة النهائية المعدلة</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
@@ -24,7 +24,10 @@
         .leaflet-tile-pane { filter: grayscale(80%) contrast(0.9) brightness(1.05); }
         #loading-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(245, 245, 245, 0.95); z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; opacity: 1; transition: opacity 0.5s ease-out; color: var(--color-dark-gold); } .spinner { border: 5px solid var(--color-light-gray); border-top: 5px solid var(--color-gold); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin-bottom: 15px; } @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } } #loading-screen.hidden { opacity: 0; pointer-events: none; }
         .logo-container { position: absolute; top: 15px; right: 15px; z-index: 1000; background: rgba(255, 255, 255, 0.7); padding: 5px; border-radius: 5px; } .logo-container img { max-width: 120px; height: auto; display: block; }
-        .map-control-button { position: absolute; z-index: 1000; background: rgba(255, 255, 255, 0.85); border: none; border-radius: 5px; padding: 8px; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.2); font-size: 1.2em; color: var(--color-black); width: 36px; height: 36px; display: flex; justify-content: center; align-items: center; transition: background-color 0.2s ease; } .map-control-button:hover { background-color: var(--color-white); } #fullscreen-button { bottom: 10px; left: 10px; } #zoom-all-button { bottom: 10px; left: 52px; }
+        .map-control-button { position: absolute; z-index: 1000; background: rgba(255, 255, 255, 0.85); border: none; border-radius: 5px; padding: 8px; cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.2); font-size: 1.2em; color: var(--color-black); width: 36px; height: 36px; display: flex; justify-content: center; align-items: center; transition: background-color 0.2s ease; text-decoration: none;} /* Added text-decoration */
+        .map-control-button:hover { background-color: var(--color-white); color: var(--color-black); } /* Added color */
+        #fullscreen-button { bottom: 10px; left: 10px; }
+        #zoom-all-button { bottom: 10px; left: 52px; }
         #map .leaflet-control-zoom { margin-bottom: 55px; margin-left: 5px; border: none; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
         #map .leaflet-control-zoom-in, #map .leaflet-control-zoom-out { background-color: rgba(255, 255, 255, 0.85); color: var(--color-black); width: 36px; height: 36px; line-height: 36px; font-size: 1.5em; border-radius: 5px; border-bottom: none; }
         #map .leaflet-control-zoom-in { margin-bottom: 2px; border-radius: 5px 5px 0 0; }
@@ -85,7 +88,10 @@
             </div>
         </div>
         <button id="fullscreen-button" class="map-control-button" title="وضع ملء الشاشة"><i class="fas fa-expand"></i></button>
-        <button id="zoom-all-button" class="map-control-button" title="عرض كل الفرص في التحديد الحالي"><i class="fas fa-compress-arrows-alt"></i></button>
+        <button id="zoom-all-button" class="map-control-button" title="عرض كل الفرص"><i class="fas fa-compress-arrows-alt"></i></button>
+         <a href="dashboard.html" title="عرض لوحة التحكم" class="map-control-button" style="bottom: 10px; left: 94px; width: auto; padding: 8px 12px;">
+            <i class="fas fa-tachometer-alt"></i>
+            <span style="margin-right: 5px; font-size: 0.9em; display: inline-block; line-height: normal; vertical-align: middle;">تحكم</span> </a>
         <div id="map"></div>
 
         <div id="city-summary-counts-container">
@@ -175,7 +181,7 @@
                 state.dom.summaryEvaluatingCount = document.getElementById('summary-evaluating-count');
                 state.dom.summaryUnsuitableCount = document.getElementById('summary-unsuitable-count');
                 state.dom.summaryStatusFiltersContainer = state.dom.citySummaryContainer?.querySelector('.summary-counts');
-                state.dom.summaryCityName = document.getElementById('summary-city-name'); // <<-- الوصول لاسم المدينة
+                state.dom.summaryCityName = document.getElementById('summary-city-name'); // <<-- تم إضافته
                  if (!state.dom.mapContainer || !state.dom.mapElement || !state.dom.cityNavigatorList || !state.dom.infoCard || !state.dom.citySummaryContainer || !state.dom.summaryCityName) { console.error("Critical DOM elements missing!"); if(state.dom.loadingScreen) state.dom.loadingScreen.style.display = 'none'; return false; } return true;
             };
             const updateElementContent = (el, value, options = {}) => { if (!el) return; const { isCurrency = false, unit = '' } = options; const naText = config.notAvailableText; let displayValue = naText; let useHtml = false; if (value !== undefined && value !== null && value !== 'غير متوفر' && String(value).trim() !== '') { const stringValue = String(value); if (isCurrency) { const numValue = parseFloat(stringValue.replace(/,/g, '')); if (!isNaN(numValue)) { displayValue = numValue.toLocaleString('en-US', { maximumFractionDigits: 2 }) + config.currencySymbolHtml + (unit ? ` ${unit}` : ''); useHtml = true; } else { displayValue = stringValue + config.currencySymbolHtml + (unit ? ` ${unit}` : ''); useHtml = true; } } else { displayValue = stringValue + (unit ? ` ${unit}` : ''); } } if (useHtml) { el.innerHTML = displayValue; } else { el.textContent = displayValue; } if (displayValue === naText) { el.classList.add('not-available'); } else { el.classList.remove('not-available'); } };
@@ -258,7 +264,7 @@
                         const allStatusBtn = state.dom.statusFilterDiv?.querySelector('button[data-status="all"]');
                         if(allStatusBtn) allStatusBtn.classList.add('active');
                     }
-                    updateSummaryPanel(state.currentCityFilter);
+                    updateSummaryPanel(state.currentCityFilter); // حدث الأرقام واسم المدينة
                     if (state.currentCityFilter === 'all') {
                         state.currentViewMode = 'cities';
                         state.dom.cityNavigatorPanel?.classList.remove('show-status-filters');
