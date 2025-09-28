@@ -191,7 +191,7 @@
         "dev_cost_unit": "/م²",
         "other_costs": "0",
         "est_sales": "0",
-        "comm_value": 0",
+        "comm_value": "0",
         "res_area": "0 م²",
         "res_value": "0",
         "roi": "0%",
@@ -240,4 +240,3 @@
         "res_exec_price": "1200"
     }
 ]
-
