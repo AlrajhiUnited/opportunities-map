@@ -228,15 +228,10 @@ const showCustomConfirm = (message, title = 'تأكيد', isAlert = false) => {
 
 const requestAdminAccess = (requiredRole = 'editor') => {
     return new Promise(async (resolve) => {
-        const storedUser = sessionStorage.getItem('currentUser');
-        if (storedUser) {
-            state.currentUser = JSON.parse(storedUser);
-        }
-        
-        if (state.currentUser) {
-            const hasAccess = state.currentUser.role === 'admin' || (requiredRole === 'editor' && state.currentUser.role === 'editor');
-            if (hasAccess) return resolve(true);
-        }
+        // ---===[ الإصلاح: إجبار نافذة تسجيل الدخول على الظهور دائماً ]===---
+        // يتم مسح أي جلسة سابقة لضمان طلب كلمة المرور في كل مرة يتم فيها الوصول للميزات المحمية
+        sessionStorage.removeItem('currentUser');
+        state.currentUser = null;
         
         state.dom.passwordModal.classList.add('visible');
         state.dom.usernameInput.value = '';
@@ -2084,4 +2079,5 @@ const initApp = async () => {
 
 // ---===[ 11. نقطة البداية (Entry Point) ]===---
 document.addEventListener('DOMContentLoaded', initApp);
+
 
