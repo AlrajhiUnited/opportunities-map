@@ -73,7 +73,8 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 .map-control-button { background: var(--color-white); border: 1px solid #dbdbdb; border-radius: 12px; padding: 8px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.1); font-size: 1.2em; color: var(--color-black); width: 44px; height: 44px; display: flex; justify-content: center; align-items: center; transition: all 0.2s ease; margin-bottom: 10px; }
 .map-control-button:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.12); }
 
-.map-controls-left { position: absolute; z-index: 1000; top: 15px; left: 15px; }
+/* ---===[ الإصلاح: إعادة الأزرار إلى الأسفل ]===--- */
+.map-controls-left { position: absolute; z-index: 1000; bottom: 15px; left: 15px; }
 .map-controls-right { position: absolute; z-index: 1000; bottom: 15px; right: 15px; display: flex; flex-direction: column-reverse; }
 
 .fab { background-color: var(--color-gold); color: var(--color-white); border: none; }
@@ -127,7 +128,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 .status-filters { display: none; flex-direction: column; gap: 8px; border-top: 1px solid var(--color-panel-border); padding-top: 10px; margin-top: auto; }
 #city-navigator.show-status-filters .status-filters { display: flex; }
 .status-filters-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
-.status-filters button { width: 100%; font-family: var(--font-main); padding: 8px 5px; border: 1px solid var(--color-gold); background-color: transparent; color: var(--color-white); border-radius: 8px; cursor: pointer; transition: all 0.2s ease; font-size: 0.8em; }
+.status-filters button { width: 100%; font-family: var(--font-main); padding: 6px 4px; border: 1px solid var(--color-gold); background-color: transparent; color: var(--color-white); border-radius: 8px; cursor: pointer; transition: all 0.2s ease; font-size: 0.75em; }
 .status-filters button:hover { background-color: rgba(197, 166, 118, 0.5); }
 .status-filters button.active { background-color: var(--color-gold); color: var(--color-white); } 
 .status-filters button[data-status="all"] { grid-column: 1 / -1; margin-top: 5px; }
@@ -613,7 +614,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
     .info-card-details { grid-template-columns: 1fr; }
     .map-control-button { width: 40px; height: 40px; font-size: 1.1em; }
     .map-controls-right { right: 10px; bottom: 10px; }
-    .map-controls-left { left: 10px; top: 10px; }
+    .map-controls-left { left: 10px; bottom: 10px; }
     .action-buttons { grid-template-columns: 1fr; }
     .location-editor { max-width: 90%; }
     .chatbot-container {
