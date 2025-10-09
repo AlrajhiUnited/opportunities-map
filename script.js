@@ -1845,22 +1845,10 @@ const initApp = async () => {
             isOppsDataLoaded = true;
             isCitiesDataLoaded = true;
 
-            const citiesInOpps = [...new Set(state.opportunitiesData.map(op => op?.city).filter(Boolean))];
-            const citiesInDb = new Set(state.citiesData.map(c => c.name));
-            const missingCities = citiesInOpps.filter(cName => !citiesInDb.has(cName));
-
-            if (missingCities.length > 0) {
-                const batch = writeBatch(state.db);
-                let maxId = state.citiesData.reduce((max, c) => Math.max(max, c.displayId || 0), 0);
-                missingCities.forEach(cityName => {
-                    maxId++;
-                    const newCityRef = doc(state.db, "cities", cityName);
-                    batch.set(newCityRef, { name: cityName, displayId: maxId });
-                });
-                await batch.commit();
-                const newCitiesSnapshot = await getDocs(state.citiesCollection);
-                state.citiesData = newCitiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            }
+            // ---===[ الإصلاح: تم حذف منطق التحقق من المدن المفقودة من هنا ]===---
+            // This logic requires write permissions and was causing the app to freeze
+            // for anonymous users on startup. City creation is handled when a new
+            // opportunity is added, which is a safer approach.
 
             await renderMapAndNav();
 
@@ -2079,5 +2067,6 @@ const initApp = async () => {
 
 // ---===[ 11. نقطة البداية (Entry Point) ]===---
 document.addEventListener('DOMContentLoaded', initApp);
+
 
 
