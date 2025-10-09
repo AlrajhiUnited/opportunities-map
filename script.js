@@ -228,8 +228,6 @@ const showCustomConfirm = (message, title = 'تأكيد', isAlert = false) => {
 
 const requestAdminAccess = (requiredRole = 'editor') => {
     return new Promise(async (resolve) => {
-        // ---===[ الإصلاح: إجبار نافذة تسجيل الدخول على الظهور دائماً ]===---
-        // يتم مسح أي جلسة سابقة لضمان طلب كلمة المرور في كل مرة يتم فيها الوصول للميزات المحمية
         sessionStorage.removeItem('currentUser');
         state.currentUser = null;
         
@@ -589,7 +587,8 @@ const handleChatSubmit = async (e) => {
         area: opp.area,
         total_cost: opp.total_cost,
         opportunity_type: opp.opportunity_type,
-        development_type: opp.development_type
+        development_type: opp.development_type,
+        opportunity_date: opp.opportunity_date,
     }));
 
     const knowledgeBase = localStorage.getItem('knowledgeBase') || '';
@@ -995,7 +994,6 @@ const displayFilteredMarkers = () => {
         return cityMatch && statusMatch;
     });
 
-    // ---===[ الإصلاح: فرز الفرص لضمان ترقيم متسلسل ]===---
     filteredData.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
 
     const coords = [];
@@ -1845,11 +1843,6 @@ const initApp = async () => {
             isOppsDataLoaded = true;
             isCitiesDataLoaded = true;
 
-            // ---===[ الإصلاح: تم حذف منطق التحقق من المدن المفقودة من هنا ]===---
-            // This logic requires write permissions and was causing the app to freeze
-            // for anonymous users on startup. City creation is handled when a new
-            // opportunity is added, which is a safer approach.
-
             await renderMapAndNav();
 
             state.unsubscribeOpps = onSnapshot(state.opportunitiesCollection, (snapshot) => {
@@ -2067,6 +2060,4 @@ const initApp = async () => {
 
 // ---===[ 11. نقطة البداية (Entry Point) ]===---
 document.addEventListener('DOMContentLoaded', initApp);
-
-
 
