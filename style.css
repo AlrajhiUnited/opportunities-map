@@ -389,7 +389,8 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 
 .chatbot-callout {
     position: absolute;
-    bottom: 125px; /* تم التعديل ليتناسب مع الأزرار الجديدة */
+    /* ---===[ تعديل: نقل النافذة المنبثقة للأعلى ]===--- */
+    bottom: 177px; 
     right: 0;
     background: var(--color-black);
     color: var(--color-white);
@@ -414,7 +415,8 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 .chatbot-callout::after {
     content: '';
     position: absolute;
-    bottom: -8px;
+    /* ---===[ تعديل: عكس اتجاه سهم النافذة المنبثقة ]===--- */
+    top: 100%;
     right: 15px;
     width: 0;
     height: 0;
@@ -631,3 +633,4 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
         height: 40px;
     }
 }
+
