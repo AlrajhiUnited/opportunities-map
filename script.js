@@ -50,7 +50,7 @@ const config = {
         execution_cost: { label: 'تكاليف التنفيذ', icon: 'fa-tools', isCurrency: true },
         roi: { label: 'العائد (ROI)', icon: 'fa-chart-line', unit: '%' },
         irr: { label: 'العائد الداخلي (IRR)', icon: 'fa-percentage', unit: '%' },
-        main_notes: { label: 'ملاحظات رئيسية', icon: 'fa-align-left', type: 'textarea', isFullWidth: true },
+        main_notes: { label: 'تفاصيل إضافية', icon: 'fa-align-left', type: 'textarea', isFullWidth: true },
         study_notes: { label: 'ملاحظات الدراسة', icon: 'fa-align-left', type: 'textarea', isFullWidth: true },
         other_costs: { label: 'تكاليف أخرى', icon: 'fa-coins', isCurrency: true },
         est_sales: { label: 'المبيعات المقدرة', icon: 'fa-cash-register', isCurrency: true, isHighlight: true },
@@ -401,7 +401,10 @@ const showOpportunityModal = (opportunity = null, prefillData = {}) => {
     };
 
     let formHTML = createSectionHTML('المعلومات الرئيسية', mainInfoFields, 'main_notes');
-    formHTML += createSectionHTML('دراسة الفرصة', studyFields, 'study_notes');
+    // ---===[ تعديل: إظهار قسم الدراسة فقط في وضع التحرير ]===---
+    if (opportunity) {
+        formHTML += createSectionHTML('دراسة الفرصة', studyFields, 'study_notes');
+    }
 
     // Add status and submit button at the end
     const statusConfig = allStandardFields['status'];
@@ -1362,7 +1365,8 @@ const handleAddNewField = (targetFormGrid) => {
         }
 
         state.hasStructuralChanges = true;
-        state.editBuffer[key] = value;
+        // ---===[ تعديل: إضافة الحقل بقيمة فارغة لتجنب استبدال البيانات ]===---
+        state.editBuffer[key] = '';
         state.editBuffer[`customFields.${key}`] = customFieldData;
 
 
@@ -1373,10 +1377,17 @@ const handleAddNewField = (targetFormGrid) => {
             <i class="item-icon fas ${icon}"></i>
             <div class="item-content">
                 <div class="label">${label}</div>
-                <div class="value">${formatFieldValue(key, value)}</div>
+                <div class="value">${formatFieldValue(key, '')}</div>
             </div>
             <button class="delete-field-btn" data-field-key="${key}"><i class="fas fa-times"></i></button>`;
-        // state.dom.infoCardDetailsContainer.appendChild(itemDiv);
+        
+        // Add to the correct section
+        const isStudyKeyword = /cost|exec|roi|irr|sales|price/i.test(key);
+        const targetSection = isStudyKeyword ? state.dom.infoCardBody.querySelector('.card-section:nth-child(2) .section-content') : state.dom.infoCardBody.querySelector('.card-section:nth-child(1) .section-content');
+        if(targetSection) {
+            targetSection.appendChild(itemDiv);
+        }
+
         state.dom.addFieldModal.classList.remove('visible');
 
         // state.editBuffer.fieldOrder = [...state.dom.infoCardDetailsContainer.children].map(item => item.dataset.fieldKey);
@@ -2066,3 +2077,4 @@ const initApp = async () => {
 
 // ---===[ 11. نقطة البداية (Entry Point) ]===---
 document.addEventListener('DOMContentLoaded', initApp);
+
