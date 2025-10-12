@@ -363,7 +363,7 @@ const showOpportunityModal = (opportunity = null, prefillData = {}) => {
     state.dom.opportunityForm.dataset.docId = opportunity ? opportunity.id : '';
     state.dom.opportunityForm.innerHTML = ''; 
     
-    const mainInfoFields = ['name', 'city', 'coords', 'opportunity_date', 'area', 'buy_price_sqm', 'total_cost'];
+    const mainInfoFields = ['name', 'city', 'coords', 'opportunity_type', 'opportunity_date', 'area', 'buy_price_sqm', 'total_cost'];
     const studyFields = ['design_cost', 'execution_cost', 'roi', 'irr'];
     const allStandardFields = { ...config.internalFields, ...config.baseFields, ...config.suggestedFields };
 
@@ -633,7 +633,7 @@ const showInfoCard = (opportunity) => {
         state.dom.infoCardStatusBadge.textContent = display.text;
 
         state.dom.infoCardBody.innerHTML = '';
-        const mainInfoFields = ['opportunity_date', 'area', 'buy_price_sqm', 'total_cost'];
+        const mainInfoFields = ['opportunity_date', 'opportunity_type', 'area', 'buy_price_sqm', 'total_cost'];
         const studyFields = ['design_cost', 'execution_cost', 'roi', 'irr'];
         const allFields = { ...config.internalFields, ...config.baseFields, ...config.suggestedFields, ...(opportunity.customFields || {}) };
 
@@ -1043,6 +1043,19 @@ const displayCityMarkers = () => {
 };
 
 // ---===[ 8. دوال وضع التحرير المتقدم ]===---
+const stageFieldOrderUpdate = () => {
+    state.hasStructuralChanges = true;
+    const sections = state.dom.infoCardBody.querySelectorAll('.section-content');
+    const allFieldKeys = [];
+    sections.forEach(section => {
+        const keys = [...section.children]
+            .map(item => item.dataset.fieldKey)
+            .filter(Boolean);
+        allFieldKeys.push(...keys);
+    });
+    state.editBuffer.fieldOrder = allFieldKeys;
+};
+
 const handleTitleClickToEdit = (e) => {
     if (!state.isEditMode) return;
     const titleEl = e.currentTarget;
@@ -1122,22 +1135,12 @@ const enterEditMode = () => {
     state.sortableInstances = [];
 
     const sections = state.dom.infoCardBody.querySelectorAll('.section-content');
-    const onSortEnd = () => {
-        state.hasStructuralChanges = true;
-        const allFieldKeys = [];
-        sections.forEach(section => {
-            const keys = [...section.children].map(item => item.dataset.fieldKey);
-            allFieldKeys.push(...keys);
-        });
-        state.editBuffer.fieldOrder = allFieldKeys;
-    };
-
     sections.forEach(section => {
         const instance = new Sortable(section, {
             animation: 150,
             handle: '.drag-handle',
             ghostClass: 'sortable-ghost',
-            onEnd: onSortEnd,
+            onEnd: stageFieldOrderUpdate,
         });
         state.sortableInstances.push(instance);
     });
@@ -1393,6 +1396,7 @@ const handleDeleteField = async (fieldKey) => {
     state.editBuffer[`customFields.${fieldKey}`] = deleteField();
     
     state.dom.infoCardBody.querySelector(`[data-field-key="${fieldKey}"]`)?.remove();
+    stageFieldOrderUpdate();
 };
 
 const applyStructureToAllOpportunities = async (structuralUpdates) => {
