@@ -179,7 +179,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
     left: 50%;
     transform: translate(-50%, -50%) scale(0.9);
     width: 90%;
-    max-width: 680px; /* تم توسيع العرض الأقصى */
+    max-width: 650px; /* تم تصغير العرض قليلاً */
     background-color: var(--color-white);
     border-radius: 15px;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
@@ -629,6 +629,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
         height: 40px;
     }
 }
+
 
 
 
