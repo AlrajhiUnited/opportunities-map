@@ -179,7 +179,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
     left: 50%;
     transform: translate(-50%, -50%) scale(0.9);
     width: 90%;
-    max-width: 480px; /* تم تصغير العرض الأقصى */
+    max-width: 680px; /* تم توسيع العرض الأقصى */
     background-color: var(--color-white);
     border-radius: 15px;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
@@ -217,16 +217,16 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 .card-section { padding: 15px 20px; }
 .card-section:first-child { padding-bottom: 0; }
 .section-header { font-size: 1.1em; font-weight: 700; color: var(--color-black); margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid var(--color-gold); }
-.section-content { display: grid; grid-template-columns: 1fr 1fr; gap: 15px 20px; }
+.section-content { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px 15px; }
 .notes-textarea-container { margin-top: 15px; }
 .notes-textarea-container .label { font-size: 0.85em; color: var(--color-black); font-weight: 700; margin-bottom: 5px; }
 .notes-textarea-container .value { font-size: 1em; line-height: 1.6; color: var(--color-black); background-color: var(--color-white); padding: 10px; border-radius: 8px; white-space: pre-wrap; }
 .info-card.edit-mode .notes-textarea-container .value { cursor: text; }
 
-.detail-item { background-color: var(--color-white); padding: 12px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: relative; display: flex; align-items: center; gap: 12px; }
-.detail-item .label { font-size: 0.85em; color: var(--color-black); font-weight: 700; }
-.detail-item .value { font-size: 1em; font-weight: 400; color: var(--color-black); }
-.item-icon { font-size: 1.4em; color: var(--color-gold); width: 25px; text-align: center; }
+.detail-item { background-color: var(--color-white); padding: 10px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: relative; display: flex; align-items: center; gap: 10px; }
+.detail-item .label { font-size: 0.8em; color: var(--color-black); font-weight: 700; }
+.detail-item .value { font-size: 0.95em; font-weight: 400; color: var(--color-black); }
+.item-icon { font-size: 1.3em; color: var(--color-gold); width: 22px; text-align: center; }
 .item-content { flex-grow: 1; }
 .detail-item.highlight-item .value { color: var(--color-dark-gold); font-weight: 700; }
 .detail-item[data-field-key="total_cost"] .value { color: var(--color-black) !important; font-weight: 400 !important; }
@@ -388,7 +388,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 
 .chatbot-callout {
     position: absolute;
-    bottom: 54px; 
+    bottom: 155px; /* تم تعديل الموضع ليظهر فوق الأزرار */
     right: 0;
     background: var(--color-black);
     color: var(--color-white);
@@ -629,5 +629,6 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
         height: 40px;
     }
 }
+
 
 
