@@ -1307,8 +1307,8 @@ const handleAddNewField = (targetFormGrid) => {
         const valueEl = document.getElementById('field-value');
         const value = valueEl.value;
 
-        if (!key || !label || !value) {
-            await showCustomConfirm('يرجى تعبئة جميع الحقول.', 'خطأ', true);
+        if (!key || !label) { // Note: Value can be empty initially
+            await showCustomConfirm('يرجى تعبئة حقلي المعرف والعنوان.', 'خطأ', true);
             return;
         }
         
@@ -1333,7 +1333,7 @@ const handleAddNewField = (targetFormGrid) => {
         }
 
         state.hasStructuralChanges = true;
-        state.editBuffer[key] = '';
+        state.editBuffer[key] = value; // تم إصلاح المشكلة: الآن يتم حفظ القيمة المدخلة
         state.editBuffer[`customFields.${key}`] = customFieldData;
 
 
@@ -1344,7 +1344,7 @@ const handleAddNewField = (targetFormGrid) => {
             <i class="item-icon fas ${icon}"></i>
             <div class="item-content">
                 <div class="label">${label}</div>
-                <div class="value">${formatFieldValue(key, '')}</div>
+                <div class="value">${formatFieldValue(key, value)}</div>
             </div>
             <button class="delete-field-btn" data-field-key="${key}"><i class="fas fa-times"></i></button>`;
         
@@ -2037,6 +2037,20 @@ const initApp = async () => {
             }
         });
     }
+    
+    // تفعيل زر الخروج من النوافذ
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const visibleModal = document.querySelector('.modal-container.visible');
+            if (visibleModal) {
+                visibleModal.classList.remove('visible');
+            } else if (state.dom.infoCard.classList.contains('visible')) {
+                hideInfoCard();
+            } else if (state.dom.chatbotContainer.classList.contains('visible')) {
+                state.dom.chatbotContainer.classList.remove('visible');
+            }
+        }
+    });
 };
 
 // ---===[ 11. نقطة البداية (Entry Point) ]===---
