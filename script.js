@@ -669,46 +669,59 @@ const showInfoCard = (opportunity) => {
         
         const createFieldElement = (key) => {
             const field = allFields[key];
+            if (!field) return null;
+
             const value = opportunity[key];
-            if (field && (value !== undefined && value !== null && String(value).trim() !== '')) {
-                const itemDiv = document.createElement('div');
-                itemDiv.className = `detail-item ${field.isFullWidth ? 'notes-item' : ''} ${field.isHighlight && key !== 'total_cost' ? 'highlight-item' : ''}`;
-                itemDiv.dataset.fieldKey = key;
-                let displayValue = formatFieldValue(key, value);
-                itemDiv.innerHTML = `
-                    <i class="item-icon fas ${field.icon || 'fa-info-circle'}"></i>
-                    <div class="item-content">
-                        <div class="label">${field.label}</div>
-                        <div class="value">${displayValue}</div>
-                    </div>
-                    <button class="delete-field-btn" data-field-key="${key}"><i class="fas fa-times"></i></button>`;
-                return itemDiv;
+            const hasValue = (value !== undefined && value !== null && String(value).trim() !== '');
+            
+            const itemDiv = document.createElement('div');
+            itemDiv.className = `detail-item ${field.isFullWidth ? 'notes-item' : ''} ${field.isHighlight && key !== 'total_cost' ? 'highlight-item' : ''}`;
+            itemDiv.dataset.fieldKey = key;
+            
+            let displayValue = hasValue ? formatFieldValue(key, value) : `<span class="placeholder-value">--</span>`;
+
+            // Recalculate total_cost if its components are present but it is not
+            if (key === 'total_cost' && !hasValue) {
+                const area = opportunity.area || 0;
+                const price = opportunity.buy_price_sqm || 0;
+                if (area > 0 && price > 0) {
+                    displayValue = formatFieldValue(key, area * price);
+                }
             }
-            return null;
+            
+            itemDiv.innerHTML = `
+                <i class="item-icon fas ${field.icon || 'fa-info-circle'}"></i>
+                <div class="item-content">
+                    <div class="label">${field.label}</div>
+                    <div class="value">${displayValue}</div>
+                </div>
+                <button class="delete-field-btn" data-field-key="${key}"><i class="fas fa-times"></i></button>`;
+            return itemDiv;
         };
         
-        const fieldOrder = opportunity.fieldOrder || Object.keys(allFields);
         const mainInfoKeys = Object.keys(config.mainInfoFields);
         const studyKeys = Object.keys(config.studyFields);
 
         // Section 1: Main Information
         detailsContainer.innerHTML += `<div class="info-card-section-header">المعلومات الرئيسية</div>`;
-        fieldOrder.filter(key => mainInfoKeys.includes(key)).forEach(key => {
+        mainInfoKeys.forEach(key => {
             const el = createFieldElement(key);
-            if(el) detailsContainer.appendChild(el);
+            if (el) detailsContainer.appendChild(el);
         });
 
         // Section 2: Study Information
         detailsContainer.innerHTML += `<div class="info-card-section-header">دراسة الفرصة</div>`;
-         fieldOrder.filter(key => studyKeys.includes(key)).forEach(key => {
+         studyKeys.forEach(key => {
             const el = createFieldElement(key);
-            if(el) detailsContainer.appendChild(el);
+            if (el) detailsContainer.appendChild(el);
         });
 
-        // Section 3: Other Fields
+        // Section 3: Other Fields from fieldOrder that haven't been displayed
         const displayedKeys = new Set([...mainInfoKeys, ...studyKeys, 'name', 'coords', 'city', 'status', 'gmaps_link']);
-        const otherFields = fieldOrder.filter(key => !displayedKeys.has(key));
-        if (otherFields.some(key => opportunity[key] !== undefined && opportunity[key] !== null)) {
+        const fieldOrder = opportunity.fieldOrder || [];
+        const otherFields = fieldOrder.filter(key => !displayedKeys.has(key) && allFields[key]);
+        
+        if (otherFields.length > 0) {
             detailsContainer.innerHTML += `<div class="info-card-section-header">معلومات إضافية</div>`;
             otherFields.forEach(key => {
                 const el = createFieldElement(key);
@@ -728,6 +741,7 @@ const showInfoCard = (opportunity) => {
         state.dom.infoCard.classList.add('visible');
     }, 100);
 };
+
 
 
 const hideInfoCard = () => {
@@ -1288,7 +1302,7 @@ const handleValueClickToEdit = (e) => {
         select.focus();
 
     } else if (fieldConfig && fieldConfig.type === 'textarea') {
-        valueEl.innerHTML = `<textarea class="value-input" rows="4">${currentValue}</textarea>`;
+        valueEl.innerHTML = `<textarea class="value-textarea" rows="4">${currentValue}</textarea>`;
         const textarea = valueEl.querySelector('textarea');
         textarea.focus();
 
@@ -2126,3 +2140,4 @@ const initApp = async () => {
 
 // ---===[ 11. نقطة البداية (Entry Point) ]===---
 document.addEventListener('DOMContentLoaded', initApp);
+
