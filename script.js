@@ -633,68 +633,79 @@ const showInfoCard = (opportunity) => {
         state.dom.infoCardStatusBadge.textContent = display.text;
 
         state.dom.infoCardBody.innerHTML = '';
-        const mainInfoFields = ['opportunity_date', 'opportunity_type', 'area', 'buy_price_sqm', 'total_cost'];
-        const studyFields = ['design_cost', 'execution_cost', 'roi', 'irr'];
+        
+        const mainSection = document.createElement('div');
+        mainSection.className = 'card-section';
+        mainSection.innerHTML = `<h4 class="section-header">المعلومات الرئيسية</h4><div class="section-content"></div>`;
+        const studySection = document.createElement('div');
+        studySection.className = 'card-section';
+        studySection.innerHTML = `<h4 class="section-header">دراسة الفرصة</h4><div class="section-content"></div>`;
+        
+        const mainContent = mainSection.querySelector('.section-content');
+        const studyContent = studySection.querySelector('.section-content');
+
         const allFields = { ...config.internalFields, ...config.baseFields, ...config.suggestedFields, ...(opportunity.customFields || {}) };
+        
+        const defaultMainOrder = ['opportunity_date', 'opportunity_type', 'area', 'buy_price_sqm', 'total_cost'];
+        const defaultStudyOrder = ['design_cost', 'execution_cost', 'roi', 'irr'];
+        
+        const fieldOrder = opportunity.fieldOrder || [...defaultMainOrder, ...defaultStudyOrder];
+        const processedKeys = new Set();
+        
+        const createFieldHTML = (key) => {
+            const field = allFields[key];
+            if (!field) return '';
+            const value = opportunity[key];
+            return `<div class="detail-item" data-field-key="${key}">
+                        <i class="fas fa-grip-vertical drag-handle"></i>
+                        <i class="item-icon fas ${field.icon || 'fa-info-circle'}"></i>
+                        <div class="item-content">
+                            <div class="label">${field.label}</div>
+                            <div class="value">${formatFieldValue(key, value)}</div>
+                        </div>
+                        <button class="delete-field-btn" data-field-key="${key}"><i class="fas fa-times"></i></button>
+                   </div>`;
+        };
 
-        const createSectionHTML = (title, fieldKeys, notesKey) => {
-            let contentHTML = '';
-            const existingKeys = new Set();
-            
-            const addFieldHTML = (key, isPredefined = false) => {
-                if (existingKeys.has(key)) return;
-                const field = allFields[key];
-                const value = opportunity[key];
-                const hasValue = (value !== undefined && value !== null && String(value).trim() !== '');
-
-                 if (field && (hasValue || isPredefined)) {
-                    contentHTML += `<div class="detail-item" data-field-key="${key}">
-                                        <i class="fas fa-grip-vertical drag-handle"></i>
-                                        <i class="item-icon fas ${field.icon || 'fa-info-circle'}"></i>
-                                        <div class="item-content">
-                                            <div class="label">${field.label}</div>
-                                            <div class="value">${formatFieldValue(key, value)}</div>
-                                        </div>
-                                        <button class="delete-field-btn" data-field-key="${key}"><i class="fas fa-times"></i></button>
-                                   </div>`;
-                    existingKeys.add(key);
+        fieldOrder.forEach(key => {
+            if (allFields[key] && !/notes/i.test(key)) {
+                const isStudyKeyword = /cost|exec|roi|irr|sales|price/i.test(key) && key !== 'buy_price_sqm' && key !== 'total_cost';
+                 if (isStudyKeyword) {
+                    studyContent.innerHTML += createFieldHTML(key);
+                } else {
+                    mainContent.innerHTML += createFieldHTML(key);
                 }
-            };
-            
-            fieldKeys.forEach(key => addFieldHTML(key, true));
-            
-            if (opportunity.fieldOrder) {
-                opportunity.fieldOrder.forEach(key => {
-                     const isStudyKeyword = /cost|exec|roi|irr|sales|price/i.test(key);
-                     const belongsToStudy = title === 'دراسة الفرصة' && isStudyKeyword;
-                     const belongsToMain = title === 'المعلومات الرئيسية' && !isStudyKeyword;
-
-                     if (opportunity.customFields?.[key] && (belongsToMain || belongsToStudy)) {
-                         addFieldHTML(key, false);
-                     }
-                });
+                processedKeys.add(key);
             }
+        });
 
-            let notesHTML = '';
-            if (notesKey) {
-                const notesValue = opportunity[notesKey] || '';
-                const notesConfig = allFields[notesKey];
-                notesHTML = `<div class="notes-textarea-container" data-field-key="${notesKey}">
-                                <div class="label">${notesConfig.label}</div>
-                                <div class="value">${notesValue}</div>
-                             </div>`;
+        Object.keys(allFields).forEach(key => {
+            if (!processedKeys.has(key) && opportunity[key] !== undefined && !/notes/i.test(key) && key !== 'name' && key !== 'status') {
+                 const isStudyKeyword = /cost|exec|roi|irr|sales|price/i.test(key) && key !== 'buy_price_sqm' && key !== 'total_cost';
+                 if (isStudyKeyword) {
+                    studyContent.innerHTML += createFieldHTML(key);
+                } else {
+                    mainContent.innerHTML += createFieldHTML(key);
+                }
             }
+        });
 
-            return `<div class="card-section">
-                        <h4 class="section-header">${title}</h4>
-                        <div class="section-content">${contentHTML}</div>
-                        ${notesHTML}
-                    </div>`;
+        const createNotesHTML = (notesKey) => {
+            const notesValue = opportunity[notesKey] || '';
+            const notesConfig = allFields[notesKey];
+            if (!notesConfig) return '';
+            return `<div class="notes-textarea-container" data-field-key="${notesKey}">
+                        <div class="label">${notesConfig.label}</div>
+                        <div class="value">${notesValue.replace(/\n/g, '<br>')}</div>
+                     </div>`;
         };
         
-        state.dom.infoCardBody.innerHTML = createSectionHTML('المعلومات الرئيسية', mainInfoFields, 'main_notes');
-        state.dom.infoCardBody.innerHTML += createSectionHTML('دراسة الفرصة', studyFields, 'study_notes');
+        mainSection.innerHTML += createNotesHTML('main_notes');
+        studySection.innerHTML += createNotesHTML('study_notes');
 
+        state.dom.infoCardBody.appendChild(mainSection);
+        state.dom.infoCardBody.appendChild(studySection);
+        
         const finalGmapsLink = opportunity.gmaps_link || (opportunity.coords ? `https://www.google.com/maps/search/?api=1&query=${opportunity.coords.latitude},${opportunity.coords.longitude}` : '#');
         state.dom.infoCardGmapsLink.href = finalGmapsLink;
         state.dom.infoCardActions.dataset.docId = opportunity.id;
