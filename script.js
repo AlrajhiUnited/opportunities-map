@@ -29,7 +29,6 @@ const config = {
          coords: { label: 'الإحداثيات', icon: 'fa-map-marker-alt', type: 'text', required: true },
          status: { label: 'الحالة', icon: 'fa-tasks', type: 'select', options: ['مناسبة', 'غير مناسبة', 'تم الاستحواذ'] },
     },
-    // ---===[ تعديل: إضافة حقول جديدة واقتراحات ]===---
     suggestedFields: {
         opportunity_date: { label: 'تاريخ الفرصة', icon: 'fa-calendar-alt', type: 'date' },
         opportunity_type: {
@@ -219,7 +218,6 @@ const showCustomConfirm = (message, title = 'تأكيد', isAlert = false) => {
     });
 };
 
-// ---===[ تعديل: تحسين نظام التحقق من الصلاحيات ]===---
 const hasAuth = (requiredRole = 'viewer') => {
     if (!state.currentUser) return false;
     const roles = ['viewer', 'editor', 'admin'];
@@ -237,8 +235,6 @@ const checkAndRequestAdminAccess = async (requiredRole = 'editor') => {
 
 const requestAdminAccess = (requiredRole = 'editor') => {
     return new Promise(async (resolve) => {
-        // ---===[ تم إزالة مسح الجلسة من هنا للسماح بالتخزين المؤقت ]===---
-        
         state.dom.passwordModal.classList.add('visible');
         state.dom.usernameInput.value = '';
         state.dom.passwordInput.value = '';
@@ -361,18 +357,14 @@ const createModalFormField = (key, fieldConfig, value) => {
             </div>`;
 };
 
-
-// ---===[ تعديل: إعادة بناء نافذة الإضافة/التعديل لتناسب التصميم الجديد ]===---
 const showOpportunityModal = (opportunity = null, prefillData = {}) => {
     state.dom.modalTitle.textContent = opportunity ? 'تحرير الفرصة' : 'إضافة فرصة جديدة';
     state.dom.opportunityForm.dataset.mode = opportunity ? 'edit' : 'add';
     state.dom.opportunityForm.dataset.docId = opportunity ? opportunity.id : '';
-    state.dom.opportunityForm.innerHTML = ''; // Clear previous content
+    state.dom.opportunityForm.innerHTML = ''; 
     
-    // Define fields for each section
     const mainInfoFields = ['name', 'city', 'coords', 'opportunity_date', 'area', 'buy_price_sqm', 'total_cost'];
     const studyFields = ['design_cost', 'execution_cost', 'roi', 'irr'];
-    const notesFields = { main_notes: 'ملاحظات رئيسية', study_notes: 'ملاحظات الدراسة' };
     const allStandardFields = { ...config.internalFields, ...config.baseFields, ...config.suggestedFields };
 
     const createSectionHTML = (title, fieldKeys, notesKey) => {
@@ -386,7 +378,6 @@ const showOpportunityModal = (opportunity = null, prefillData = {}) => {
             }
         });
 
-        // Add notes field
         if (notesKey) {
             const notesConfig = allStandardFields[notesKey];
             const notesValue = opportunity ? opportunity[notesKey] : '';
@@ -401,12 +392,10 @@ const showOpportunityModal = (opportunity = null, prefillData = {}) => {
     };
 
     let formHTML = createSectionHTML('المعلومات الرئيسية', mainInfoFields, 'main_notes');
-    // ---===[ تعديل: إظهار قسم الدراسة فقط في وضع التحرير ]===---
     if (opportunity) {
         formHTML += createSectionHTML('دراسة الفرصة', studyFields, 'study_notes');
     }
 
-    // Add status and submit button at the end
     const statusConfig = allStandardFields['status'];
     const statusValue = opportunity ? opportunity.status : '';
     formHTML += `<hr class="admin-divider">
@@ -417,7 +406,6 @@ const showOpportunityModal = (opportunity = null, prefillData = {}) => {
 
     state.dom.opportunityForm.innerHTML = formHTML;
 
-    // Handle 'Other City' logic
     const citySelect = state.dom.opportunityForm.querySelector('select[name="city"]');
     if (citySelect) {
         const cityValue = opportunity?.city || prefillData.city || '';
@@ -439,7 +427,6 @@ const showOpportunityModal = (opportunity = null, prefillData = {}) => {
 
     state.dom.opportunityModal.classList.add('visible');
     
-    // Add event listeners
     document.getElementById('pick-from-map-btn')?.addEventListener('click', () => {
         state.dom.opportunityModal.classList.remove('visible');
         startLocationEdit(true); 
@@ -454,7 +441,6 @@ const showOpportunityModal = (opportunity = null, prefillData = {}) => {
         }
     });
 
-    // Auto-calculate total cost
     const areaInput = state.dom.opportunityForm.querySelector('input[name="area"]');
     const priceInput = state.dom.opportunityForm.querySelector('input[name="buy_price_sqm"]');
     const totalCostInput = state.dom.opportunityForm.querySelector('input[name="total_cost"]');
@@ -470,7 +456,6 @@ const showOpportunityModal = (opportunity = null, prefillData = {}) => {
         updateTotalCost();
     }
     
-    // Logic for dynamic "add new field"
     state.dom.opportunityForm.querySelectorAll('.add-dynamic-field-btn').forEach(btn => {
         btn.addEventListener('click', e => {
             const formGrid = e.target.previousElementSibling;
@@ -635,13 +620,11 @@ const handleChatSubmit = async (e) => {
     }
 };
 
-// ---===[ تعديل: إعادة بناء بطاقة العرض بالكامل ]===---
 const showInfoCard = (opportunity) => {
     exitEditMode(false);
     state.dom.infoCard.classList.remove('visible');
     
     setTimeout(() => {
-        // 1. Set Header
         state.dom.infoCardTitle.textContent = opportunity.name || 'لا يوجد اسم';
         const statusDisplay = { 'مناسبة': { text: 'مناسبة', class: 'suitable' }, 'غير مناسبة': { text: 'غير مناسبة', class: 'unsuitable' }, 'تم الاستحواذ': { text: 'تم الاستحواذ', class: 'acquired' }};
         const status = opportunity.status || '';
@@ -649,21 +632,23 @@ const showInfoCard = (opportunity) => {
         state.dom.infoCardStatusBadge.className = `status-badge status-${display.class}`;
         state.dom.infoCardStatusBadge.textContent = display.text;
 
-        // 2. Build Body Sections
         state.dom.infoCardBody.innerHTML = '';
         const mainInfoFields = ['opportunity_date', 'area', 'buy_price_sqm', 'total_cost'];
         const studyFields = ['design_cost', 'execution_cost', 'roi', 'irr'];
         const allFields = { ...config.internalFields, ...config.baseFields, ...config.suggestedFields, ...(opportunity.customFields || {}) };
 
+        // ---===[ تعديل: منطق إظهار الحقول الفارغة في بطاقة العرض ]===---
         const createSectionHTML = (title, fieldKeys, notesKey) => {
             let contentHTML = '';
             const existingKeys = new Set();
             
-            const addFieldHTML = (key) => {
+            const addFieldHTML = (key, isPredefined = false) => {
                 if (existingKeys.has(key)) return;
                 const field = allFields[key];
                 const value = opportunity[key];
-                 if (field && (value !== undefined && value !== null && String(value).trim() !== '')) {
+                const hasValue = (value !== undefined && value !== null && String(value).trim() !== '');
+
+                 if (field && (hasValue || isPredefined)) {
                     contentHTML += `<div class="detail-item" data-field-key="${key}">
                                         <i class="item-icon fas ${field.icon || 'fa-info-circle'}"></i>
                                         <div class="item-content">
@@ -676,19 +661,16 @@ const showInfoCard = (opportunity) => {
                 }
             };
             
-            // Add predefined fields
-            fieldKeys.forEach(addFieldHTML);
+            fieldKeys.forEach(key => addFieldHTML(key, true));
             
-            // Add custom fields that belong to this section (heuristic)
             if (opportunity.fieldOrder) {
                 opportunity.fieldOrder.forEach(key => {
-                     // Simple logic: if a custom field is related to cost/money, assume it's for study section
                      const isStudyKeyword = /cost|exec|roi|irr|sales|price/i.test(key);
                      const belongsToStudy = title === 'دراسة الفرصة' && isStudyKeyword;
                      const belongsToMain = title === 'المعلومات الرئيسية' && !isStudyKeyword;
 
                      if (opportunity.customFields?.[key] && (belongsToMain || belongsToStudy)) {
-                         addFieldHTML(key);
+                         addFieldHTML(key, false);
                      }
                 });
             }
@@ -713,7 +695,6 @@ const showInfoCard = (opportunity) => {
         state.dom.infoCardBody.innerHTML = createSectionHTML('المعلومات الرئيسية', mainInfoFields, 'main_notes');
         state.dom.infoCardBody.innerHTML += createSectionHTML('دراسة الفرصة', studyFields, 'study_notes');
 
-        // 3. Set Footer Actions
         const finalGmapsLink = opportunity.gmaps_link || (opportunity.coords ? `https://www.google.com/maps/search/?api=1&query=${opportunity.coords.latitude},${opportunity.coords.longitude}` : '#');
         state.dom.infoCardGmapsLink.href = finalGmapsLink;
         state.dom.infoCardActions.dataset.docId = opportunity.id;
@@ -899,12 +880,9 @@ const handleFormSubmit = async (e) => {
     const data = {};
     const customFields = {};
 
-    // Process form data
     for (const [key, value] of formData.entries()) {
         if (key.startsWith('custom_')) {
-            // This part for dynamic fields is simplified; a real implementation might need more robust handling for multiple fields
         } else if (key.endsWith('[]')) {
-            // Handle array inputs if any in the future
         }
         else {
             data[key] = value;
@@ -1141,16 +1119,6 @@ const enterEditMode = () => {
 
 
     if (state.sortableInstance) state.sortableInstance.destroy();
-    /*
-    state.sortableInstance = new Sortable(state.dom.infoCardDetailsContainer, {
-        animation: 150,
-        ghostClass: 'sortable-ghost',
-        onEnd: () => { 
-            state.hasStructuralChanges = true;
-            // state.editBuffer.fieldOrder = [...state.dom.infoCardDetailsContainer.children].map(item => item.dataset.fieldKey);
-        },
-    });
-    */
 };
 
 const exitEditMode = async (saveChanges = true) => {
@@ -1365,7 +1333,6 @@ const handleAddNewField = (targetFormGrid) => {
         }
 
         state.hasStructuralChanges = true;
-        // ---===[ تعديل: إضافة الحقل بقيمة فارغة لتجنب استبدال البيانات ]===---
         state.editBuffer[key] = '';
         state.editBuffer[`customFields.${key}`] = customFieldData;
 
@@ -1381,7 +1348,6 @@ const handleAddNewField = (targetFormGrid) => {
             </div>
             <button class="delete-field-btn" data-field-key="${key}"><i class="fas fa-times"></i></button>`;
         
-        // Add to the correct section
         const isStudyKeyword = /cost|exec|roi|irr|sales|price/i.test(key);
         const targetSection = isStudyKeyword ? state.dom.infoCardBody.querySelector('.card-section:nth-child(2) .section-content') : state.dom.infoCardBody.querySelector('.card-section:nth-child(1) .section-content');
         if(targetSection) {
@@ -1390,7 +1356,6 @@ const handleAddNewField = (targetFormGrid) => {
 
         state.dom.addFieldModal.classList.remove('visible');
 
-        // state.editBuffer.fieldOrder = [...state.dom.infoCardDetailsContainer.children].map(item => item.dataset.fieldKey);
     };
 };
 const handleDeleteField = async (fieldKey) => {
@@ -1405,7 +1370,6 @@ const handleDeleteField = async (fieldKey) => {
     state.editBuffer[`customFields.${fieldKey}`] = deleteField();
     
     state.dom.infoCardBody.querySelector(`[data-field-key="${fieldKey}"]`)?.remove();
-    // state.editBuffer.fieldOrder = [...state.dom.infoCardDetailsContainer.children].map(item => item.dataset.fieldKey);
 };
 
 const applyStructureToAllOpportunities = async (structuralUpdates) => {
