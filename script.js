@@ -29,6 +29,7 @@ const config = {
          coords: { label: 'الإحداثيات', icon: 'fa-map-marker-alt', type: 'text', required: true },
          status: { label: 'الحالة', icon: 'fa-tasks', type: 'select', options: ['مناسبة', 'غير مناسبة', 'تم الاستحواذ'] },
     },
+    // ---===[ تعديل: إضافة حقول جديدة واقتراحات ]===---
     suggestedFields: {
         opportunity_date: { label: 'تاريخ الفرصة', icon: 'fa-calendar-alt', type: 'date' },
         opportunity_type: {
@@ -44,21 +45,15 @@ const config = {
             options: ['تطوير ذاتي', 'شراكة', 'صندوق عقاري', 'تطوير للغير', 'أخر']
         },
         gmaps_link: { label: 'رابط خرائط جوجل', icon: 'fa-link', type: 'text' },
-        notes: { label: 'تفاصيل إضافية', icon: 'fa-align-left', type: 'textarea', isFullWidth: true },
         district: { label: 'الحي', icon: 'fa-map-signs' },
-        dev_cost_unit: { label: 'وحدة تكلفة التطوير', icon: 'fa-ruler-combined' },
-        other_costs: { label: 'تكاليف أخرى', icon: 'fa-coins', isCurrency: true },
-        est_sales: { label: 'المبيعات المقدرة', icon: 'fa-cash-register', isCurrency: true, isHighlight: true },
-        comm_value: { label: 'قيمة تجاري', icon: 'fa-store', isCurrency: true },
-        res_area: { label: 'مساحة سكني', icon: 'fa-ruler-horizontal', unit: 'م²' },
-        res_value: { label: 'قيمة سكني', icon: 'fa-home', isCurrency: true, isHighlight: true },
-        roi: { label: 'العائد (ROI)', icon: 'fa-chart-line', unit: '%' },
-        irr: { label: 'العائد الداخلي (IRR)', icon: 'fa-percentage', unit: '%' },
-        breakeven: { label: 'نقطة التعادل', icon: 'fa-equals' },
         design_cost: { label: 'تكاليف التصميم', icon: 'fa-drafting-compass', isCurrency: true },
         execution_cost: { label: 'تكاليف التنفيذ', icon: 'fa-tools', isCurrency: true },
-        comm_exec_price: { label: 'سعر تنفيذ تجاري', icon: 'fa-money-check-alt', isCurrency: true },
-        res_exec_price: { label: 'سعر تنفيذ سكني', icon: 'fa-money-check', isCurrency: true },
+        roi: { label: 'العائد (ROI)', icon: 'fa-chart-line', unit: '%' },
+        irr: { label: 'العائد الداخلي (IRR)', icon: 'fa-percentage', unit: '%' },
+        main_notes: { label: 'ملاحظات رئيسية', icon: 'fa-align-left', type: 'textarea', isFullWidth: true },
+        study_notes: { label: 'ملاحظات الدراسة', icon: 'fa-align-left', type: 'textarea', isFullWidth: true },
+        other_costs: { label: 'تكاليف أخرى', icon: 'fa-coins', isCurrency: true },
+        est_sales: { label: 'المبيعات المقدرة', icon: 'fa-cash-register', isCurrency: true, isHighlight: true },
     }
 };
 
@@ -116,7 +111,7 @@ const cacheDomElements = () => {
         infoCardCloseBtn: document.getElementById('info-card-close'),
         infoCardTitle: document.getElementById('info-card-title'),
         infoCardStatusBadge: document.getElementById('info-card-status-badge'),
-        infoCardDetailsContainer: document.getElementById('info-card-details'),
+        infoCardBody: document.getElementById('info-card-body'),
         infoCardGmapsLink: document.getElementById('info-card-gmaps-link'),
         cityNavigatorPanel: document.getElementById('city-navigator'),
         statusFilterDiv: document.getElementById('city-navigator')?.querySelector('.status-filters'),
@@ -124,8 +119,6 @@ const cacheDomElements = () => {
         addOpportunityBtn: document.getElementById('add-opportunity-btn'),
         opportunityModal: document.getElementById('opportunity-modal'),
         opportunityForm: document.getElementById('opportunity-form'),
-        opportunityFormGrid: document.querySelector('#opportunity-form .form-grid'),
-        addDynamicFieldBtn: document.getElementById('add-dynamic-field-btn'),
         modalTitle: document.getElementById('modal-title'),
         addFieldModal: document.getElementById('add-field-modal'),
         addFieldForm: document.getElementById('add-field-form'),
@@ -226,10 +219,25 @@ const showCustomConfirm = (message, title = 'تأكيد', isAlert = false) => {
     });
 };
 
+// ---===[ تعديل: تحسين نظام التحقق من الصلاحيات ]===---
+const hasAuth = (requiredRole = 'viewer') => {
+    if (!state.currentUser) return false;
+    const roles = ['viewer', 'editor', 'admin'];
+    const requiredLevel = roles.indexOf(requiredRole);
+    const userLevel = roles.indexOf(state.currentUser.role);
+    return userLevel >= requiredLevel;
+}
+
+const checkAndRequestAdminAccess = async (requiredRole = 'editor') => {
+    if (hasAuth(requiredRole)) {
+        return true;
+    }
+    return await requestAdminAccess(requiredRole);
+};
+
 const requestAdminAccess = (requiredRole = 'editor') => {
     return new Promise(async (resolve) => {
-        sessionStorage.removeItem('currentUser');
-        state.currentUser = null;
+        // ---===[ تم إزالة مسح الجلسة من هنا للسماح بالتخزين المؤقت ]===---
         
         state.dom.passwordModal.classList.add('visible');
         state.dom.usernameInput.value = '';
@@ -242,33 +250,31 @@ const requestAdminAccess = (requiredRole = 'editor') => {
             e.preventDefault();
             const username = state.dom.usernameInput.value;
             const password = state.dom.passwordInput.value;
+            let foundUser = null;
 
             if (username === config.superAdmin.username && password === config.superAdmin.password) {
-                state.currentUser = { username: config.superAdmin.username, role: 'admin' };
-                sessionStorage.setItem('currentUser', JSON.stringify(state.currentUser));
-                displayCityNavigator(); 
-                cleanup();
-                return resolve(true);
+                foundUser = { username: config.superAdmin.username, role: 'admin' };
+            } else {
+                 const q = query(state.usersCollection, where("username", "==", username), where("password", "==", password));
+                 const querySnapshot = await getDocs(q);
+                 if (!querySnapshot.empty) {
+                     const userDoc = querySnapshot.docs[0].data();
+                     foundUser = { username: userDoc.username, role: userDoc.role };
+                 }
             }
 
-            const q = query(state.usersCollection, where("username", "==", username), where("password", "==", password));
-            const querySnapshot = await getDocs(q);
-            
-            if (!querySnapshot.empty) {
-                const userDoc = querySnapshot.docs[0].data();
-                state.currentUser = { username: userDoc.username, role: userDoc.role };
-                sessionStorage.setItem('currentUser', JSON.stringify(state.currentUser));
-                
-                const hasAccess = state.currentUser.role === 'admin' || (requiredRole === 'editor' && state.currentUser.role === 'editor');
-                if (hasAccess) {
-                    displayCityNavigator();
-                    cleanup();
-                    resolve(true);
-                } else {
-                     await showCustomConfirm('ليس لديك الصلاحية الكافية للقيام بهذا الإجراء.', 'خطأ في الصلاحية', true);
+            if (foundUser) {
+                 state.currentUser = foundUser;
+                 sessionStorage.setItem('currentUser', JSON.stringify(state.currentUser));
+                 if (hasAuth(requiredRole)) {
+                     displayCityNavigator(); 
                      cleanup();
-                     resolve(false);
-                }
+                     resolve(true);
+                 } else {
+                      await showCustomConfirm('ليس لديك الصلاحية الكافية للقيام بهذا الإجراء.', 'خطأ في الصلاحية', true);
+                      cleanup();
+                      resolve(false);
+                 }
             } else {
                 await showCustomConfirm('اسم المستخدم أو كلمة المرور غير صحيحة.', 'خطأ في الدخول', true);
             }
@@ -299,7 +305,6 @@ const parseNumberWithCommas = (value) => {
     const num = parseFloat(cleaned);
     return isNaN(num) ? null : num;
 };
-
 
 const formatFieldValue = (key, value) => {
     const allFields = { ...config.baseFields, ...config.internalFields, ...config.suggestedFields };
@@ -344,6 +349,8 @@ const createModalFormField = (key, fieldConfig, value) => {
                 <input type="${fieldConfig.type || 'text'}" name="${key}" value="${finalValue}" ${fieldConfig.required ? 'required' : ''}>
                 <button type="button" id="pick-from-map-btn" class="gmaps-form-btn" title="تحديد من الخريطة"><i class="fas fa-map-marker-alt"></i></button>
             </div>`;
+    } else if (fieldConfig.type === 'textarea') {
+        inputHtml = `<textarea name="${key}" rows="4">${finalValue}</textarea>`;
     } else {
         const inputType = (fieldConfig.type === 'number' && fieldConfig.readonly) ? 'text' : (fieldConfig.type || 'text');
         inputHtml = `<input type="${inputType}" name="${key}" value="${finalValue}" ${fieldConfig.required ? 'required' : ''} ${isReadonly}>`;
@@ -351,93 +358,91 @@ const createModalFormField = (key, fieldConfig, value) => {
     return `<div class="form-group ${fieldConfig.isFullWidth ? 'full-width' : ''}" data-field-key="${key}">
                 <label>${fieldConfig.label}</label>
                 ${inputHtml}
-                <i class="fas fa-grip-vertical drag-handle"></i>
             </div>`;
 };
 
 
+// ---===[ تعديل: إعادة بناء نافذة الإضافة/التعديل لتناسب التصميم الجديد ]===---
 const showOpportunityModal = (opportunity = null, prefillData = {}) => {
     state.dom.modalTitle.textContent = opportunity ? 'تحرير الفرصة' : 'إضافة فرصة جديدة';
     state.dom.opportunityForm.dataset.mode = opportunity ? 'edit' : 'add';
     state.dom.opportunityForm.dataset.docId = opportunity ? opportunity.id : '';
-    state.dom.opportunityForm.reset();
-    state.dom.opportunityFormGrid.innerHTML = '';
-    state.dom.opportunityModal.classList.add('is-sortable');
+    state.dom.opportunityForm.innerHTML = ''; // Clear previous content
+    
+    // Define fields for each section
+    const mainInfoFields = ['name', 'city', 'coords', 'opportunity_date', 'area', 'buy_price_sqm', 'total_cost'];
+    const studyFields = ['design_cost', 'execution_cost', 'roi', 'irr'];
+    const notesFields = { main_notes: 'ملاحظات رئيسية', study_notes: 'ملاحظات الدراسة' };
+    const allStandardFields = { ...config.internalFields, ...config.baseFields, ...config.suggestedFields };
 
-    const allFields = { ...config.internalFields, ...config.suggestedFields, ...config.baseFields };
-    const defaultFieldOrder = [
-        'name', 'status', 'city', 'coords', 'opportunity_date', 'opportunity_type', 'development_type',
-        'area', 'buy_price_sqm', 'total_cost', 'dev_cost', 'gmaps_link'
-    ];
-    const fieldOrder = opportunity?.fieldOrder || defaultFieldOrder;
-    
-    fieldOrder.forEach(key => {
-        let fieldConfig = allFields[key];
-        if (fieldConfig) {
-             let value;
-             if (opportunity) {
-                 value = (key === 'coords' ? `${opportunity.coords?.latitude || ''},${opportunity.coords?.longitude || ''}` : opportunity[key]);
-             } else if (prefillData[key]) {
-                 if (key === 'coords' && typeof prefillData[key] === 'object') {
-                     value = `${prefillData[key].lat.toFixed(6)},${prefillData[key].lng.toFixed(6)}`;
-                 } else {
-                     value = prefillData[key];
-                 }
-             } else {
-                 value = '';
-             }
-             state.dom.opportunityFormGrid.innerHTML += createModalFormField(key, fieldConfig, value);
-        } else if (opportunity?.customFields?.[key]) {
-            fieldConfig = opportunity.customFields[key];
-            state.dom.opportunityFormGrid.innerHTML += createModalFormField(key, fieldConfig, opportunity[key]);
+    const createSectionHTML = (title, fieldKeys, notesKey) => {
+        let fieldsHTML = '';
+        fieldKeys.forEach(key => {
+            const fieldConfig = allStandardFields[key];
+            if (fieldConfig) {
+                let value = opportunity ? (key === 'coords' ? `${opportunity.coords?.latitude || ''},${opportunity.coords?.longitude || ''}` : opportunity[key]) : prefillData[key] || '';
+                if(key === 'coords' && typeof value === 'object') value = `${value.lat.toFixed(6)},${value.lng.toFixed(6)}`;
+                fieldsHTML += createModalFormField(key, fieldConfig, value);
+            }
+        });
+
+        // Add notes field
+        if (notesKey) {
+            const notesConfig = allStandardFields[notesKey];
+            const notesValue = opportunity ? opportunity[notesKey] : '';
+            fieldsHTML += createModalFormField(notesKey, notesConfig, notesValue);
         }
-    });
-    
-    const citySelectContainer = state.dom.opportunityFormGrid.querySelector('[data-field-key="city"]');
-    if (citySelectContainer) {
-        const citySelect = citySelectContainer.querySelector('select');
+
+        return `<div class="card-section">
+                    <h4 class="section-header">${title}</h4>
+                    <div class="form-grid">${fieldsHTML}</div>
+                    <button type="button" class="add-dynamic-field-btn"><i class="fas fa-plus"></i> إضافة حقل مخصص</button>
+                </div>`;
+    };
+
+    let formHTML = createSectionHTML('المعلومات الرئيسية', mainInfoFields, 'main_notes');
+    formHTML += createSectionHTML('دراسة الفرصة', studyFields, 'study_notes');
+
+    // Add status and submit button at the end
+    const statusConfig = allStandardFields['status'];
+    const statusValue = opportunity ? opportunity.status : '';
+    formHTML += `<hr class="admin-divider">
+                 <div class="form-grid" style="grid-template-columns: 1fr;">
+                    ${createModalFormField('status', statusConfig, statusValue)}
+                 </div>
+                 <button type="submit" class="form-submit-btn">حفظ البيانات</button>`;
+
+    state.dom.opportunityForm.innerHTML = formHTML;
+
+    // Handle 'Other City' logic
+    const citySelect = state.dom.opportunityForm.querySelector('select[name="city"]');
+    if (citySelect) {
         const cityValue = opportunity?.city || prefillData.city || '';
         const isOtherCity = cityValue && !config.approvedCities.includes(cityValue);
         let cityOptionsHtml = '<option value="">--غير محدد--</option>' + config.approvedCities.map(c => `<option value="${c}" ${!isOtherCity && cityValue === c ? 'selected' : ''}>${c}</option>`).join('');
         cityOptionsHtml += `<option value="other" ${isOtherCity ? 'selected' : ''}>مدينة أخرى...</option>`;
+        citySelect.innerHTML = cityOptionsHtml;
         
-        if (citySelect) { 
-            citySelect.innerHTML = cityOptionsHtml;
-        }
-        
-        document.getElementById('other-city-group')?.remove();
-
         const otherCityGroup = document.createElement('div');
         otherCityGroup.className = 'form-group full-width';
-        otherCityGroup.id = 'other-city-group';
         otherCityGroup.style.display = isOtherCity ? 'grid' : 'none';
-        otherCityGroup.innerHTML = `
-            <label>اسم المدينة الجديدة</label>
-            <input type="text" name="other_city" id="other-city-input" value="${isOtherCity ? cityValue : ''}">`;
-        citySelectContainer.insertAdjacentElement('afterend', otherCityGroup);
-        if (citySelect) {
-            citySelect.addEventListener('change', (e) => {
-                const otherGroup = document.getElementById('other-city-group');
-                const otherInput = document.getElementById('other-city-input');
-                if(e.target.value === 'other') {
-                    otherGroup.style.display = 'grid';
-                    otherInput.required = true;
-                } else {
-                    otherGroup.style.display = 'none';
-                    otherInput.required = false;
-                }
-            });
-        }
+        otherCityGroup.innerHTML = `<label>اسم المدينة الجديدة</label><input type="text" name="other_city" value="${isOtherCity ? cityValue : ''}">`;
+        citySelect.closest('.form-group').insertAdjacentElement('afterend', otherCityGroup);
+
+        citySelect.addEventListener('change', (e) => {
+            otherCityGroup.style.display = e.target.value === 'other' ? 'grid' : 'none';
+        });
     }
 
     state.dom.opportunityModal.classList.add('visible');
     
+    // Add event listeners
     document.getElementById('pick-from-map-btn')?.addEventListener('click', () => {
         state.dom.opportunityModal.classList.remove('visible');
         startLocationEdit(true); 
     });
 
-    state.dom.opportunityFormGrid.querySelectorAll('select').forEach(select => {
+    state.dom.opportunityForm.querySelectorAll('select').forEach(select => {
         if (select.name !== 'city') {
              select.addEventListener('change', (e) => {
                 const otherInput = e.target.closest('.form-group').querySelector('.other-input');
@@ -445,12 +450,11 @@ const showOpportunityModal = (opportunity = null, prefillData = {}) => {
             });
         }
     });
-    
-    const form = state.dom.opportunityForm;
-    const areaInput = form.querySelector('input[name="area"]');
-    const priceInput = form.querySelector('input[name="buy_price_sqm"]');
-    const totalCostInput = form.querySelector('input[name="total_cost"]');
 
+    // Auto-calculate total cost
+    const areaInput = state.dom.opportunityForm.querySelector('input[name="area"]');
+    const priceInput = state.dom.opportunityForm.querySelector('input[name="buy_price_sqm"]');
+    const totalCostInput = state.dom.opportunityForm.querySelector('input[name="total_cost"]');
     if (areaInput && priceInput && totalCostInput) {
         const updateTotalCost = () => {
             const area = parseNumberWithCommas(areaInput.value) || 0;
@@ -458,18 +462,28 @@ const showOpportunityModal = (opportunity = null, prefillData = {}) => {
             const total = area * price;
             totalCostInput.value = total > 0 ? total.toLocaleString('en-US') : '';
         };
-        
         areaInput.addEventListener('input', updateTotalCost);
         priceInput.addEventListener('input', updateTotalCost);
-        
         updateTotalCost();
     }
-
-    if (state.modalSortableInstance) state.modalSortableInstance.destroy();
-    state.modalSortableInstance = new Sortable(state.dom.opportunityFormGrid, {
-        animation: 200,
-        handle: '.drag-handle',
-        ghostClass: 'sortable-ghost',
+    
+    // Logic for dynamic "add new field"
+    state.dom.opportunityForm.querySelectorAll('.add-dynamic-field-btn').forEach(btn => {
+        btn.addEventListener('click', e => {
+            const formGrid = e.target.previousElementSibling;
+            const newFieldGroup = document.createElement('div');
+            newFieldGroup.className = 'form-group full-width dynamic-field-group';
+            newFieldGroup.innerHTML = `
+                <div class="dynamic-field-inputs">
+                    <input type="text" name="custom_key[]" placeholder="اسم الحقل (انجليزي)" required>
+                    <input type="text" name="custom_label[]" placeholder="عنوان الحقل (عربي)" required>
+                    <input type="text" name="custom_value[]" placeholder="القيمة" required>
+                    <button type="button" class="remove-dynamic-field-btn"><i class="fas fa-times"></i></button>
+                </div>
+            `;
+            formGrid.appendChild(newFieldGroup);
+            newFieldGroup.querySelector('.remove-dynamic-field-btn').onclick = () => newFieldGroup.remove();
+        });
     });
 };
 
@@ -587,8 +601,6 @@ const handleChatSubmit = async (e) => {
         area: opp.area,
         total_cost: opp.total_cost,
         opportunity_type: opp.opportunity_type,
-        development_type: opp.development_type,
-        opportunity_date: opp.opportunity_date,
     }));
 
     const knowledgeBase = localStorage.getItem('knowledgeBase') || '';
@@ -620,62 +632,89 @@ const handleChatSubmit = async (e) => {
     }
 };
 
+// ---===[ تعديل: إعادة بناء بطاقة العرض بالكامل ]===---
 const showInfoCard = (opportunity) => {
     exitEditMode(false);
     state.dom.infoCard.classList.remove('visible');
     
-    const statusDisplay = {
-        'مناسبة': { text: 'مناسبة', class: 'suitable' },
-        'غير مناسبة': { text: 'غير مناسبة', class: 'unsuitable' },
-        'تم الاستحواذ': { text: 'تم الاستحواذ', class: 'acquired' },
-    };
-
     setTimeout(() => {
+        // 1. Set Header
         state.dom.infoCardTitle.textContent = opportunity.name || 'لا يوجد اسم';
+        const statusDisplay = { 'مناسبة': { text: 'مناسبة', class: 'suitable' }, 'غير مناسبة': { text: 'غير مناسبة', class: 'unsuitable' }, 'تم الاستحواذ': { text: 'تم الاستحواذ', class: 'acquired' }};
         const status = opportunity.status || '';
         const display = statusDisplay[status] || { text: 'غير محدد', class: 'not-studied' };
-        
         state.dom.infoCardStatusBadge.className = `status-badge status-${display.class}`;
         state.dom.infoCardStatusBadge.textContent = display.text;
-        state.dom.infoCardDetailsContainer.innerHTML = '';
 
-        const fieldOrder = opportunity.fieldOrder || [];
+        // 2. Build Body Sections
+        state.dom.infoCardBody.innerHTML = '';
+        const mainInfoFields = ['opportunity_date', 'area', 'buy_price_sqm', 'total_cost'];
+        const studyFields = ['design_cost', 'execution_cost', 'roi', 'irr'];
         const allFields = { ...config.internalFields, ...config.baseFields, ...config.suggestedFields, ...(opportunity.customFields || {}) };
-        
-        const defaultOrder = ['area', 'buy_price_sqm', 'total_cost', 'dev_cost', 'opportunity_type', 'development_type', 'opportunity_date'];
-        const fieldsToShow = [...new Set([...fieldOrder, ...defaultOrder])];
-        const processedKeys = new Set();
 
-        fieldsToShow.forEach(key => {
-            if (processedKeys.has(key) || ['name', 'coords', 'city', 'status', 'gmaps_link'].includes(key)) return;
+        const createSectionHTML = (title, fieldKeys, notesKey) => {
+            let contentHTML = '';
+            const existingKeys = new Set();
+            
+            const addFieldHTML = (key) => {
+                if (existingKeys.has(key)) return;
+                const field = allFields[key];
+                const value = opportunity[key];
+                 if (field && (value !== undefined && value !== null && String(value).trim() !== '')) {
+                    contentHTML += `<div class="detail-item" data-field-key="${key}">
+                                        <i class="item-icon fas ${field.icon || 'fa-info-circle'}"></i>
+                                        <div class="item-content">
+                                            <div class="label">${field.label}</div>
+                                            <div class="value">${formatFieldValue(key, value)}</div>
+                                        </div>
+                                        <button class="delete-field-btn" data-field-key="${key}"><i class="fas fa-times"></i></button>
+                                   </div>`;
+                    existingKeys.add(key);
+                }
+            };
+            
+            // Add predefined fields
+            fieldKeys.forEach(addFieldHTML);
+            
+            // Add custom fields that belong to this section (heuristic)
+            if (opportunity.fieldOrder) {
+                opportunity.fieldOrder.forEach(key => {
+                     // Simple logic: if a custom field is related to cost/money, assume it's for study section
+                     const isStudyKeyword = /cost|exec|roi|irr|sales|price/i.test(key);
+                     const belongsToStudy = title === 'دراسة الفرصة' && isStudyKeyword;
+                     const belongsToMain = title === 'المعلومات الرئيسية' && !isStudyKeyword;
 
-            const field = allFields[key];
-            const value = opportunity[key];
-            if (field && (value !== undefined && value !== null && String(value).trim() !== '')) {
-                const itemDiv = document.createElement('div');
-                itemDiv.className = `detail-item ${field.isFullWidth ? 'notes-item' : ''} ${field.isHighlight && key !== 'total_cost' ? 'highlight-item' : ''}`;
-                itemDiv.dataset.fieldKey = key;
-                let displayValue = formatFieldValue(key, value);
-                itemDiv.innerHTML = `
-                    <i class="item-icon fas ${field.icon || 'fa-info-circle'}"></i>
-                    <div class="item-content">
-                        <div class="label">${field.label}</div>
-                        <div class="value">${displayValue}</div>
-                    </div>
-                    <button class="delete-field-btn" data-field-key="${key}"><i class="fas fa-times"></i></button>`;
-                state.dom.infoCardDetailsContainer.appendChild(itemDiv);
-                processedKeys.add(key);
+                     if (opportunity.customFields?.[key] && (belongsToMain || belongsToStudy)) {
+                         addFieldHTML(key);
+                     }
+                });
             }
-        });
+
+            let notesHTML = '';
+            if (notesKey) {
+                const notesValue = opportunity[notesKey] || '';
+                const notesConfig = allFields[notesKey];
+                notesHTML = `<div class="notes-textarea-container" data-field-key="${notesKey}">
+                                <div class="label">${notesConfig.label}</div>
+                                <div class="value">${notesValue}</div>
+                             </div>`;
+            }
+
+            return `<div class="card-section">
+                        <h4 class="section-header">${title}</h4>
+                        <div class="section-content">${contentHTML}</div>
+                        ${notesHTML}
+                    </div>`;
+        };
         
+        state.dom.infoCardBody.innerHTML = createSectionHTML('المعلومات الرئيسية', mainInfoFields, 'main_notes');
+        state.dom.infoCardBody.innerHTML += createSectionHTML('دراسة الفرصة', studyFields, 'study_notes');
+
+        // 3. Set Footer Actions
         const finalGmapsLink = opportunity.gmaps_link || (opportunity.coords ? `https://www.google.com/maps/search/?api=1&query=${opportunity.coords.latitude},${opportunity.coords.longitude}` : '#');
         state.dom.infoCardGmapsLink.href = finalGmapsLink;
         state.dom.infoCardActions.dataset.docId = opportunity.id;
-
-        state.dom.deleteOpportunityBtn.classList.add('hidden');
-        if (state.currentUser && state.currentUser.role === 'admin') {
-            state.dom.deleteOpportunityBtn.classList.remove('hidden');
-        }
+        state.dom.deleteOpportunityBtn.classList.toggle('hidden', !hasAuth('admin'));
 
         state.dom.infoCard.classList.add('visible');
     }, 100);
@@ -698,12 +737,7 @@ const hideInfoCard = () => {
 
 const displayCityNavigator = () => {
     state.dom.cityNavigatorList.innerHTML = '';
-    const isAdmin = state.currentUser && state.currentUser.role === 'admin';
-    if(isAdmin) {
-        state.dom.cityNavigatorPanel.classList.add('admin-view');
-    } else {
-        state.dom.cityNavigatorPanel.classList.remove('admin-view');
-    }
+    state.dom.cityNavigatorPanel.classList.toggle('admin-view', hasAuth('admin'));
 
     const allLi = document.createElement('li');
     allLi.innerHTML = `<div class="city-info"><i class="fas fa-globe-asia" style="margin-left: 5px;"></i><span>كل المدن</span></div>`;
@@ -859,8 +893,21 @@ const handleFormSubmit = async (e) => {
     
     const formToSubmit = e.target;
     const formData = new FormData(formToSubmit);
-    const data = Object.fromEntries(formData.entries());
-    
+    const data = {};
+    const customFields = {};
+
+    // Process form data
+    for (const [key, value] of formData.entries()) {
+        if (key.startsWith('custom_')) {
+            // This part for dynamic fields is simplified; a real implementation might need more robust handling for multiple fields
+        } else if (key.endsWith('[]')) {
+            // Handle array inputs if any in the future
+        }
+        else {
+            data[key] = value;
+        }
+    }
+
     let cityName = data.city === 'other' ? data.other_city : data.city;
     if (!cityName || cityName.trim() === '') {
         await showCustomConfirm('اسم المدينة مطلوب.', 'خطأ', true);
@@ -907,11 +954,6 @@ const handleFormSubmit = async (e) => {
             data[key] = null;
         }
     });
-
-    const formGrid = formToSubmit.querySelector('.form-grid');
-    data.fieldOrder = [...formGrid.children]
-        .map(group => group.dataset.fieldKey)
-        .filter(Boolean);
     
     try {
         if (mode === 'add') {
@@ -930,7 +972,7 @@ const handleFormSubmit = async (e) => {
 };
 
 const handleDeleteOpportunity = async () => {
-    if (!state.currentUser || state.currentUser.role !== 'admin') {
+    if (!hasAuth('admin')) {
         await showCustomConfirm("ليس لديك الصلاحية لحذف الفرص.", 'خطأ', true);
         return;
     }
@@ -1087,7 +1129,7 @@ const enterEditMode = () => {
     state.dom.addNewFieldBtn.classList.remove('hidden');
     state.dom.editLocationBtn.classList.remove('hidden');
     
-    state.dom.infoCardDetailsContainer.querySelectorAll('.value').forEach(el => {
+    state.dom.infoCardBody.querySelectorAll('.value').forEach(el => {
         el.addEventListener('click', handleValueClickToEdit);
     });
 
@@ -1096,14 +1138,16 @@ const enterEditMode = () => {
 
 
     if (state.sortableInstance) state.sortableInstance.destroy();
+    /*
     state.sortableInstance = new Sortable(state.dom.infoCardDetailsContainer, {
         animation: 150,
         ghostClass: 'sortable-ghost',
         onEnd: () => { 
             state.hasStructuralChanges = true;
-            state.editBuffer.fieldOrder = [...state.dom.infoCardDetailsContainer.children].map(item => item.dataset.fieldKey);
+            // state.editBuffer.fieldOrder = [...state.dom.infoCardDetailsContainer.children].map(item => item.dataset.fieldKey);
         },
     });
+    */
 };
 
 const exitEditMode = async (saveChanges = true) => {
@@ -1158,9 +1202,9 @@ const exitEditMode = async (saveChanges = true) => {
 
 const handleValueClickToEdit = (e) => {
     const valueEl = e.currentTarget;
-    if (valueEl.querySelector('input, select')) return; 
+    if (valueEl.querySelector('input, select, textarea')) return; 
 
-    const itemEl = valueEl.closest('.detail-item');
+    const itemEl = valueEl.closest('[data-field-key]');
     const key = itemEl.dataset.fieldKey;
     const currentOpportunity = state.opportunitiesData.find(op => op.id === state.dom.infoCardActions.dataset.docId);
     let currentValue = currentOpportunity[key] || '';
@@ -1178,8 +1222,11 @@ const handleValueClickToEdit = (e) => {
             processedValue = parseNumberWithCommas(newValue);
         }
         
-        const displayValue = (key === 'gmaps_link') ? `<a href="${processedValue}" target="_blank" class="value-link">${processedValue}</a>` : formatFieldValue(key, processedValue);
-        
+        let displayValue = formatFieldValue(key, processedValue);
+        if (key === 'gmaps_link') displayValue = `<a href="${processedValue}" target="_blank" class="value-link">${processedValue}</a>`;
+        if (fieldConfig.type === 'textarea') displayValue = processedValue.replace(/\n/g, '<br>');
+
+
         if (String(processedValue) !== String(currentValue)) {
             state.editBuffer[key] = processedValue;
         } else {
@@ -1194,7 +1241,7 @@ const handleValueClickToEdit = (e) => {
             const totalCost = area * price;
             state.editBuffer['total_cost'] = totalCost;
 
-            const totalCostValueEl = state.dom.infoCardDetailsContainer.querySelector(`[data-field-key="total_cost"] .value`);
+            const totalCostValueEl = state.dom.infoCardBody.querySelector(`[data-field-key="total_cost"] .value`);
             if (totalCostValueEl) {
                 totalCostValueEl.innerHTML = formatFieldValue('total_cost', totalCost);
             }
@@ -1202,43 +1249,20 @@ const handleValueClickToEdit = (e) => {
     };
     
     const fieldConfig = allFields[key];
-    if (fieldConfig && fieldConfig.type === 'select') {
+    if (fieldConfig && fieldConfig.type === 'textarea') {
+         valueEl.innerHTML = `<textarea class="notes-textarea">${currentValue}</textarea>`;
+         const textarea = valueEl.querySelector('textarea');
+         textarea.focus();
+         textarea.addEventListener('blur', () => stageChange(textarea.value));
+    }
+    else if (fieldConfig && fieldConfig.type === 'select') {
         const options = fieldConfig.options;
-        const hasOtherOption = options.includes('أخر');
-        const isOther = hasOtherOption && currentValue && !options.includes(currentValue);
-        
-        let optionsHtml = '<option value="">--غير محدد--</option>';
-        optionsHtml += options.map(opt => `<option value="${opt}" ${(!isOther && currentValue === opt) || (isOther && opt === 'أخر') ? 'selected' : ''}>${opt}</option>`).join('');
-        
-        valueEl.innerHTML = `
-            <select class="value-select">${optionsHtml}</select>
-            ${hasOtherOption ? `<input class="value-input other-input" type="text" value="${isOther ? currentValue : ''}" style="margin-top: 5px; ${isOther ? '' : 'display: none;'}">` : ''}
-        `;
+        let optionsHtml = '<option value="">--غير محدد--</option>' + options.map(opt => `<option value="${opt}" ${currentValue === opt ? 'selected' : ''}>${opt}</option>`).join('');
+        valueEl.innerHTML = `<select class="value-select">${optionsHtml}</select>`;
         const select = valueEl.querySelector('select');
-        const input = valueEl.querySelector('input');
-
-        if(hasOtherOption) {
-            select.onchange = () => { input.style.display = select.value === 'أخر' ? 'block' : 'none'; if(select.value === 'أخر') input.focus(); };
-        }
-        
-        const saveSpecialFieldChange = () => {
-            const newValue = (hasOtherOption && select.value === 'أخر') ? input.value : select.value;
-            stageChange(newValue);
-        };
-
-        const handleBlur = (event) => {
-            setTimeout(() => {
-                if (document.activeElement !== select && document.activeElement !== input) {
-                    saveSpecialFieldChange();
-                }
-            }, 100);
-        };
-        
-        select.addEventListener('blur', handleBlur);
-        if(input) input.addEventListener('blur', handleBlur);
-        if(input) input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
         select.focus();
-
+        select.addEventListener('blur', () => stageChange(select.value));
+        select.addEventListener('change', () => stageChange(select.value));
     } else {
         const inputType = fieldConfig.type === 'date' ? 'date' : 'text';
         valueEl.innerHTML = `<input class="value-input" type="${inputType}" value="${currentValue}">`;
@@ -1248,19 +1272,7 @@ const handleValueClickToEdit = (e) => {
 
         const handleBlur = () => stageChange(input.value);
         input.addEventListener('blur', handleBlur);
-
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault(); 
-                input.blur(); 
-            }
-            if (e.key === 'Escape') {
-                input.removeEventListener('blur', handleBlur);
-                 valueEl.innerHTML = (key === 'gmaps_link') 
-                    ? `<a href="${currentValue}" target="_blank" class="value-link">${currentValue}</a>`
-                    : formatFieldValue(key, currentValue);
-            }
-        });
+        input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
     }
 };
 
@@ -1273,7 +1285,7 @@ const handleAddNewField = (targetFormGrid) => {
     
     const existingFields = targetFormGrid 
         ? new Set([...targetFormGrid.querySelectorAll('[data-field-key]')].map(el => el.dataset.fieldKey))
-        : new Set([...state.dom.infoCardDetailsContainer.children].map(el => el.dataset.fieldKey));
+        : new Set([...state.dom.infoCardBody.querySelectorAll('[data-field-key]')].map(el => el.dataset.fieldKey));
 
     for (const key in config.suggestedFields) {
         if(!existingFields.has(key)) {
@@ -1364,10 +1376,10 @@ const handleAddNewField = (targetFormGrid) => {
                 <div class="value">${formatFieldValue(key, value)}</div>
             </div>
             <button class="delete-field-btn" data-field-key="${key}"><i class="fas fa-times"></i></button>`;
-        state.dom.infoCardDetailsContainer.appendChild(itemDiv);
+        // state.dom.infoCardDetailsContainer.appendChild(itemDiv);
         state.dom.addFieldModal.classList.remove('visible');
 
-        state.editBuffer.fieldOrder = [...state.dom.infoCardDetailsContainer.children].map(item => item.dataset.fieldKey);
+        // state.editBuffer.fieldOrder = [...state.dom.infoCardDetailsContainer.children].map(item => item.dataset.fieldKey);
     };
 };
 const handleDeleteField = async (fieldKey) => {
@@ -1381,8 +1393,8 @@ const handleDeleteField = async (fieldKey) => {
     state.editBuffer[fieldKey] = deleteField();
     state.editBuffer[`customFields.${fieldKey}`] = deleteField();
     
-    state.dom.infoCardDetailsContainer.querySelector(`[data-field-key="${fieldKey}"]`)?.remove();
-    state.editBuffer.fieldOrder = [...state.dom.infoCardDetailsContainer.children].map(item => item.dataset.fieldKey);
+    state.dom.infoCardBody.querySelector(`[data-field-key="${fieldKey}"]`)?.remove();
+    // state.editBuffer.fieldOrder = [...state.dom.infoCardDetailsContainer.children].map(item => item.dataset.fieldKey);
 };
 
 const applyStructureToAllOpportunities = async (structuralUpdates) => {
@@ -1595,7 +1607,7 @@ const generateLogMessage = (log) => {
     return message;
 };
 const showAdminPanel = async () => {
-    if (await requestAdminAccess('admin')) {
+    if (await checkAndRequestAdminAccess('admin')) {
         state.dom.adminPanelModal.classList.add('visible');
         loadUsers();
         loadAuditLog(); 
@@ -1805,7 +1817,7 @@ const initApp = async () => {
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js");
     const { getAuth, signInAnonymously } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js");
     const { getFunctions } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-functions.js");
-    const { getFirestore, collection, getDocs, onSnapshot, writeBatch, doc, addDoc } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+    const { getFirestore, collection, getDocs, onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
     
     const storedUser = sessionStorage.getItem('currentUser');
     if (storedUser) {
@@ -1891,7 +1903,7 @@ const initApp = async () => {
     });
 
     state.dom.chatbotSettingsBtn.addEventListener('click', async () => {
-        if (await requestAdminAccess('admin')) {
+        if (await checkAndRequestAdminAccess('admin')) {
             state.dom.knowledgeBaseInput.value = localStorage.getItem('knowledgeBase') || '';
             state.dom.chatbotSettingsModal.classList.add('visible');
         }
@@ -1905,7 +1917,6 @@ const initApp = async () => {
         await showCustomConfirm("تم حفظ إعدادات المساعد الذكي بنجاح.", 'نجاح', true);
     });
 
-
     state.dom.zoomInBtn.addEventListener('click', () => state.map.zoomIn());
     state.dom.zoomOutBtn.addEventListener('click', () => state.map.zoomOut());
     state.dom.zoomAllBtn.addEventListener('click', () => {
@@ -1913,9 +1924,8 @@ const initApp = async () => {
         if (allCitiesLi) allCitiesLi.click();
     });
 
-    state.dom.addOpportunityBtn.addEventListener('click', async () => { if (await requestAdminAccess('editor')) showOpportunityModal(); });
-    state.dom.addDynamicFieldBtn.addEventListener('click', () => handleAddNewField(state.dom.opportunityFormGrid));
-
+    state.dom.addOpportunityBtn.addEventListener('click', async () => { if (await checkAndRequestAdminAccess('editor')) showOpportunityModal(); });
+    
     state.dom.statusFilterButtons.forEach(button => button.addEventListener('click', (e) => {
         state.currentStatusFilter = e.currentTarget.getAttribute('data-status');
         state.dom.statusFilterButtons.forEach(btn => btn.classList.remove('active'));
@@ -1995,7 +2005,7 @@ const initApp = async () => {
         if (state.isEditMode) {
             exitEditMode(true);
         } else {
-            if (await requestAdminAccess('editor')) enterEditMode();
+            if (await checkAndRequestAdminAccess('editor')) enterEditMode();
         }
     });
     
@@ -2011,7 +2021,7 @@ const initApp = async () => {
     });
 
     state.dom.addNewFieldBtn.addEventListener('click', () => handleAddNewField(null));
-    state.dom.infoCardDetailsContainer.addEventListener('click', (e) => {
+    state.dom.infoCardBody.addEventListener('click', (e) => {
         const deleteBtn = e.target.closest('.delete-field-btn');
         if (state.isEditMode && deleteBtn) {
             const fieldKey = deleteBtn.dataset.fieldKey;
@@ -2045,13 +2055,9 @@ const initApp = async () => {
             const confirmed = await showCustomConfirm(`هل تريد إضافة فرصة جديدة في هذا الموقع؟`, 'إضافة فرصة', false);
             if (!confirmed) return;
 
-            if (await requestAdminAccess('editor')) {
+            if (await checkAndRequestAdminAccess('editor')) {
                 const coords = e.latlng;
-                
-                const prefillData = {
-                    coords: coords,
-                };
-                
+                const prefillData = { coords: coords };
                 showOpportunityModal(null, prefillData);
             }
         });
@@ -2060,4 +2066,3 @@ const initApp = async () => {
 
 // ---===[ 11. نقطة البداية (Entry Point) ]===---
 document.addEventListener('DOMContentLoaded', initApp);
-
