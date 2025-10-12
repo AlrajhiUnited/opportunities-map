@@ -17,19 +17,15 @@ const config = {
     mapTileUrl: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     superAdmin: { username: 'samer', password: '100200' },
     approvedCities: ['الرياض', 'جدة', 'المدينة', 'أبها', 'الخبر', 'حائل'],
-    baseFields: {
-        area: { label: 'المساحة', icon: 'fa-vector-square', type: 'number', unit: 'م²' },
-        buy_price_sqm: { label: 'سعر المتر', icon: 'fa-dollar-sign', type: 'number', isCurrency: true },
-        total_cost: { label: 'التكلفة الإجمالية', icon: 'fa-money-bill-wave', type: 'number', isCurrency: true, isHighlight: true, readonly: true },
-        dev_cost: { label: 'تكاليف التطوير', icon: 'fa-hard-hat', type: 'number', isCurrency: true },
-    },
+    // الحقول الأساسية الداخلية
     internalFields: {
          name: { label: 'اسم الفرصة', icon: 'fa-tag', type: 'text', required: true },
          city: { label: 'المدينة', icon: 'fa-city', type: 'select', required: true },
          coords: { label: 'الإحداثيات', icon: 'fa-map-marker-alt', type: 'text', required: true },
-         status: { label: 'الحالة', icon: 'fa-tasks', type: 'select', options: ['مناسبة', 'غير مناسبة', 'تم الاستحواذ'] },
+         status: { label: 'نتيجة دراسة الفرصة', icon: 'fa-tasks', type: 'select', options: ['مناسبة', 'غير مناسبة', 'تم الاستحواذ'] },
     },
-    suggestedFields: {
+    // حقول المعلومات الرئيسية
+    mainInfoFields: {
         opportunity_date: { label: 'تاريخ الفرصة', icon: 'fa-calendar-alt', type: 'date' },
         opportunity_type: {
             label: 'نوع الفرصة',
@@ -37,6 +33,22 @@ const config = {
             type: 'select',
             options: ['بنية تحتية', 'بنية فوقية', 'تعليمي', 'لوجستي', 'فندقي', 'أخر']
         },
+        area: { label: 'المساحة', icon: 'fa-vector-square', type: 'number', unit: 'م²' },
+        buy_price_sqm: { label: 'سعر المتر', icon: 'fa-dollar-sign', type: 'number', isCurrency: true },
+        total_cost: { label: 'التكلفة الإجمالية', icon: 'fa-money-bill-wave', type: 'number', isCurrency: true, isHighlight: true, readonly: true },
+        notes_main: { label: 'معلومات إضافية', icon: 'fa-align-left', type: 'textarea', isFullWidth: true },
+    },
+    // حقول دراسة الفرصة
+    studyFields: {
+        design_cost: { label: 'تكاليف التصاميم', icon: 'fa-drafting-compass', isCurrency: true },
+        execution_cost: { label: 'تكاليف التنفيذ', icon: 'fa-tools', isCurrency: true },
+        roi: { label: 'العائد (ROI)', icon: 'fa-chart-line', unit: '%' },
+        irr: { label: 'العائد الداخلي (IRR)', icon: 'fa-percentage', unit: '%' },
+        notes_study: { label: 'معلومات إضافية', icon: 'fa-clipboard-check', type: 'textarea', isFullWidth: true },
+    },
+    // حقول مقترحة إضافية
+    suggestedFields: {
+        dev_cost: { label: 'تكاليف التطوير', icon: 'fa-hard-hat', type: 'number', isCurrency: true },
         development_type: {
             label: 'نوع التطوير',
             icon: 'fa-cogs',
@@ -45,14 +57,15 @@ const config = {
         },
         gmaps_link: { label: 'رابط خرائط جوجل', icon: 'fa-link', type: 'text' },
         district: { label: 'الحي', icon: 'fa-map-signs' },
-        design_cost: { label: 'تكاليف التصميم', icon: 'fa-drafting-compass', isCurrency: true },
-        execution_cost: { label: 'تكاليف التنفيذ', icon: 'fa-tools', isCurrency: true },
-        roi: { label: 'العائد (ROI)', icon: 'fa-chart-line', unit: '%' },
-        irr: { label: 'العائد الداخلي (IRR)', icon: 'fa-percentage', unit: '%' },
-        main_notes: { label: 'تفاصيل إضافية', icon: 'fa-align-left', type: 'textarea', isFullWidth: true },
-        study_notes: { label: 'ملاحظات الدراسة', icon: 'fa-align-left', type: 'textarea', isFullWidth: true },
+        dev_cost_unit: { label: 'وحدة تكلفة التطوير', icon: 'fa-ruler-combined' },
         other_costs: { label: 'تكاليف أخرى', icon: 'fa-coins', isCurrency: true },
         est_sales: { label: 'المبيعات المقدرة', icon: 'fa-cash-register', isCurrency: true, isHighlight: true },
+        comm_value: { label: 'قيمة تجاري', icon: 'fa-store', isCurrency: true },
+        res_area: { label: 'مساحة سكني', icon: 'fa-ruler-horizontal', unit: 'م²' },
+        res_value: { label: 'قيمة سكني', icon: 'fa-home', isCurrency: true, isHighlight: true },
+        breakeven: { label: 'نقطة التعادل', icon: 'fa-equals' },
+        comm_exec_price: { label: 'سعر تنفيذ تجاري', icon: 'fa-money-check-alt', isCurrency: true },
+        res_exec_price: { label: 'سعر تنفيذ سكني', icon: 'fa-money-check', isCurrency: true },
     }
 };
 
@@ -81,7 +94,7 @@ const state = {
     unsubscribeCities: null,
     isEditMode: false,
     isLocationEditMode: false,
-    sortableInstances: null,
+    sortableInstance: null,
     modalSortableInstance: null,
     currentUser: null,
     locationUpdateListener: null,
@@ -110,7 +123,7 @@ const cacheDomElements = () => {
         infoCardCloseBtn: document.getElementById('info-card-close'),
         infoCardTitle: document.getElementById('info-card-title'),
         infoCardStatusBadge: document.getElementById('info-card-status-badge'),
-        infoCardBody: document.getElementById('info-card-body'),
+        infoCardDetailsContainer: document.getElementById('info-card-details'),
         infoCardGmapsLink: document.getElementById('info-card-gmaps-link'),
         cityNavigatorPanel: document.getElementById('city-navigator'),
         statusFilterDiv: document.getElementById('city-navigator')?.querySelector('.status-filters'),
@@ -118,6 +131,8 @@ const cacheDomElements = () => {
         addOpportunityBtn: document.getElementById('add-opportunity-btn'),
         opportunityModal: document.getElementById('opportunity-modal'),
         opportunityForm: document.getElementById('opportunity-form'),
+        opportunityFormGrid: document.querySelector('#opportunity-form .form-grid'),
+        addDynamicFieldBtn: document.getElementById('add-dynamic-field-btn'),
         modalTitle: document.getElementById('modal-title'),
         addFieldModal: document.getElementById('add-field-modal'),
         addFieldForm: document.getElementById('add-field-form'),
@@ -186,7 +201,7 @@ const cacheDomElements = () => {
 const showCustomConfirm = (message, title = 'تأكيد', isAlert = false) => {
     return new Promise((resolve) => {
         state.dom.customConfirmTitle.textContent = title;
-        state.dom.customConfirmMessage.textContent = message;
+        state.dom.customConfirmMessage.innerHTML = message.replace(/\n/g, '<br>'); // Support line breaks
         const actionsContainer = state.dom.customConfirmOkBtn.parentElement;
 
         if (isAlert) {
@@ -218,22 +233,9 @@ const showCustomConfirm = (message, title = 'تأكيد', isAlert = false) => {
     });
 };
 
-const hasAuth = (requiredRole = 'viewer') => {
-    if (!state.currentUser) return false;
-    const roles = ['viewer', 'editor', 'admin'];
-    const requiredLevel = roles.indexOf(requiredRole);
-    const userLevel = roles.indexOf(state.currentUser.role);
-    return userLevel >= requiredLevel;
-}
-
-const checkAndRequestAdminAccess = async (requiredRole = 'editor') => {
-    if (hasAuth(requiredRole)) {
-        return true;
-    }
-    return await requestAdminAccess(requiredRole);
-};
-
 const requestAdminAccess = (requiredRole = 'editor') => {
+    // This function now ONLY shows the password modal.
+    // The check for existing session is done in checkAndRequestAccess.
     return new Promise(async (resolve) => {
         state.dom.passwordModal.classList.add('visible');
         state.dom.usernameInput.value = '';
@@ -246,31 +248,35 @@ const requestAdminAccess = (requiredRole = 'editor') => {
             e.preventDefault();
             const username = state.dom.usernameInput.value;
             const password = state.dom.passwordInput.value;
-            let foundUser = null;
 
             if (username === config.superAdmin.username && password === config.superAdmin.password) {
-                foundUser = { username: config.superAdmin.username, role: 'admin' };
-            } else {
-                 const q = query(state.usersCollection, where("username", "==", username), where("password", "==", password));
-                 const querySnapshot = await getDocs(q);
-                 if (!querySnapshot.empty) {
-                     const userDoc = querySnapshot.docs[0].data();
-                     foundUser = { username: userDoc.username, role: userDoc.role };
-                 }
+                state.currentUser = { username: config.superAdmin.username, role: 'admin' };
+                sessionStorage.setItem('currentUser', JSON.stringify(state.currentUser));
+                displayCityNavigator(); 
+                cleanup();
+                return resolve(true);
             }
 
-            if (foundUser) {
-                 state.currentUser = foundUser;
-                 sessionStorage.setItem('currentUser', JSON.stringify(state.currentUser));
-                 if (hasAuth(requiredRole)) {
-                     displayCityNavigator(); 
+            const q = query(state.usersCollection, where("username", "==", username), where("password", "==", password));
+            const querySnapshot = await getDocs(q);
+            
+            if (!querySnapshot.empty) {
+                const userDoc = querySnapshot.docs[0].data();
+                const roles = ['viewer', 'editor', 'admin'];
+                const requiredLevel = roles.indexOf(requiredRole);
+                const userLevel = roles.indexOf(userDoc.role);
+
+                if (userLevel >= requiredLevel) {
+                    state.currentUser = { username: userDoc.username, role: userDoc.role };
+                    sessionStorage.setItem('currentUser', JSON.stringify(state.currentUser));
+                    displayCityNavigator();
+                    cleanup();
+                    resolve(true);
+                } else {
+                     await showCustomConfirm('ليس لديك الصلاحية الكافية للقيام بهذا الإجراء.', 'خطأ في الصلاحية', true);
                      cleanup();
-                     resolve(true);
-                 } else {
-                      await showCustomConfirm('ليس لديك الصلاحية الكافية للقيام بهذا الإجراء.', 'خطأ في الصلاحية', true);
-                      cleanup();
-                      resolve(false);
-                 }
+                     resolve(false);
+                }
             } else {
                 await showCustomConfirm('اسم المستخدم أو كلمة المرور غير صحيحة.', 'خطأ في الدخول', true);
             }
@@ -286,6 +292,21 @@ const requestAdminAccess = (requiredRole = 'editor') => {
         state.dom.passwordCancelBtn.addEventListener('click', handleCancel);
     });
 };
+
+// New helper function to check for session auth before prompting for password
+const checkAndRequestAccess = (requiredRole = 'editor') => {
+    if (state.currentUser) {
+        const roles = ['viewer', 'editor', 'admin'];
+        const requiredLevel = roles.indexOf(requiredRole);
+        const userLevel = roles.indexOf(state.currentUser.role);
+        if (userLevel >= requiredLevel) {
+            return Promise.resolve(true); // Already has access
+        }
+    }
+    // If no user or insufficient role, request login
+    return requestAdminAccess(requiredRole);
+};
+
 
 const parseNumberWithCommas = (value) => {
     if (value === null || value === undefined) return null;
@@ -303,7 +324,7 @@ const parseNumberWithCommas = (value) => {
 };
 
 const formatFieldValue = (key, value) => {
-    const allFields = { ...config.baseFields, ...config.internalFields, ...config.suggestedFields };
+    const allFields = { ...config.mainInfoFields, ...config.studyFields, ...config.suggestedFields };
     const field = allFields[key];
     if (!field || value === undefined || value === null || String(value).trim() === '') return value;
 
@@ -327,26 +348,25 @@ const createModalFormField = (key, fieldConfig, value) => {
     let finalValue = value ?? '';
 
     if (fieldConfig.type === 'select') {
-        const hasOther = fieldConfig.options && fieldConfig.options.includes('أخر');
-        const isOther = hasOther && finalValue && !fieldConfig.options.includes(finalValue);
+        const options = fieldConfig.options || [];
+        const hasOther = options.includes('أخر');
+        const isOther = hasOther && finalValue && !options.includes(finalValue);
         
-        let optionsHtml = `<option value="">--${fieldConfig.label === 'الحالة' ? 'غير محدد' : 'غير محدد'}--</option>`;
-        if (fieldConfig.options) {
-             optionsHtml += fieldConfig.options.map(opt => `<option value="${opt}" ${(!isOther && finalValue === opt) || (isOther && opt === 'أخر') ? 'selected' : ''}>${opt}</option>`).join('');
-        }
+        let optionsHtml = `<option value="">--${fieldConfig.label === config.internalFields.status.label ? 'غير محدد' : 'غير محدد'}--</option>`;
+        optionsHtml += options.map(opt => `<option value="${opt}" ${(!isOther && finalValue === opt) || (isOther && opt === 'أخر') ? 'selected' : ''}>${opt}</option>`).join('');
        
         inputHtml = `
             <select name="${key}" ${fieldConfig.required ? 'required' : ''}>${optionsHtml}</select>
             ${hasOther ? `<input type="text" name="other_${key}" class="other-input" placeholder="يرجى تحديد النوع" style="display: ${isOther ? 'block' : 'none'};" value="${isOther ? finalValue : ''}">` : ''}
         `;
+    } else if (fieldConfig.type === 'textarea') {
+        inputHtml = `<textarea name="${key}" rows="4">${finalValue}</textarea>`;
     } else if (key === 'coords') {
         inputHtml = `
             <div class="input-with-button">
                 <input type="${fieldConfig.type || 'text'}" name="${key}" value="${finalValue}" ${fieldConfig.required ? 'required' : ''}>
                 <button type="button" id="pick-from-map-btn" class="gmaps-form-btn" title="تحديد من الخريطة"><i class="fas fa-map-marker-alt"></i></button>
             </div>`;
-    } else if (fieldConfig.type === 'textarea') {
-        inputHtml = `<textarea name="${key}" rows="4">${finalValue}</textarea>`;
     } else {
         const inputType = (fieldConfig.type === 'number' && fieldConfig.readonly) ? 'text' : (fieldConfig.type || 'text');
         inputHtml = `<input type="${inputType}" name="${key}" value="${finalValue}" ${fieldConfig.required ? 'required' : ''} ${isReadonly}>`;
@@ -354,6 +374,7 @@ const createModalFormField = (key, fieldConfig, value) => {
     return `<div class="form-group ${fieldConfig.isFullWidth ? 'full-width' : ''}" data-field-key="${key}">
                 <label>${fieldConfig.label}</label>
                 ${inputHtml}
+                <i class="fas fa-grip-vertical drag-handle"></i>
             </div>`;
 };
 
@@ -361,68 +382,77 @@ const showOpportunityModal = (opportunity = null, prefillData = {}) => {
     state.dom.modalTitle.textContent = opportunity ? 'تحرير الفرصة' : 'إضافة فرصة جديدة';
     state.dom.opportunityForm.dataset.mode = opportunity ? 'edit' : 'add';
     state.dom.opportunityForm.dataset.docId = opportunity ? opportunity.id : '';
-    state.dom.opportunityForm.innerHTML = ''; 
+    state.dom.opportunityForm.reset();
+    state.dom.opportunityFormGrid.innerHTML = '';
+    state.dom.opportunityModal.classList.add('is-sortable');
+
+    const allFields = { ...config.internalFields, ...config.mainInfoFields, ...config.studyFields, ...config.suggestedFields };
+    // New default order for the form
+    const defaultFieldOrder = [
+        'name', 'status', 'city', 'coords', 
+        'opportunity_date', 'opportunity_type', 'area', 'buy_price_sqm', 'total_cost', 'notes_main',
+        'design_cost', 'execution_cost', 'roi', 'irr', 'notes_study',
+        'gmaps_link'
+    ];
+    const fieldOrder = opportunity?.fieldOrder || defaultFieldOrder;
     
-    const mainInfoFields = ['name', 'city', 'coords', 'opportunity_type', 'opportunity_date', 'area', 'buy_price_sqm', 'total_cost'];
-    const studyFields = ['design_cost', 'execution_cost', 'roi', 'irr'];
-    const allStandardFields = { ...config.internalFields, ...config.baseFields, ...config.suggestedFields };
-
-    const createSectionHTML = (title, fieldKeys, notesKey) => {
-        let fieldsHTML = '';
-        fieldKeys.forEach(key => {
-            const fieldConfig = allStandardFields[key];
-            if (fieldConfig) {
-                let value = opportunity ? (key === 'coords' ? `${opportunity.coords?.latitude || ''},${opportunity.coords?.longitude || ''}` : opportunity[key]) : prefillData[key] || '';
-                if(key === 'coords' && typeof value === 'object') value = `${value.lat.toFixed(6)},${value.lng.toFixed(6)}`;
-                fieldsHTML += createModalFormField(key, fieldConfig, value);
-            }
-        });
-
-        if (notesKey) {
-            const notesConfig = allStandardFields[notesKey];
-            const notesValue = opportunity ? opportunity[notesKey] : '';
-            fieldsHTML += createModalFormField(notesKey, notesConfig, notesValue);
+    fieldOrder.forEach(key => {
+        let fieldConfig = allFields[key];
+        if (fieldConfig) {
+             let value;
+             if (opportunity) {
+                 value = (key === 'coords' ? `${opportunity.coords?.latitude || ''},${opportunity.coords?.longitude || ''}` : opportunity[key]);
+             } else if (prefillData[key]) {
+                 if (key === 'coords' && typeof prefillData[key] === 'object') {
+                     value = `${prefillData[key].lat.toFixed(6)},${prefillData[key].lng.toFixed(6)}`;
+                 } else {
+                     value = prefillData[key];
+                 }
+             } else {
+                 value = '';
+             }
+             state.dom.opportunityFormGrid.innerHTML += createModalFormField(key, fieldConfig, value);
+        } else if (opportunity?.customFields?.[key]) {
+            fieldConfig = opportunity.customFields[key];
+            state.dom.opportunityFormGrid.innerHTML += createModalFormField(key, fieldConfig, opportunity[key]);
         }
-
-        return `<div class="card-section">
-                    <h4 class="section-header">${title}</h4>
-                    <div class="form-grid">${fieldsHTML}</div>
-                    <button type="button" class="add-dynamic-field-btn"><i class="fas fa-plus"></i> إضافة حقل مخصص</button>
-                </div>`;
-    };
-
-    let formHTML = createSectionHTML('المعلومات الرئيسية', mainInfoFields, 'main_notes');
-    if (opportunity) {
-        formHTML += createSectionHTML('دراسة الفرصة', studyFields, 'study_notes');
-    }
-
-    const statusConfig = allStandardFields['status'];
-    const statusValue = opportunity ? opportunity.status : '';
-    formHTML += `<hr class="admin-divider">
-                 <div class="form-grid" style="grid-template-columns: 1fr;">
-                    ${createModalFormField('status', statusConfig, statusValue)}
-                 </div>
-                 <button type="submit" class="form-submit-btn">حفظ البيانات</button>`;
-
-    state.dom.opportunityForm.innerHTML = formHTML;
-
-    const citySelect = state.dom.opportunityForm.querySelector('select[name="city"]');
-    if (citySelect) {
+    });
+    
+    const citySelectContainer = state.dom.opportunityFormGrid.querySelector('[data-field-key="city"]');
+    if (citySelectContainer) {
+        const citySelect = citySelectContainer.querySelector('select');
         const cityValue = opportunity?.city || prefillData.city || '';
         const isOtherCity = cityValue && !config.approvedCities.includes(cityValue);
         let cityOptionsHtml = '<option value="">--غير محدد--</option>' + config.approvedCities.map(c => `<option value="${c}" ${!isOtherCity && cityValue === c ? 'selected' : ''}>${c}</option>`).join('');
         cityOptionsHtml += `<option value="other" ${isOtherCity ? 'selected' : ''}>مدينة أخرى...</option>`;
-        citySelect.innerHTML = cityOptionsHtml;
         
+        if (citySelect) { 
+            citySelect.innerHTML = cityOptionsHtml;
+        }
+        
+        document.getElementById('other-city-group')?.remove();
+
         const otherCityGroup = document.createElement('div');
         otherCityGroup.className = 'form-group full-width';
+        otherCityGroup.id = 'other-city-group';
         otherCityGroup.style.display = isOtherCity ? 'grid' : 'none';
-        otherCityGroup.innerHTML = `<label>اسم المدينة الجديدة</label><input type="text" name="other_city" value="${isOtherCity ? cityValue : ''}">`;
-        citySelect.closest('.form-group').insertAdjacentElement('afterend', otherCityGroup);
-
-        citySelect.addEventListener('change', (e) => {
-            otherCityGroup.style.display = e.target.value === 'other' ? 'grid' : 'none';
-        });
+        otherCityGroup.innerHTML = `
+            <label>اسم المدينة الجديدة</label>
+            <input type="text" name="other_city" id="other-city-input" value="${isOtherCity ? cityValue : ''}">`;
+        citySelectContainer.insertAdjacentElement('afterend', otherCityGroup);
+        if (citySelect) {
+            citySelect.addEventListener('change', (e) => {
+                const otherGroup = document.getElementById('other-city-group');
+                const otherInput = document.getElementById('other-city-input');
+                if(e.target.value === 'other') {
+                    otherGroup.style.display = 'grid';
+                    otherInput.required = true;
+                } else {
+                    otherGroup.style.display = 'none';
+                    otherInput.required = false;
+                }
+            });
+        }
     }
 
     state.dom.opportunityModal.classList.add('visible');
@@ -432,7 +462,7 @@ const showOpportunityModal = (opportunity = null, prefillData = {}) => {
         startLocationEdit(true); 
     });
 
-    state.dom.opportunityForm.querySelectorAll('select').forEach(select => {
+    state.dom.opportunityFormGrid.querySelectorAll('select').forEach(select => {
         if (select.name !== 'city') {
              select.addEventListener('change', (e) => {
                 const otherInput = e.target.closest('.form-group').querySelector('.other-input');
@@ -440,10 +470,12 @@ const showOpportunityModal = (opportunity = null, prefillData = {}) => {
             });
         }
     });
+    
+    const form = state.dom.opportunityForm;
+    const areaInput = form.querySelector('input[name="area"]');
+    const priceInput = form.querySelector('input[name="buy_price_sqm"]');
+    const totalCostInput = form.querySelector('input[name="total_cost"]');
 
-    const areaInput = state.dom.opportunityForm.querySelector('input[name="area"]');
-    const priceInput = state.dom.opportunityForm.querySelector('input[name="buy_price_sqm"]');
-    const totalCostInput = state.dom.opportunityForm.querySelector('input[name="total_cost"]');
     if (areaInput && priceInput && totalCostInput) {
         const updateTotalCost = () => {
             const area = parseNumberWithCommas(areaInput.value) || 0;
@@ -451,27 +483,18 @@ const showOpportunityModal = (opportunity = null, prefillData = {}) => {
             const total = area * price;
             totalCostInput.value = total > 0 ? total.toLocaleString('en-US') : '';
         };
+        
         areaInput.addEventListener('input', updateTotalCost);
         priceInput.addEventListener('input', updateTotalCost);
+        
         updateTotalCost();
     }
-    
-    state.dom.opportunityForm.querySelectorAll('.add-dynamic-field-btn').forEach(btn => {
-        btn.addEventListener('click', e => {
-            const formGrid = e.target.previousElementSibling;
-            const newFieldGroup = document.createElement('div');
-            newFieldGroup.className = 'form-group full-width dynamic-field-group';
-            newFieldGroup.innerHTML = `
-                <div class="dynamic-field-inputs">
-                    <input type="text" name="custom_key[]" placeholder="اسم الحقل (انجليزي)" required>
-                    <input type="text" name="custom_label[]" placeholder="عنوان الحقل (عربي)" required>
-                    <input type="text" name="custom_value[]" placeholder="القيمة" required>
-                    <button type="button" class="remove-dynamic-field-btn"><i class="fas fa-times"></i></button>
-                </div>
-            `;
-            formGrid.appendChild(newFieldGroup);
-            newFieldGroup.querySelector('.remove-dynamic-field-btn').onclick = () => newFieldGroup.remove();
-        });
+
+    if (state.modalSortableInstance) state.modalSortableInstance.destroy();
+    state.modalSortableInstance = new Sortable(state.dom.opportunityFormGrid, {
+        animation: 200,
+        handle: '.drag-handle',
+        ghostClass: 'sortable-ghost',
     });
 };
 
@@ -543,7 +566,7 @@ const focusOnOpportunity = (opportunity) => {
 
     const latlng = [opportunity.coords.latitude, opportunity.coords.longitude];
     const targetZoom = Math.max(state.map.getZoom(), 16);
-    const cardWidth = state.dom.infoCard.offsetWidth || 520;
+    const cardWidth = state.dom.infoCard.offsetWidth || 800;
     const offsetX = -(cardWidth / 2) - 80;
 
     const markerPoint = state.map.project(latlng, targetZoom);
@@ -589,6 +612,8 @@ const handleChatSubmit = async (e) => {
         area: opp.area,
         total_cost: opp.total_cost,
         opportunity_type: opp.opportunity_type,
+        development_type: opp.development_type,
+        opportunity_date: opp.opportunity_date,
     }));
 
     const knowledgeBase = localStorage.getItem('knowledgeBase') || '';
@@ -624,96 +649,86 @@ const showInfoCard = (opportunity) => {
     exitEditMode(false);
     state.dom.infoCard.classList.remove('visible');
     
+    const statusDisplay = {
+        'مناسبة': { text: 'مناسبة', class: 'suitable' },
+        'غير مناسبة': { text: 'غير مناسبة', class: 'unsuitable' },
+        'تم الاستحواذ': { text: 'تم الاستحواذ', class: 'acquired' },
+    };
+
     setTimeout(() => {
         state.dom.infoCardTitle.textContent = opportunity.name || 'لا يوجد اسم';
-        const statusDisplay = { 'مناسبة': { text: 'مناسبة', class: 'suitable' }, 'غير مناسبة': { text: 'غير مناسبة', class: 'unsuitable' }, 'تم الاستحواذ': { text: 'تم الاستحواذ', class: 'acquired' }};
         const status = opportunity.status || '';
         const display = statusDisplay[status] || { text: 'غير محدد', class: 'not-studied' };
+        
         state.dom.infoCardStatusBadge.className = `status-badge status-${display.class}`;
         state.dom.infoCardStatusBadge.textContent = display.text;
+        const detailsContainer = state.dom.infoCardDetailsContainer;
+        detailsContainer.innerHTML = '';
 
-        state.dom.infoCardBody.innerHTML = '';
+        const allFields = { ...config.mainInfoFields, ...config.studyFields, ...config.suggestedFields, ...(opportunity.customFields || {}) };
         
-        const mainSection = document.createElement('div');
-        mainSection.className = 'card-section';
-        mainSection.innerHTML = `<h4 class="section-header">المعلومات الرئيسية</h4><div class="section-content"></div>`;
-        const studySection = document.createElement('div');
-        studySection.className = 'card-section';
-        studySection.innerHTML = `<h4 class="section-header">دراسة الفرصة</h4><div class="section-content"></div>`;
-        
-        const mainContent = mainSection.querySelector('.section-content');
-        const studyContent = studySection.querySelector('.section-content');
-
-        const allFields = { ...config.internalFields, ...config.baseFields, ...config.suggestedFields, ...(opportunity.customFields || {}) };
-        
-        const defaultMainOrder = ['opportunity_date', 'opportunity_type', 'area', 'buy_price_sqm', 'total_cost'];
-        const defaultStudyOrder = ['design_cost', 'execution_cost', 'roi', 'irr'];
-        
-        const fieldOrder = opportunity.fieldOrder || [...defaultMainOrder, ...defaultStudyOrder];
-        const processedKeys = new Set();
-        
-        const createFieldHTML = (key) => {
+        const createFieldElement = (key) => {
             const field = allFields[key];
-            if (!field) return '';
             const value = opportunity[key];
-            return `<div class="detail-item" data-field-key="${key}">
-                        <i class="fas fa-grip-vertical drag-handle"></i>
-                        <i class="item-icon fas ${field.icon || 'fa-info-circle'}"></i>
-                        <div class="item-content">
-                            <div class="label">${field.label}</div>
-                            <div class="value">${formatFieldValue(key, value)}</div>
-                        </div>
-                        <button class="delete-field-btn" data-field-key="${key}"><i class="fas fa-times"></i></button>
-                   </div>`;
-        };
-
-        fieldOrder.forEach(key => {
-            if (allFields[key] && !/notes/i.test(key)) {
-                const isStudyKeyword = /cost|exec|roi|irr|sales|price/i.test(key) && key !== 'buy_price_sqm' && key !== 'total_cost';
-                 if (isStudyKeyword) {
-                    studyContent.innerHTML += createFieldHTML(key);
-                } else {
-                    mainContent.innerHTML += createFieldHTML(key);
-                }
-                processedKeys.add(key);
+            if (field && (value !== undefined && value !== null && String(value).trim() !== '')) {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = `detail-item ${field.isFullWidth ? 'notes-item' : ''} ${field.isHighlight && key !== 'total_cost' ? 'highlight-item' : ''}`;
+                itemDiv.dataset.fieldKey = key;
+                let displayValue = formatFieldValue(key, value);
+                itemDiv.innerHTML = `
+                    <i class="item-icon fas ${field.icon || 'fa-info-circle'}"></i>
+                    <div class="item-content">
+                        <div class="label">${field.label}</div>
+                        <div class="value">${displayValue}</div>
+                    </div>
+                    <button class="delete-field-btn" data-field-key="${key}"><i class="fas fa-times"></i></button>`;
+                return itemDiv;
             }
-        });
-
-        Object.keys(allFields).forEach(key => {
-            if (!processedKeys.has(key) && opportunity[key] !== undefined && !/notes/i.test(key) && key !== 'name' && key !== 'status') {
-                 const isStudyKeyword = /cost|exec|roi|irr|sales|price/i.test(key) && key !== 'buy_price_sqm' && key !== 'total_cost';
-                 if (isStudyKeyword) {
-                    studyContent.innerHTML += createFieldHTML(key);
-                } else {
-                    mainContent.innerHTML += createFieldHTML(key);
-                }
-            }
-        });
-
-        const createNotesHTML = (notesKey) => {
-            const notesValue = opportunity[notesKey] || '';
-            const notesConfig = allFields[notesKey];
-            if (!notesConfig) return '';
-            return `<div class="notes-textarea-container" data-field-key="${notesKey}">
-                        <div class="label">${notesConfig.label}</div>
-                        <div class="value">${notesValue.replace(/\n/g, '<br>')}</div>
-                     </div>`;
+            return null;
         };
         
-        mainSection.innerHTML += createNotesHTML('main_notes');
-        studySection.innerHTML += createNotesHTML('study_notes');
+        const fieldOrder = opportunity.fieldOrder || Object.keys(allFields);
+        const mainInfoKeys = Object.keys(config.mainInfoFields);
+        const studyKeys = Object.keys(config.studyFields);
 
-        state.dom.infoCardBody.appendChild(mainSection);
-        state.dom.infoCardBody.appendChild(studySection);
+        // Section 1: Main Information
+        detailsContainer.innerHTML += `<div class="info-card-section-header">المعلومات الرئيسية</div>`;
+        fieldOrder.filter(key => mainInfoKeys.includes(key)).forEach(key => {
+            const el = createFieldElement(key);
+            if(el) detailsContainer.appendChild(el);
+        });
+
+        // Section 2: Study Information
+        detailsContainer.innerHTML += `<div class="info-card-section-header">دراسة الفرصة</div>`;
+         fieldOrder.filter(key => studyKeys.includes(key)).forEach(key => {
+            const el = createFieldElement(key);
+            if(el) detailsContainer.appendChild(el);
+        });
+
+        // Section 3: Other Fields
+        const displayedKeys = new Set([...mainInfoKeys, ...studyKeys, 'name', 'coords', 'city', 'status', 'gmaps_link']);
+        const otherFields = fieldOrder.filter(key => !displayedKeys.has(key));
+        if (otherFields.some(key => opportunity[key] !== undefined && opportunity[key] !== null)) {
+            detailsContainer.innerHTML += `<div class="info-card-section-header">معلومات إضافية</div>`;
+            otherFields.forEach(key => {
+                const el = createFieldElement(key);
+                if(el) detailsContainer.appendChild(el);
+            });
+        }
         
         const finalGmapsLink = opportunity.gmaps_link || (opportunity.coords ? `https://www.google.com/maps/search/?api=1&query=${opportunity.coords.latitude},${opportunity.coords.longitude}` : '#');
         state.dom.infoCardGmapsLink.href = finalGmapsLink;
         state.dom.infoCardActions.dataset.docId = opportunity.id;
-        state.dom.deleteOpportunityBtn.classList.toggle('hidden', !hasAuth('admin'));
+
+        state.dom.deleteOpportunityBtn.classList.add('hidden');
+        if (state.currentUser && state.currentUser.role === 'admin') {
+            state.dom.deleteOpportunityBtn.classList.remove('hidden');
+        }
 
         state.dom.infoCard.classList.add('visible');
     }, 100);
 };
+
 
 const hideInfoCard = () => {
     exitEditMode(false);
@@ -732,7 +747,12 @@ const hideInfoCard = () => {
 
 const displayCityNavigator = () => {
     state.dom.cityNavigatorList.innerHTML = '';
-    state.dom.cityNavigatorPanel.classList.toggle('admin-view', hasAuth('admin'));
+    const isAdmin = state.currentUser && state.currentUser.role === 'admin';
+    if(isAdmin) {
+        state.dom.cityNavigatorPanel.classList.add('admin-view');
+    } else {
+        state.dom.cityNavigatorPanel.classList.remove('admin-view');
+    }
 
     const allLi = document.createElement('li');
     allLi.innerHTML = `<div class="city-info"><i class="fas fa-globe-asia" style="margin-left: 5px;"></i><span>كل المدن</span></div>`;
@@ -888,18 +908,8 @@ const handleFormSubmit = async (e) => {
     
     const formToSubmit = e.target;
     const formData = new FormData(formToSubmit);
-    const data = {};
-    const customFields = {};
-
-    for (const [key, value] of formData.entries()) {
-        if (key.startsWith('custom_')) {
-        } else if (key.endsWith('[]')) {
-        }
-        else {
-            data[key] = value;
-        }
-    }
-
+    const data = Object.fromEntries(formData.entries());
+    
     let cityName = data.city === 'other' ? data.other_city : data.city;
     if (!cityName || cityName.trim() === '') {
         await showCustomConfirm('اسم المدينة مطلوب.', 'خطأ', true);
@@ -937,15 +947,20 @@ const handleFormSubmit = async (e) => {
     }
     
     Object.keys(data).forEach(key => {
-        const allFields = { ...config.baseFields, ...config.suggestedFields, ...config.internalFields };
+        const allFields = { ...config.internalFields, ...config.mainInfoFields, ...config.studyFields, ...config.suggestedFields };
         const fieldDef = allFields[key];
-        if (fieldDef && fieldDef.type === 'number' && data[key]) {
+        if (fieldDef && (fieldDef.type === 'number' || fieldDef.isCurrency) && data[key]) {
             data[key] = parseNumberWithCommas(data[key]);
         }
         if (data[key] === '') {
             data[key] = null;
         }
     });
+
+    const formGrid = formToSubmit.querySelector('.form-grid');
+    data.fieldOrder = [...formGrid.children]
+        .map(group => group.dataset.fieldKey)
+        .filter(Boolean);
     
     try {
         if (mode === 'add') {
@@ -964,14 +979,11 @@ const handleFormSubmit = async (e) => {
 };
 
 const handleDeleteOpportunity = async () => {
-    if (!hasAuth('admin')) {
-        await showCustomConfirm("ليس لديك الصلاحية لحذف الفرص.", 'خطأ', true);
-        return;
-    }
-
     const docId = state.dom.infoCardActions.dataset.docId;
     const opportunity = state.opportunitiesData.find(op => op.id === docId);
     if (!opportunity) return;
+    
+    if (!(await checkAndRequestAccess('admin'))) return;
 
     const confirmed = await showCustomConfirm(`هل أنت متأكد من حذف الفرصة "${opportunity.name}"؟\nلا يمكن التراجع عن هذا الإجراء.`);
     if (confirmed) {
@@ -1054,19 +1066,6 @@ const displayCityMarkers = () => {
 };
 
 // ---===[ 8. دوال وضع التحرير المتقدم ]===---
-const stageFieldOrderUpdate = () => {
-    state.hasStructuralChanges = true;
-    const sections = state.dom.infoCardBody.querySelectorAll('.section-content');
-    const allFieldKeys = [];
-    sections.forEach(section => {
-        const keys = [...section.children]
-            .map(item => item.dataset.fieldKey)
-            .filter(Boolean);
-        allFieldKeys.push(...keys);
-    });
-    state.editBuffer.fieldOrder = allFieldKeys;
-};
-
 const handleTitleClickToEdit = (e) => {
     if (!state.isEditMode) return;
     const titleEl = e.currentTarget;
@@ -1123,6 +1122,7 @@ const handleStatusClickToEdit = (e) => {
     select.addEventListener('change', stageChange);
 };
 
+
 const enterEditMode = () => {
     state.isEditMode = true;
     state.editBuffer = {};
@@ -1133,27 +1133,24 @@ const enterEditMode = () => {
     state.dom.addNewFieldBtn.classList.remove('hidden');
     state.dom.editLocationBtn.classList.remove('hidden');
     
-    state.dom.infoCardBody.querySelectorAll('.value').forEach(el => {
+    state.dom.infoCardDetailsContainer.querySelectorAll('.value').forEach(el => {
         el.addEventListener('click', handleValueClickToEdit);
     });
 
     state.dom.infoCardTitle.addEventListener('click', handleTitleClickToEdit);
     state.dom.infoCardStatusBadge.addEventListener('click', handleStatusClickToEdit);
 
-    if (state.sortableInstances) {
-        state.sortableInstances.forEach(instance => instance.destroy());
-    }
-    state.sortableInstances = [];
 
-    const sections = state.dom.infoCardBody.querySelectorAll('.section-content');
-    sections.forEach(section => {
-        const instance = new Sortable(section, {
-            animation: 150,
-            handle: '.drag-handle',
-            ghostClass: 'sortable-ghost',
-            onEnd: stageFieldOrderUpdate,
-        });
-        state.sortableInstances.push(instance);
+    if (state.sortableInstance) state.sortableInstance.destroy();
+    state.sortableInstance = new Sortable(state.dom.infoCardDetailsContainer, {
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        onEnd: () => { 
+            state.hasStructuralChanges = true;
+            state.editBuffer.fieldOrder = [...state.dom.infoCardDetailsContainer.children]
+                .map(item => item.dataset.fieldKey)
+                .filter(Boolean); // Filter out headers
+        },
     });
 };
 
@@ -1194,9 +1191,9 @@ const exitEditMode = async (saveChanges = true) => {
     state.dom.infoCardTitle.removeEventListener('click', handleTitleClickToEdit);
     state.dom.infoCardStatusBadge.removeEventListener('click', handleStatusClickToEdit);
 
-    if (state.sortableInstances) {
-        state.sortableInstances.forEach(instance => instance.destroy());
-        state.sortableInstances = null;
+    if (state.sortableInstance) {
+        state.sortableInstance.destroy();
+        state.sortableInstance = null;
     }
 
     if (!saveChanges) {
@@ -1211,7 +1208,7 @@ const handleValueClickToEdit = (e) => {
     const valueEl = e.currentTarget;
     if (valueEl.querySelector('input, select, textarea')) return; 
 
-    const itemEl = valueEl.closest('[data-field-key]');
+    const itemEl = valueEl.closest('.detail-item');
     const key = itemEl.dataset.fieldKey;
     const currentOpportunity = state.opportunitiesData.find(op => op.id === state.dom.infoCardActions.dataset.docId);
     let currentValue = currentOpportunity[key] || '';
@@ -1220,20 +1217,17 @@ const handleValueClickToEdit = (e) => {
         currentValue = valueEl.querySelector('a').getAttribute('href');
     }
 
-    const allFields = { ...config.internalFields, ...config.baseFields, ...config.suggestedFields, ...(currentOpportunity.customFields || {}) };
+    const allFields = { ...config.internalFields, ...config.mainInfoFields, ...config.studyFields, ...config.suggestedFields, ...(currentOpportunity.customFields || {}) };
 
     const stageChange = (newValue) => {
         let processedValue = newValue;
         const fieldConfig = allFields[key];
-        if (fieldConfig && fieldConfig.type === 'number') {
+        if (fieldConfig && (fieldConfig.type === 'number' || fieldConfig.isCurrency)) {
             processedValue = parseNumberWithCommas(newValue);
         }
         
-        let displayValue = formatFieldValue(key, processedValue);
-        if (key === 'gmaps_link') displayValue = `<a href="${processedValue}" target="_blank" class="value-link">${processedValue}</a>`;
-        if (fieldConfig.type === 'textarea') displayValue = processedValue.replace(/\n/g, '<br>');
-
-
+        const displayValue = (key === 'gmaps_link') ? `<a href="${processedValue}" target="_blank" class="value-link">${processedValue}</a>` : formatFieldValue(key, processedValue);
+        
         if (String(processedValue) !== String(currentValue)) {
             state.editBuffer[key] = processedValue;
         } else {
@@ -1248,7 +1242,7 @@ const handleValueClickToEdit = (e) => {
             const totalCost = area * price;
             state.editBuffer['total_cost'] = totalCost;
 
-            const totalCostValueEl = state.dom.infoCardBody.querySelector(`[data-field-key="total_cost"] .value`);
+            const totalCostValueEl = state.dom.infoCardDetailsContainer.querySelector(`[data-field-key="total_cost"] .value`);
             if (totalCostValueEl) {
                 totalCostValueEl.innerHTML = formatFieldValue('total_cost', totalCost);
             }
@@ -1256,20 +1250,51 @@ const handleValueClickToEdit = (e) => {
     };
     
     const fieldConfig = allFields[key];
-    if (fieldConfig && fieldConfig.type === 'textarea') {
-         valueEl.innerHTML = `<textarea class="notes-textarea">${currentValue}</textarea>`;
-         const textarea = valueEl.querySelector('textarea');
-         textarea.focus();
-         textarea.addEventListener('blur', () => stageChange(textarea.value));
-    }
-    else if (fieldConfig && fieldConfig.type === 'select') {
+    if (fieldConfig && fieldConfig.type === 'select') {
         const options = fieldConfig.options;
-        let optionsHtml = '<option value="">--غير محدد--</option>' + options.map(opt => `<option value="${opt}" ${currentValue === opt ? 'selected' : ''}>${opt}</option>`).join('');
-        valueEl.innerHTML = `<select class="value-select">${optionsHtml}</select>`;
+        const hasOtherOption = options.includes('أخر');
+        const isOther = hasOtherOption && currentValue && !options.includes(currentValue);
+        
+        let optionsHtml = '<option value="">--غير محدد--</option>';
+        optionsHtml += options.map(opt => `<option value="${opt}" ${(!isOther && currentValue === opt) || (isOther && opt === 'أخر') ? 'selected' : ''}>${opt}</option>`).join('');
+        
+        valueEl.innerHTML = `
+            <select class="value-select">${optionsHtml}</select>
+            ${hasOtherOption ? `<input class="value-input other-input" type="text" value="${isOther ? currentValue : ''}" style="margin-top: 5px; ${isOther ? '' : 'display: none;'}">` : ''}
+        `;
         const select = valueEl.querySelector('select');
+        const input = valueEl.querySelector('input');
+
+        if(hasOtherOption) {
+            select.onchange = () => { input.style.display = select.value === 'أخر' ? 'block' : 'none'; if(select.value === 'أخر') input.focus(); };
+        }
+        
+        const saveSpecialFieldChange = () => {
+            const newValue = (hasOtherOption && select.value === 'أخر') ? input.value : select.value;
+            stageChange(newValue);
+        };
+
+        const handleBlur = (event) => {
+            setTimeout(() => {
+                if (document.activeElement !== select && document.activeElement !== input) {
+                    saveSpecialFieldChange();
+                }
+            }, 100);
+        };
+        
+        select.addEventListener('blur', handleBlur);
+        if(input) input.addEventListener('blur', handleBlur);
+        if(input) input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
         select.focus();
-        select.addEventListener('blur', () => stageChange(select.value));
-        select.addEventListener('change', () => stageChange(select.value));
+
+    } else if (fieldConfig && fieldConfig.type === 'textarea') {
+        valueEl.innerHTML = `<textarea class="value-input" rows="4">${currentValue}</textarea>`;
+        const textarea = valueEl.querySelector('textarea');
+        textarea.focus();
+
+        const handleBlur = () => stageChange(textarea.value);
+        textarea.addEventListener('blur', handleBlur);
+        
     } else {
         const inputType = fieldConfig.type === 'date' ? 'date' : 'text';
         valueEl.innerHTML = `<input class="value-input" type="${inputType}" value="${currentValue}">`;
@@ -1279,7 +1304,19 @@ const handleValueClickToEdit = (e) => {
 
         const handleBlur = () => stageChange(input.value);
         input.addEventListener('blur', handleBlur);
-        input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault(); 
+                input.blur(); 
+            }
+            if (e.key === 'Escape') {
+                input.removeEventListener('blur', handleBlur);
+                 valueEl.innerHTML = (key === 'gmaps_link') 
+                    ? `<a href="${currentValue}" target="_blank" class="value-link">${currentValue}</a>`
+                    : formatFieldValue(key, currentValue);
+            }
+        });
     }
 };
 
@@ -1292,30 +1329,31 @@ const handleAddNewField = (targetFormGrid) => {
     
     const existingFields = targetFormGrid 
         ? new Set([...targetFormGrid.querySelectorAll('[data-field-key]')].map(el => el.dataset.fieldKey))
-        : new Set([...state.dom.infoCardBody.querySelectorAll('[data-field-key]')].map(el => el.dataset.fieldKey));
-
-    for (const key in config.suggestedFields) {
+        : new Set([...state.dom.infoCardDetailsContainer.querySelectorAll('.detail-item')].map(el => el.dataset.fieldKey));
+    
+    const allSuggestedFields = {...config.mainInfoFields, ...config.studyFields, ...config.suggestedFields};
+    for (const key in allSuggestedFields) {
         if(!existingFields.has(key)) {
-            select.innerHTML += `<option value="${key}">${config.suggestedFields[key].label}</option>`;
+            select.innerHTML += `<option value="${key}">${allSuggestedFields[key].label}</option>`;
         }
     }
     select.innerHTML += `<option value="custom">--حقل مخصص--</option>`;
     state.dom.customFieldGroup.classList.add('hidden');
     state.dom.fieldLabelInput.readOnly = true;
-    valueContainer.innerHTML = `<input type="text" id="field-value" required>`;
+    valueContainer.innerHTML = `<label for="field-value">قيمة الحقل</label><input type="text" id="field-value" required>`;
     state.dom.addFieldModal.classList.add('visible');
 
     select.onchange = () => {
         const selectedKey = select.value;
-        const fieldConfig = config.suggestedFields[selectedKey];
-        valueContainer.innerHTML = '';
+        const fieldConfig = allSuggestedFields[selectedKey];
+        valueContainer.innerHTML = `<label for="field-value">قيمة الحقل</label>`;
 
         if (selectedKey === 'custom') {
             state.dom.customFieldGroup.classList.remove('hidden');
             state.dom.fieldLabelInput.value = '';
             state.dom.fieldLabelInput.readOnly = false;
             state.dom.fieldKeyCustom.focus();
-            valueContainer.innerHTML = `<input type="text" id="field-value" required>`;
+            valueContainer.innerHTML += `<input type="text" id="field-value" required>`;
         } else if (selectedKey) {
             state.dom.customFieldGroup.classList.add('hidden');
             state.dom.fieldLabelInput.value = fieldConfig.label;
@@ -1323,15 +1361,17 @@ const handleAddNewField = (targetFormGrid) => {
             
             if (fieldConfig && fieldConfig.type === 'select' && fieldConfig.options) {
                 let optionsHtml = '<option value="">--اختر--</option>' + fieldConfig.options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
-                valueContainer.innerHTML = `<select id="field-value" required>${optionsHtml}</select>`;
+                valueContainer.innerHTML += `<select id="field-value" required>${optionsHtml}</select>`;
+            } else if (fieldConfig && fieldConfig.type === 'textarea') {
+                 valueContainer.innerHTML += `<textarea id="field-value" rows="4" required></textarea>`;
             } else {
                  const inputType = fieldConfig.type === 'date' ? 'date' : 'text';
-                 valueContainer.innerHTML = `<input type="${inputType}" id="field-value" required>`;
+                 valueContainer.innerHTML += `<input type="${inputType}" id="field-value" required>`;
             }
 
         } else {
              state.dom.fieldLabelInput.value = '';
-             valueContainer.innerHTML = `<input type="text" id="field-value" required>`;
+             valueContainer.innerHTML += `<input type="text" id="field-value" required>`;
         }
     };
     
@@ -1343,22 +1383,22 @@ const handleAddNewField = (targetFormGrid) => {
         const valueEl = document.getElementById('field-value');
         const value = valueEl.value;
 
-        if (!key || !label) { // Note: Value can be empty initially
-            await showCustomConfirm('يرجى تعبئة حقلي المعرف والعنوان.', 'خطأ', true);
+        if (!key || !label || !value) {
+            await showCustomConfirm('يرجى تعبئة جميع الحقول.', 'خطأ', true);
             return;
         }
         
         if (targetFormGrid) {
-            const fieldConfig = config.suggestedFields[key] || { label: label, type: 'text' };
+            const fieldConfig = allSuggestedFields[key] || { label: label, type: 'text' };
             const fieldHtml = createModalFormField(key, fieldConfig, value);
             targetFormGrid.insertAdjacentHTML('beforeend', fieldHtml);
             state.dom.addFieldModal.classList.remove('visible');
             return;
         }
 
-        const icon = selectedKey !== 'custom' ? (config.suggestedFields[key]?.icon || 'fa-plus-circle') : 'fa-plus-circle';
+        const icon = selectedKey !== 'custom' ? (allSuggestedFields[key]?.icon || 'fa-plus-circle') : 'fa-plus-circle';
         
-        const baseConfig = (selectedKey !== 'custom' ? config.suggestedFields[key] : {}) || {};
+        const baseConfig = (selectedKey !== 'custom' ? allSuggestedFields[key] : {}) || {};
         const customFieldData = {
             label: label,
             icon: icon,
@@ -1367,37 +1407,30 @@ const handleAddNewField = (targetFormGrid) => {
         if (baseConfig.options) {
             customFieldData.options = baseConfig.options;
         }
+         if (baseConfig.isFullWidth) customFieldData.isFullWidth = true;
 
         state.hasStructuralChanges = true;
-        state.editBuffer[key] = value; // تم إصلاح المشكلة: الآن يتم حفظ القيمة المدخلة
+        state.editBuffer[key] = value;
         state.editBuffer[`customFields.${key}`] = customFieldData;
 
-
-        const itemDiv = document.createElement('div');
-        itemDiv.className = `detail-item`;
-        itemDiv.dataset.fieldKey = key;
-        itemDiv.innerHTML = `
-            <i class="fas fa-grip-vertical drag-handle"></i>
-            <i class="item-icon fas ${icon}"></i>
-            <div class="item-content">
-                <div class="label">${label}</div>
-                <div class="value">${formatFieldValue(key, value)}</div>
-            </div>
-            <button class="delete-field-btn" data-field-key="${key}"><i class="fas fa-times"></i></button>`;
-        
-        const isStudyKeyword = /cost|exec|roi|irr|sales|price/i.test(key);
-        const targetSection = isStudyKeyword ? state.dom.infoCardBody.querySelector('.card-section:nth-child(2) .section-content') : state.dom.infoCardBody.querySelector('.card-section:nth-child(1) .section-content');
-        if(targetSection) {
-            targetSection.appendChild(itemDiv);
-        }
+        // Re-render the relevant part of the info card
+        const docId = state.dom.infoCardActions.dataset.docId;
+        const tempOpportunity = {...state.opportunitiesData.find(op => op.id === docId)};
+        tempOpportunity[key] = value;
+        if (!tempOpportunity.customFields) tempOpportunity.customFields = {};
+        tempOpportunity.customFields[key] = customFieldData;
+        if (!tempOpportunity.fieldOrder) tempOpportunity.fieldOrder = [];
+        tempOpportunity.fieldOrder.push(key);
+        showInfoCard(tempOpportunity);
 
         state.dom.addFieldModal.classList.remove('visible');
 
+        state.editBuffer.fieldOrder = [...state.dom.infoCardDetailsContainer.querySelectorAll('.detail-item')].map(item => item.dataset.fieldKey);
     };
 };
 const handleDeleteField = async (fieldKey) => {
-    if (config.baseFields[fieldKey] || config.internalFields[fieldKey]) {
-        await showCustomConfirm("لا يمكن حذف الحقول الأساسية.", 'خطأ', true);
+    if (config.internalFields[fieldKey] || config.mainInfoFields[fieldKey] || config.studyFields[fieldKey]) {
+        await showCustomConfirm("لا يمكن حذف الحقول الأساسية أو حقول الدراسة.", 'خطأ', true);
         return;
     }
 
@@ -1406,8 +1439,10 @@ const handleDeleteField = async (fieldKey) => {
     state.editBuffer[fieldKey] = deleteField();
     state.editBuffer[`customFields.${fieldKey}`] = deleteField();
     
-    state.dom.infoCardBody.querySelector(`[data-field-key="${fieldKey}"]`)?.remove();
-    stageFieldOrderUpdate();
+    state.dom.infoCardDetailsContainer.querySelector(`[data-field-key="${fieldKey}"]`)?.remove();
+    state.editBuffer.fieldOrder = [...state.dom.infoCardDetailsContainer.children]
+        .map(item => item.dataset.fieldKey)
+        .filter(Boolean);
 };
 
 const applyStructureToAllOpportunities = async (structuralUpdates) => {
@@ -1436,19 +1471,25 @@ const promptForScopeAndApplyChanges = (docId, allUpdates) => {
     return new Promise(async (resolve) => {
         state.dom.applyScopeModal.classList.add('visible');
 
-        const { deleteField } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
-
         const structuralUpdates = {};
+        // Always include field order if it changed
         if (allUpdates.fieldOrder) {
             structuralUpdates.fieldOrder = allUpdates.fieldOrder;
         }
+
+        // Include definitions for new/deleted fields AND their values
         for (const key in allUpdates) {
-            if (key.startsWith('customFields.') || (allUpdates[key] && typeof allUpdates[key] === 'object' && allUpdates[key]._methodName === 'delete')) {
+            if (key.startsWith('customFields.')) {
+                // This is a custom field definition change (add/delete)
                 structuralUpdates[key] = allUpdates[key];
-                if(key.includes('.')) {
-                   const plainKey = key.split('.')[1];
-                   structuralUpdates[plainKey] = allUpdates[plainKey];
+                const plainKey = key.split('.')[1];
+                // Also include the value for the new field
+                if (allUpdates[plainKey] !== undefined) {
+                    structuralUpdates[plainKey] = allUpdates[plainKey];
                 }
+            } else if (allUpdates[key]?._methodName === 'delete') {
+                // This is a field deletion
+                 structuralUpdates[key] = allUpdates[key];
             }
         }
         
@@ -1620,7 +1661,7 @@ const generateLogMessage = (log) => {
     return message;
 };
 const showAdminPanel = async () => {
-    if (await checkAndRequestAdminAccess('admin')) {
+    if (await checkAndRequestAccess('admin')) {
         state.dom.adminPanelModal.classList.add('visible');
         loadUsers();
         loadAuditLog(); 
@@ -1830,7 +1871,7 @@ const initApp = async () => {
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js");
     const { getAuth, signInAnonymously } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js");
     const { getFunctions } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-functions.js");
-    const { getFirestore, collection, getDocs, onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+    const { getFirestore, collection, getDocs, onSnapshot, writeBatch, doc, addDoc } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
     
     const storedUser = sessionStorage.getItem('currentUser');
     if (storedUser) {
@@ -1906,17 +1947,18 @@ const initApp = async () => {
     state.dom.chatbotForm.addEventListener('submit', handleChatSubmit);
 
     setTimeout(() => {
-        if (!state.dom.chatbotContainer.classList.contains('visible')) {
+        if (!state.dom.chatbotContainer.classList.contains('visible') && !localStorage.getItem('calloutDismissed')) {
             state.dom.chatbotCallout.classList.add('visible');
         }
     }, 5000);
     
     state.dom.closeCalloutBtn.addEventListener('click', () => {
         state.dom.chatbotCallout.classList.remove('visible');
+        localStorage.setItem('calloutDismissed', 'true');
     });
 
     state.dom.chatbotSettingsBtn.addEventListener('click', async () => {
-        if (await checkAndRequestAdminAccess('admin')) {
+        if (await checkAndRequestAccess('admin')) {
             state.dom.knowledgeBaseInput.value = localStorage.getItem('knowledgeBase') || '';
             state.dom.chatbotSettingsModal.classList.add('visible');
         }
@@ -1937,8 +1979,9 @@ const initApp = async () => {
         if (allCitiesLi) allCitiesLi.click();
     });
 
-    state.dom.addOpportunityBtn.addEventListener('click', async () => { if (await checkAndRequestAdminAccess('editor')) showOpportunityModal(); });
-    
+    state.dom.addOpportunityBtn.addEventListener('click', async () => { if (await checkAndRequestAccess('editor')) showOpportunityModal(); });
+    state.dom.addDynamicFieldBtn.addEventListener('click', () => handleAddNewField(state.dom.opportunityFormGrid));
+
     state.dom.statusFilterButtons.forEach(button => button.addEventListener('click', (e) => {
         state.currentStatusFilter = e.currentTarget.getAttribute('data-status');
         state.dom.statusFilterButtons.forEach(btn => btn.classList.remove('active'));
@@ -2018,7 +2061,7 @@ const initApp = async () => {
         if (state.isEditMode) {
             exitEditMode(true);
         } else {
-            if (await checkAndRequestAdminAccess('editor')) enterEditMode();
+            if (await checkAndRequestAccess('editor')) enterEditMode();
         }
     });
     
@@ -2034,7 +2077,7 @@ const initApp = async () => {
     });
 
     state.dom.addNewFieldBtn.addEventListener('click', () => handleAddNewField(null));
-    state.dom.infoCardBody.addEventListener('click', (e) => {
+    state.dom.infoCardDetailsContainer.addEventListener('click', (e) => {
         const deleteBtn = e.target.closest('.delete-field-btn');
         if (state.isEditMode && deleteBtn) {
             const fieldKey = deleteBtn.dataset.fieldKey;
@@ -2068,29 +2111,18 @@ const initApp = async () => {
             const confirmed = await showCustomConfirm(`هل تريد إضافة فرصة جديدة في هذا الموقع؟`, 'إضافة فرصة', false);
             if (!confirmed) return;
 
-            if (await checkAndRequestAdminAccess('editor')) {
+            if (await checkAndRequestAccess('editor')) {
                 const coords = e.latlng;
-                const prefillData = { coords: coords };
+                
+                const prefillData = {
+                    coords: coords,
+                };
+                
                 showOpportunityModal(null, prefillData);
             }
         });
     }
-    
-    // تفعيل زر الخروج من النوافذ
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            const visibleModal = document.querySelector('.modal-container.visible');
-            if (visibleModal) {
-                visibleModal.classList.remove('visible');
-            } else if (state.dom.infoCard.classList.contains('visible')) {
-                hideInfoCard();
-            } else if (state.dom.chatbotContainer.classList.contains('visible')) {
-                state.dom.chatbotContainer.classList.remove('visible');
-            }
-        }
-    });
 };
 
 // ---===[ 11. نقطة البداية (Entry Point) ]===---
 document.addEventListener('DOMContentLoaded', initApp);
-
