@@ -74,7 +74,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 .map-control-button:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.12); }
 
 .map-controls-left { position: absolute; z-index: 1000; bottom: 15px; left: 15px; }
-.map-controls-right { position: absolute; z-index: 1000; bottom: 15px; right: 15px; display: flex; flex-direction: column-reverse; }
+.map-controls-right { position: absolute; z-index: 1000; bottom: 15px; right: 15px; display: flex; flex-direction: column; }
 
 .fab { background-color: var(--color-gold); color: var(--color-white); border: none; }
 .fab:hover { background-color: var(--color-dark-gold); }
