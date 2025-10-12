@@ -255,8 +255,12 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
     max-height: 120px;
     overflow-y: auto;
 }
+.placeholder-value {
+    color: #95a5a6;
+    font-style: italic;
+}
 .currency-symbol { height: 1em; width: auto; vertical-align: -0.15em; margin-right: 4px; }
-.value-input, .value-select { width: 100%; border: 1px solid var(--color-gold); padding: 4px; border-radius: 4px; font-family: var(--font-main); }
+.value-input, .value-select, .value-textarea { width: 100%; border: 1px solid var(--color-gold); padding: 4px; border-radius: 4px; font-family: var(--font-main); }
 .value .value-link { color: var(--color-dark-gold); text-decoration: none; word-break: break-all; }
 .value .value-link:hover { text-decoration: underline; }
 
@@ -416,8 +420,8 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 
 .chatbot-callout {
     position: absolute;
-    bottom: 180px; /* تم رفع النافذة المنبثقة */
-    right: 0;
+    bottom: 175px; /* تم رفع النافذة المنبثقة لتكون فوق الزر العلوي */
+    right: 5px;
     background: var(--color-black);
     color: var(--color-white);
     padding: 10px 15px;
@@ -658,3 +662,4 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
         height: 45px;
     }
 }
+
