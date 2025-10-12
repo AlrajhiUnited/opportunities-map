@@ -84,7 +84,6 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 
 
 /* ---===[ 4. لوحة التنقل للمدن (تصميم جديد) ]===--- */
-/* ---===[ تعديل: تكبير نافذة المدن ]===--- */
 #city-navigator { position: absolute; top: 15px; left: 15px; z-index: 1010; background: var(--color-panel-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--color-panel-border); padding: 15px; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); max-height: calc(100vh - 30px); overflow-y: auto; display: flex; flex-direction: column; gap: 10px; opacity: 0; visibility: hidden; transition: all 0.4s ease-out; width: 340px; color: var(--color-white); }
 #city-navigator.visible { opacity: 1; visibility: visible; }
 .navigator-header h4 { font-size: 1.2em; font-weight: 600; padding-bottom: 10px; display: flex; align-items: center; gap: 10px; }
@@ -95,18 +94,18 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 #city-navigator li.active { background-color: var(--color-gold); color: var(--color-black); font-weight: 700; border-color: var(--color-dark-gold); }
 .city-info { display: flex; align-items: center; gap: 12px; }
 .edit-city-btn {
-    display: none; /* Hidden by default */
+    display: none; 
     background: none;
     border: none;
     color: var(--color-text-light);
     cursor: pointer;
-    margin-right: auto; /* Pushes the button to the left in RTL */
+    margin-right: auto; 
     padding: 5px;
     font-size: 0.9em;
     line-height: 1;
 }
 #city-navigator.admin-view li:hover .edit-city-btn {
-    display: inline-block; /* Show for admin on hover */
+    display: inline-block; 
 }
 .edit-city-btn:hover {
     color: var(--color-gold);
@@ -180,7 +179,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
     left: 50%;
     transform: translate(-50%, -50%) scale(0.9);
     width: 90%;
-    max-width: 520px;
+    max-width: 480px; /* تم تصغير العرض الأقصى */
     background-color: var(--color-white);
     border-radius: 15px;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
@@ -389,8 +388,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 
 .chatbot-callout {
     position: absolute;
-    /* ---===[ تعديل: نقل النافذة المنبثقة للأعلى ]===--- */
-    bottom: 177px; 
+    bottom: 54px; 
     right: 0;
     background: var(--color-black);
     color: var(--color-white);
@@ -415,7 +413,6 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 .chatbot-callout::after {
     content: '';
     position: absolute;
-    /* ---===[ تعديل: عكس اتجاه سهم النافذة المنبثقة ]===--- */
     top: 100%;
     right: 15px;
     width: 0;
@@ -442,7 +439,6 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
     color: var(--color-white);
 }
 
-/* ---===[ تعديل: تصغير نافذة الشات ]===--- */
 .chatbot-container {
     position: absolute;
     bottom: 15px;
@@ -450,7 +446,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
     z-index: 2100;
     width: 350px;
     max-width: calc(100% - 30px);
-    height: 450px; /* تم التصغير */
+    height: 450px; 
     max-height: calc(100vh - 100px);
     background-color: var(--color-white);
     border-radius: 15px;
@@ -633,4 +629,5 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
         height: 40px;
     }
 }
+
 
