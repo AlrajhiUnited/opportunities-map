@@ -31,7 +31,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
     top: 15px;
     right: 15px;
     z-index: 1010;
-    height: 60px;
+    height: 60px; /* تم تكبير الشعار */
     width: auto;
     background: rgba(255,255,255,0.7);
     padding: 5px;
@@ -76,28 +76,22 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 .map-controls-left { position: absolute; z-index: 1000; bottom: 15px; left: 15px; }
 .map-controls-right { position: absolute; z-index: 1000; bottom: 15px; right: 15px; display: flex; flex-direction: column-reverse; }
 
-.map-controls-right .map-control-button {
-    background-color: var(--color-gold);
-    color: var(--color-white);
-    border: none;
-}
-.map-controls-right .map-control-button:hover {
-    background-color: var(--color-dark-gold);
-}
+.fab { background-color: var(--color-gold); color: var(--color-white); border: none; }
+.fab:hover { background-color: var(--color-dark-gold); }
 
 #map .leaflet-control-zoom { display: none !important; }
 
 
 /* ---===[ 4. لوحة التنقل للمدن (تصميم جديد) ]===--- */
-#city-navigator { position: absolute; top: 15px; left: 15px; z-index: 1010; background: var(--color-panel-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--color-panel-border); padding: 15px; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); max-height: calc(100vh - 30px); overflow-y: auto; display: flex; flex-direction: column; gap: 10px; opacity: 0; visibility: hidden; transition: all 0.4s ease-out; width: 340px; color: var(--color-white); }
+#city-navigator { position: absolute; top: 15px; left: 15px; z-index: 1010; background: var(--color-panel-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--color-panel-border); padding: 15px; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); max-height: calc(100vh - 30px); overflow-y: auto; display: flex; flex-direction: column; gap: 10px; opacity: 0; visibility: hidden; transition: all 0.4s ease-out; width: 350px; /* تم توسيع النافذة */ color: var(--color-white); }
 #city-navigator.visible { opacity: 1; visibility: visible; }
-.navigator-header h4 { font-size: 1.2em; font-weight: 600; padding-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+.navigator-header h4 { font-size: 1.2em; /* تم تكبير الخط */ font-weight: 600; padding-bottom: 10px; display: flex; align-items: center; gap: 10px; }
 .navigator-header h4 i { color: var(--color-gold); }
 #city-navigator ul { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
-#city-navigator li { padding: 12px 15px; margin-bottom: 5px; cursor: pointer; border-radius: 10px; transition: all 0.2s ease; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 1.05em; background-color: rgba(255, 255, 255, 0.05); border: 1px solid transparent; }
+#city-navigator li { padding: 14px 15px; /* تم زيادة المساحة الداخلية */ margin-bottom: 5px; cursor: pointer; border-radius: 10px; transition: all 0.2s ease; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 1.05em; /* تم تكبير الخط */ background-color: rgba(255, 255, 255, 0.05); border: 1px solid transparent; }
 #city-navigator li:hover { background-color: rgba(255, 255, 255, 0.1); }
 #city-navigator li.active { background-color: var(--color-gold); color: var(--color-black); font-weight: 700; border-color: var(--color-dark-gold); }
-.city-info { display: flex; align-items: center; gap: 10px; }
+.city-info { display: flex; align-items: center; gap: 12px; }
 .edit-city-btn {
     display: none; /* Hidden by default */
     background: none;
@@ -120,7 +114,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
     color: var(--color-black);
 }
 
-.city-number { font-weight: 600; color: var(--color-gold); background-color: rgba(0,0,0,0.2); border-radius: 50%; width: 26px; height: 26px; display: inline-flex; justify-content: center; align-items: center; font-size: 0.8em; transition: all 0.2s ease; flex-shrink: 0; }
+.city-number { font-weight: 600; color: var(--color-gold); background-color: rgba(0,0,0,0.2); border-radius: 50%; width: 28px; height: 28px; display: inline-flex; justify-content: center; align-items: center; font-size: 0.85em; transition: all 0.2s ease; flex-shrink: 0; }
 #city-navigator li.active .city-number { background-color: var(--color-white); color: var(--color-black); }
 .city-stats { display: flex; gap: 8px; }
 .stat-indicator { width: 24px; height: 24px; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 0.8em; font-weight: 600; color: white; }
@@ -177,14 +171,14 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 .opportunity-tooltip { font-family: var(--font-main); background-color: rgba(0, 0, 0, 0.75); color: var(--color-white); border: none; border-radius: 4px; padding: 4px 8px; font-size: 0.85em; box-shadow: 0 1px 3px rgba(0,0,0,0.3); white-space: nowrap; }
 .leaflet-tooltip.opportunity-tooltip::before { border: none; }
 
-/* ---===[ 6. بطاقة المعلومات (Info Card) - تصميم جديد ]===--- */
+/* ---===[ 6. بطاقة المعلومات (Info Card) ]===--- */
 .info-card {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%) scale(0.9);
     width: 90%;
-    max-width: 650px; /* تم تصغير العرض قليلاً */
+    max-width: 800px; /* تم توسيع البطاقة */
     background-color: var(--color-white);
     border-radius: 15px;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
@@ -203,6 +197,8 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
     visibility: visible;
     transform: translate(-50%, -50%) scale(1);
 }
+
+.info-card.edit-mode .info-card-details { background-color: #fffaf2; }
 .info-card-header { display: flex; align-items: center; padding: 15px 20px 15px 60px; position: relative; flex-shrink: 0; }
 .title-badge-wrapper { display: flex; align-items: center; flex-grow: 1; justify-content: space-between; gap: 10px; }
 #info-card-title { color: var(--color-black); font-size: 1.3em; font-weight: 700; margin: 0; }
@@ -215,37 +211,57 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 .info-card-close { position: absolute; top: 50%; left: 20px; transform: translateY(-50%); background: none; border: none; font-size: 28px; line-height: 1; font-weight: bold; color: #aaa; cursor: pointer; padding: 0; z-index: 10; }
 .info-card-close:hover { color: var(--color-black); }
 
-#info-card-body {
-    padding: 0 20px 15px 20px;
+/* تنسيق جديد للبطاقة */
+.info-card-details {
+    padding: 15px 20px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 3 حقول في السطر */
+    gap: 15px 20px;
     background-color: var(--color-light-gray);
     border-top: 1px solid #eee;
     overflow-y: auto;
     flex-grow: 1;
+    transition: background-color 0.3s;
 }
-.card-section { padding-top: 15px; }
-.card-section:first-child { padding-bottom: 0; }
-.section-header { font-size: 1.1em; font-weight: 700; color: var(--color-black); margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid var(--color-gold); }
-.section-content { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px 15px; }
-.notes-textarea-container { margin-top: 15px; }
-.notes-textarea-container .label { font-size: 0.85em; color: var(--color-black); font-weight: 700; margin-bottom: 5px; }
-.notes-textarea-container .value { font-size: 1em; line-height: 1.6; color: var(--color-black); background-color: var(--color-white); padding: 10px; border-radius: 8px; white-space: pre-wrap; word-wrap: break-word; }
-.info-card.edit-mode .notes-textarea-container .value { cursor: text; }
-
-.detail-item { background-color: var(--color-white); padding: 10px 30px 10px 10px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: relative; display: flex; align-items: center; gap: 10px; }
-.detail-item .label { font-size: 0.8em; color: var(--color-black); font-weight: 700; }
-.detail-item .value { font-size: 0.95em; font-weight: 400; color: var(--color-black); }
-.item-icon { font-size: 1.3em; color: var(--color-gold); width: 22px; text-align: center; }
+.info-card-section-header {
+    grid-column: 1 / -1;
+    font-size: 1.1em;
+    font-weight: 700;
+    color: var(--color-black);
+    padding: 10px 0 5px;
+    margin-top: 10px;
+    border-bottom: 2px solid var(--color-gold);
+}
+.info-card-section-header:first-child { margin-top: 0; }
+.detail-item { background-color: var(--color-white); padding: 12px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: relative; display: flex; align-items: center; gap: 12px; }
+.detail-item .label { font-size: 0.8em; /* تم تصغير الخط */ color: var(--color-black); font-weight: 700; }
+.detail-item .value { font-size: 0.95em; /* تم تصغير الخط */ font-weight: 400; color: var(--color-black); word-break: break-word; }
+.item-icon { font-size: 1.3em; color: var(--color-gold); width: 25px; text-align: center; }
 .item-content { flex-grow: 1; }
 .detail-item.highlight-item .value { color: var(--color-dark-gold); font-weight: 700; }
 .detail-item[data-field-key="total_cost"] .value { color: var(--color-black) !important; font-weight: 400 !important; }
-
+.detail-item.notes-item {
+    grid-column: 1 / -1; /* حقل الملاحظات يأخذ عرض كامل */
+    flex-direction: column;
+    align-items: flex-start;
+}
+.notes-item .value {
+    white-space: pre-wrap; /* للحفاظ على فواصل الأسطر */
+    width: 100%;
+    background-color: #fdfdfd;
+    padding: 8px;
+    border-radius: 6px;
+    margin-top: 5px;
+    max-height: 120px;
+    overflow-y: auto;
+}
 .currency-symbol { height: 1em; width: auto; vertical-align: -0.15em; margin-right: 4px; }
-.value-input, .value-select, .notes-textarea { width: 100%; border: 1px solid var(--color-gold); padding: 4px; border-radius: 4px; font-family: var(--font-main); }
-.notes-textarea { resize: vertical; min-height: 80px; }
+.value-input, .value-select { width: 100%; border: 1px solid var(--color-gold); padding: 4px; border-radius: 4px; font-family: var(--font-main); }
 .value .value-link { color: var(--color-dark-gold); text-decoration: none; word-break: break-all; }
 .value .value-link:hover { text-decoration: underline; }
 
 /* عناصر وضع التحرير */
+.info-card.edit-mode .detail-item { cursor: grab; }
 .info-card.edit-mode .value { cursor: pointer; }
 .info-card.edit-mode.header-editable #info-card-title, 
 .info-card.edit-mode.header-editable #info-card-status-badge {
@@ -274,21 +290,9 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 }
 
 
-.delete-field-btn { display: none; position: absolute; top: 8px; left: 8px; background: none; border: none; color: #ccc; font-size: 1.1em; cursor: pointer; transition: color 0.2s; padding: 0; line-height: 1; }
+.delete-field-btn { display: none; position: absolute; top: 8px; right: 8px; background: none; border: none; color: #ccc; font-size: 1.1em; cursor: pointer; transition: color 0.2s; padding: 0; line-height: 1; }
 .info-card.edit-mode .delete-field-btn { display: block; }
 .info-card.edit-mode .delete-field-btn:hover { color: var(--color-status-unsuitable); }
-.drag-handle {
-    position: absolute;
-    top: 50%;
-    right: 8px;
-    transform: translateY(-50%);
-    cursor: grab;
-    color: #ccc;
-    display: none;
-    font-size: 1.2em;
-}
-.info-card.edit-mode .detail-item { cursor: grab; }
-.info-card.edit-mode .drag-handle { display: block; }
 .sortable-ghost { opacity: 0.4; background: #c8ebfb; border: 1px dashed var(--color-gold); }
 
 .info-card-actions { padding: 15px 20px; background-color: var(--color-white); border-top: 1px solid #eee; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; }
@@ -313,11 +317,13 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 #modal-title, .modal-content h3 { margin-bottom: 5px; color: var(--color-black); }
 .modal-subtitle, .modal-content p { font-size: 0.9em; color: #7f8c8d; margin-bottom: 20px; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-#opportunity-form .form-grid { grid-template-columns: 1fr 1fr 1fr; }
 .form-group { display: flex; flex-direction: column; gap: 5px; position: relative;}
 .form-group.full-width { grid-column: 1 / -1; }
 .form-group label { font-size: 0.85em; color: #7f8c8d; }
 .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: var(--font-main); font-size: 1em; }
+.modal-container.is-sortable .form-group { padding-right: 25px; }
+.drag-handle { position: absolute; top: 50%; right: 5px; cursor: grab; color: #ccc; display: none; }
+.modal-container.is-sortable .drag-handle { display: block; }
 .input-with-button { display: flex; gap: 5px; }
 .input-with-button input { flex-grow: 1; }
 .gmaps-form-btn { padding: 0 12px; background: #f0f0f0; border: 1px solid #ccc; border-radius: 6px; cursor: pointer; }
@@ -326,9 +332,6 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 .add-dynamic-field-btn:hover { background: #fffaf2; }
 .form-submit-btn { width: 100%; padding: 12px; margin-top: 20px; border: none; background-color: var(--color-gold); color: var(--color-white); font-family: var(--font-main); font-size: 1.1em; border-radius: 8px; cursor: pointer; transition: background-color 0.2s; }
 .form-submit-btn:hover { background-color: var(--color-dark-gold); }
-.dynamic-field-inputs { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; }
-.remove-dynamic-field-btn { background: none; border: none; color: #ccc; cursor: pointer; font-size: 1.2em; transition: color 0.2s; }
-.remove-dynamic-field-btn:hover { color: var(--color-status-unsuitable); }
 
 /* نافذة كلمة المرور وتحديد النطاق */
 .password-modal .modal-content, #apply-scope-modal .modal-content, #city-number-modal .modal-content { max-width: 400px; text-align: center; }
@@ -407,10 +410,13 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 #chatbot-fab:hover {
     animation: none;
 }
+#chatbot-fab {
+    margin-bottom: 0px; /* تم التعديل لإدارة المسافات عبر flex-gap */
+}
 
 .chatbot-callout {
     position: absolute;
-    bottom: 155px; /* تم تعديل الموضع ليظهر فوق الأزرار */
+    bottom: 180px; /* تم رفع النافذة المنبثقة */
     right: 0;
     background: var(--color-black);
     color: var(--color-white);
@@ -467,9 +473,9 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
     bottom: 15px;
     right: 15px;
     z-index: 2100;
-    width: 350px;
+    width: 330px; /* تم تصغير العرض */
     max-width: calc(100% - 30px);
-    height: 450px;
+    height: 480px; /* تم تصغير الارتفاع */
     max-height: calc(100vh - 100px);
     background-color: var(--color-white);
     border-radius: 15px;
@@ -636,7 +642,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
     .info-card.visible {
         transform: translateX(-50%) scale(1);
     }
-    .section-content { grid-template-columns: 1fr; }
+    .info-card-details { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); } /* استجابة أفضل للحقول */
     .map-control-button { width: 40px; height: 40px; font-size: 1.1em; }
     .map-controls-right { right: 10px; bottom: 10px; }
     .map-controls-left { left: 10px; bottom: 10px; }
@@ -649,7 +655,6 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
         height: 70vh;
     }
     .app-logo {
-        height: 40px;
+        height: 45px;
     }
 }
-
