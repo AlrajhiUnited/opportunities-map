@@ -17,15 +17,20 @@ const config = {
     mapTileUrl: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     superAdmin: { username: 'samer', password: '100200' },
     approvedCities: ['الرياض', 'جدة', 'المدينة', 'أبها', 'الخبر', 'حائل'],
-    // الحقول الأساسية الداخلية
+    baseFields: {
+        area: { label: 'المساحة', icon: 'fa-vector-square', type: 'number', unit: 'م²' },
+        buy_price_sqm: { label: 'سعر المتر', icon: 'fa-dollar-sign', type: 'number', isCurrency: true },
+        total_cost: { label: 'التكلفة الإجمالية', icon: 'fa-money-bill-wave', type: 'number', isCurrency: true, isHighlight: true, readonly: true },
+        dev_cost: { label: 'تكاليف التطوير', icon: 'fa-hard-hat', type: 'number', isCurrency: true },
+    },
     internalFields: {
          name: { label: 'اسم الفرصة', icon: 'fa-tag', type: 'text', required: true },
          city: { label: 'المدينة', icon: 'fa-city', type: 'select', required: true },
          coords: { label: 'الإحداثيات', icon: 'fa-map-marker-alt', type: 'text', required: true },
          status: { label: 'نتيجة دراسة الفرصة', icon: 'fa-tasks', type: 'select', options: ['مناسبة', 'غير مناسبة', 'تم الاستحواذ'] },
     },
-    // حقول المعلومات الرئيسية
-    mainInfoFields: {
+    // تعديل: إضافة حقول جديدة
+    suggestedFields: {
         opportunity_date: { label: 'تاريخ الفرصة', icon: 'fa-calendar-alt', type: 'date' },
         opportunity_type: {
             label: 'نوع الفرصة',
@@ -33,22 +38,6 @@ const config = {
             type: 'select',
             options: ['بنية تحتية', 'بنية فوقية', 'تعليمي', 'لوجستي', 'فندقي', 'أخر']
         },
-        area: { label: 'المساحة', icon: 'fa-vector-square', type: 'number', unit: 'م²' },
-        buy_price_sqm: { label: 'سعر المتر', icon: 'fa-dollar-sign', type: 'number', isCurrency: true },
-        total_cost: { label: 'التكلفة الإجمالية', icon: 'fa-money-bill-wave', type: 'number', isCurrency: true, isHighlight: true, readonly: true },
-        notes_main: { label: 'معلومات إضافية', icon: 'fa-align-left', type: 'textarea', isFullWidth: true },
-    },
-    // حقول دراسة الفرصة
-    studyFields: {
-        design_cost: { label: 'تكاليف التصاميم', icon: 'fa-drafting-compass', isCurrency: true },
-        execution_cost: { label: 'تكاليف التنفيذ', icon: 'fa-tools', isCurrency: true },
-        roi: { label: 'العائد (ROI)', icon: 'fa-chart-line', unit: '%' },
-        irr: { label: 'العائد الداخلي (IRR)', icon: 'fa-percentage', unit: '%' },
-        notes_study: { label: 'معلومات إضافية', icon: 'fa-clipboard-check', type: 'textarea', isFullWidth: true },
-    },
-    // حقول مقترحة إضافية
-    suggestedFields: {
-        dev_cost: { label: 'تكاليف التطوير', icon: 'fa-hard-hat', type: 'number', isCurrency: true },
         development_type: {
             label: 'نوع التطوير',
             icon: 'fa-cogs',
@@ -56,7 +45,14 @@ const config = {
             options: ['تطوير ذاتي', 'شراكة', 'صندوق عقاري', 'تطوير للغير', 'أخر']
         },
         gmaps_link: { label: 'رابط خرائط جوجل', icon: 'fa-link', type: 'text' },
+        notes: { label: 'تفاصيل إضافية', icon: 'fa-align-left', type: 'textarea', isFullWidth: true },
         district: { label: 'الحي', icon: 'fa-map-signs' },
+        // --- حقول جديدة ---
+        design_cost: { label: 'تكاليف التصميم', icon: 'fa-drafting-compass', type: 'number', isCurrency: true },
+        execution_cost: { label: 'تكاليف التنفيذ', icon: 'fa-tools', type: 'number', isCurrency: true },
+        roi: { label: 'العائد (ROI)', icon: 'fa-chart-line', type: 'number', unit: '%' },
+        irr: { label: 'العائد الداخلي (IRR)', icon: 'fa-percentage', type: 'number', unit: '%' },
+        // --- حقول أخرى مقترحة ---
         dev_cost_unit: { label: 'وحدة تكلفة التطوير', icon: 'fa-ruler-combined' },
         other_costs: { label: 'تكاليف أخرى', icon: 'fa-coins', isCurrency: true },
         est_sales: { label: 'المبيعات المقدرة', icon: 'fa-cash-register', isCurrency: true, isHighlight: true },
@@ -201,7 +197,7 @@ const cacheDomElements = () => {
 const showCustomConfirm = (message, title = 'تأكيد', isAlert = false) => {
     return new Promise((resolve) => {
         state.dom.customConfirmTitle.textContent = title;
-        state.dom.customConfirmMessage.innerHTML = message.replace(/\n/g, '<br>'); // Support line breaks
+        state.dom.customConfirmMessage.textContent = message;
         const actionsContainer = state.dom.customConfirmOkBtn.parentElement;
 
         if (isAlert) {
@@ -212,16 +208,8 @@ const showCustomConfirm = (message, title = 'تأكيد', isAlert = false) => {
 
         state.dom.customConfirmModal.classList.add('visible');
 
-        const handleOk = () => {
-            cleanup();
-            resolve(true);
-        };
-
-        const handleCancel = () => {
-            cleanup();
-            resolve(false);
-        };
-
+        const handleOk = () => { cleanup(); resolve(true); };
+        const handleCancel = () => { cleanup(); resolve(false); };
         const cleanup = () => {
             state.dom.customConfirmOkBtn.removeEventListener('click', handleOk);
             state.dom.customConfirmCancelBtn.removeEventListener('click', handleCancel);
@@ -234,9 +222,13 @@ const showCustomConfirm = (message, title = 'تأكيد', isAlert = false) => {
 };
 
 const requestAdminAccess = (requiredRole = 'editor') => {
-    // This function now ONLY shows the password modal.
-    // The check for existing session is done in checkAndRequestAccess.
     return new Promise(async (resolve) => {
+        // تعديل: لا تقم بحذف بيانات المستخدم من الجلسة عند كل طلب
+        if (state.currentUser) {
+             const hasAccess = state.currentUser.role === 'admin' || (requiredRole === 'editor' && state.currentUser.role === 'editor');
+             if(hasAccess) return resolve(true);
+        }
+
         state.dom.passwordModal.classList.add('visible');
         state.dom.usernameInput.value = '';
         state.dom.passwordInput.value = '';
@@ -262,13 +254,11 @@ const requestAdminAccess = (requiredRole = 'editor') => {
             
             if (!querySnapshot.empty) {
                 const userDoc = querySnapshot.docs[0].data();
-                const roles = ['viewer', 'editor', 'admin'];
-                const requiredLevel = roles.indexOf(requiredRole);
-                const userLevel = roles.indexOf(userDoc.role);
-
-                if (userLevel >= requiredLevel) {
-                    state.currentUser = { username: userDoc.username, role: userDoc.role };
-                    sessionStorage.setItem('currentUser', JSON.stringify(state.currentUser));
+                state.currentUser = { username: userDoc.username, role: userDoc.role };
+                sessionStorage.setItem('currentUser', JSON.stringify(state.currentUser));
+                
+                const hasAccess = state.currentUser.role === 'admin' || (requiredRole === 'editor' && state.currentUser.role === 'editor');
+                if (hasAccess) {
                     displayCityNavigator();
                     cleanup();
                     resolve(true);
@@ -293,38 +283,19 @@ const requestAdminAccess = (requiredRole = 'editor') => {
     });
 };
 
-// New helper function to check for session auth before prompting for password
-const checkAndRequestAccess = (requiredRole = 'editor') => {
-    if (state.currentUser) {
-        const roles = ['viewer', 'editor', 'admin'];
-        const requiredLevel = roles.indexOf(requiredRole);
-        const userLevel = roles.indexOf(state.currentUser.role);
-        if (userLevel >= requiredLevel) {
-            return Promise.resolve(true); // Already has access
-        }
-    }
-    // If no user or insufficient role, request login
-    return requestAdminAccess(requiredRole);
-};
-
-
 const parseNumberWithCommas = (value) => {
     if (value === null || value === undefined) return null;
     let strValue = String(value);
-
-    strValue = strValue.replace(/[٠١٢٣٤٥٦٧٨٩]/g, d => d.charCodeAt(0) - 1632)
-                       .replace(/[۰۱۲۳۴۵۶۷۸۹]/g, d => d.charCodeAt(0) - 1776);
-    
+    strValue = strValue.replace(/[٠١٢٣٤٥٦٧٨٩]/g, d => d.charCodeAt(0) - 1632).replace(/[۰۱۲۳۴۵۶۷۸۹]/g, d => d.charCodeAt(0) - 1776);
     if (strValue.trim() === '') return null;
     const cleaned = strValue.replace(/[^0-9.-]/g, '');
     if (cleaned === '') return null;
-    
     const num = parseFloat(cleaned);
     return isNaN(num) ? null : num;
 };
 
 const formatFieldValue = (key, value) => {
-    const allFields = { ...config.mainInfoFields, ...config.studyFields, ...config.suggestedFields };
+    const allFields = { ...config.baseFields, ...config.internalFields, ...config.suggestedFields };
     const field = allFields[key];
     if (!field || value === undefined || value === null || String(value).trim() === '') return value;
 
@@ -343,24 +314,25 @@ const formatFieldValue = (key, value) => {
 };
 
 const createModalFormField = (key, fieldConfig, value) => {
+    if (key === 'name') return ''; // اسم الفرصة لا يظهر كحقل في الفورم
+
     let inputHtml = '';
     const isReadonly = fieldConfig.readonly ? 'readonly' : '';
     let finalValue = value ?? '';
 
     if (fieldConfig.type === 'select') {
-        const options = fieldConfig.options || [];
-        const hasOther = options.includes('أخر');
-        const isOther = hasOther && finalValue && !options.includes(finalValue);
+        const hasOther = fieldConfig.options && fieldConfig.options.includes('أخر');
+        const isOther = hasOther && finalValue && !fieldConfig.options.includes(finalValue);
         
-        let optionsHtml = `<option value="">--${fieldConfig.label === config.internalFields.status.label ? 'غير محدد' : 'غير محدد'}--</option>`;
-        optionsHtml += options.map(opt => `<option value="${opt}" ${(!isOther && finalValue === opt) || (isOther && opt === 'أخر') ? 'selected' : ''}>${opt}</option>`).join('');
+        let optionsHtml = `<option value="">--${fieldConfig.label === 'الحالة' ? 'غير محدد' : 'غير محدد'}--</option>`;
+        if (fieldConfig.options) {
+             optionsHtml += fieldConfig.options.map(opt => `<option value="${opt}" ${(!isOther && finalValue === opt) || (isOther && opt === 'أخر') ? 'selected' : ''}>${opt}</option>`).join('');
+        }
        
         inputHtml = `
             <select name="${key}" ${fieldConfig.required ? 'required' : ''}>${optionsHtml}</select>
             ${hasOther ? `<input type="text" name="other_${key}" class="other-input" placeholder="يرجى تحديد النوع" style="display: ${isOther ? 'block' : 'none'};" value="${isOther ? finalValue : ''}">` : ''}
         `;
-    } else if (fieldConfig.type === 'textarea') {
-        inputHtml = `<textarea name="${key}" rows="4">${finalValue}</textarea>`;
     } else if (key === 'coords') {
         inputHtml = `
             <div class="input-with-button">
@@ -378,6 +350,7 @@ const createModalFormField = (key, fieldConfig, value) => {
             </div>`;
 };
 
+
 const showOpportunityModal = (opportunity = null, prefillData = {}) => {
     state.dom.modalTitle.textContent = opportunity ? 'تحرير الفرصة' : 'إضافة فرصة جديدة';
     state.dom.opportunityForm.dataset.mode = opportunity ? 'edit' : 'add';
@@ -386,22 +359,40 @@ const showOpportunityModal = (opportunity = null, prefillData = {}) => {
     state.dom.opportunityFormGrid.innerHTML = '';
     state.dom.opportunityModal.classList.add('is-sortable');
 
-    const allFields = { ...config.internalFields, ...config.mainInfoFields, ...config.studyFields, ...config.suggestedFields };
-    // New default order for the form
-    const defaultFieldOrder = [
-        'name', 'status', 'city', 'coords', 
-        'opportunity_date', 'opportunity_type', 'area', 'buy_price_sqm', 'total_cost', 'notes_main',
-        'design_cost', 'execution_cost', 'roi', 'irr', 'notes_study',
-        'gmaps_link'
-    ];
-    const fieldOrder = opportunity?.fieldOrder || defaultFieldOrder;
+    const allFields = { ...config.internalFields, ...config.suggestedFields, ...config.baseFields };
     
-    fieldOrder.forEach(key => {
-        let fieldConfig = allFields[key];
-        if (fieldConfig) {
-             let value;
+    // تعديل: تحديد الحقول وترتيبها للأقسام
+    const mainInfoFields = ['opportunity_date', 'opportunity_type', 'area', 'buy_price_sqm', 'total_cost'];
+    const studyFields = ['design_cost', 'execution_cost', 'roi', 'irr'];
+    const otherFields = ['city', 'coords', 'status', 'development_type', 'gmaps_link'];
+
+    const fieldOrder = opportunity?.fieldOrder || [...mainInfoFields, ...studyFields, ...otherFields];
+    
+    // إضافة حقل اسم الفرصة في البداية
+    state.dom.opportunityFormGrid.innerHTML += createModalFormField('name', allFields.name, opportunity?.name || '');
+
+    state.dom.opportunityFormGrid.innerHTML += `<div class="form-group form-divider full-width">المعلومات الرئيسية</div>`;
+    mainInfoFields.forEach(key => {
+        if (allFields[key]) {
+            const value = opportunity ? (opportunity[key] ?? '') : (prefillData[key] ?? '');
+            state.dom.opportunityFormGrid.innerHTML += createModalFormField(key, allFields[key], value);
+        }
+    });
+
+    state.dom.opportunityFormGrid.innerHTML += `<div class="form-group form-divider full-width">دراسة الفرصة</div>`;
+    studyFields.forEach(key => {
+        if (allFields[key]) {
+            const value = opportunity ? (opportunity[key] ?? '') : (prefillData[key] ?? '');
+            state.dom.opportunityFormGrid.innerHTML += createModalFormField(key, allFields[key], value);
+        }
+    });
+
+    state.dom.opportunityFormGrid.innerHTML += `<div class="form-group form-divider full-width">معلومات أخرى</div>`;
+    otherFields.forEach(key => {
+        if (allFields[key]) {
+            let value;
              if (opportunity) {
-                 value = (key === 'coords' ? `${opportunity.coords?.latitude || ''},${opportunity.coords?.longitude || ''}` : opportunity[key]);
+                 value = (key === 'coords' ? `${opportunity.coords?.latitude || ''},${opportunity.coords?.longitude || ''}` : (opportunity[key] ?? ''));
              } else if (prefillData[key]) {
                  if (key === 'coords' && typeof prefillData[key] === 'object') {
                      value = `${prefillData[key].lat.toFixed(6)},${prefillData[key].lng.toFixed(6)}`;
@@ -411,13 +402,12 @@ const showOpportunityModal = (opportunity = null, prefillData = {}) => {
              } else {
                  value = '';
              }
-             state.dom.opportunityFormGrid.innerHTML += createModalFormField(key, fieldConfig, value);
-        } else if (opportunity?.customFields?.[key]) {
-            fieldConfig = opportunity.customFields[key];
-            state.dom.opportunityFormGrid.innerHTML += createModalFormField(key, fieldConfig, opportunity[key]);
+            state.dom.opportunityFormGrid.innerHTML += createModalFormField(key, allFields[key], value);
         }
     });
-    
+
+
+    // معالجة حقل المدينة المنفصل
     const citySelectContainer = state.dom.opportunityFormGrid.querySelector('[data-field-key="city"]');
     if (citySelectContainer) {
         const citySelect = citySelectContainer.querySelector('select');
@@ -425,20 +415,13 @@ const showOpportunityModal = (opportunity = null, prefillData = {}) => {
         const isOtherCity = cityValue && !config.approvedCities.includes(cityValue);
         let cityOptionsHtml = '<option value="">--غير محدد--</option>' + config.approvedCities.map(c => `<option value="${c}" ${!isOtherCity && cityValue === c ? 'selected' : ''}>${c}</option>`).join('');
         cityOptionsHtml += `<option value="other" ${isOtherCity ? 'selected' : ''}>مدينة أخرى...</option>`;
-        
-        if (citySelect) { 
-            citySelect.innerHTML = cityOptionsHtml;
-        }
-        
+        if (citySelect) { citySelect.innerHTML = cityOptionsHtml; }
         document.getElementById('other-city-group')?.remove();
-
         const otherCityGroup = document.createElement('div');
         otherCityGroup.className = 'form-group full-width';
         otherCityGroup.id = 'other-city-group';
         otherCityGroup.style.display = isOtherCity ? 'grid' : 'none';
-        otherCityGroup.innerHTML = `
-            <label>اسم المدينة الجديدة</label>
-            <input type="text" name="other_city" id="other-city-input" value="${isOtherCity ? cityValue : ''}">`;
+        otherCityGroup.innerHTML = `<label>اسم المدينة الجديدة</label><input type="text" name="other_city" id="other-city-input" value="${isOtherCity ? cityValue : ''}">`;
         citySelectContainer.insertAdjacentElement('afterend', otherCityGroup);
         if (citySelect) {
             citySelect.addEventListener('change', (e) => {
@@ -475,7 +458,6 @@ const showOpportunityModal = (opportunity = null, prefillData = {}) => {
     const areaInput = form.querySelector('input[name="area"]');
     const priceInput = form.querySelector('input[name="buy_price_sqm"]');
     const totalCostInput = form.querySelector('input[name="total_cost"]');
-
     if (areaInput && priceInput && totalCostInput) {
         const updateTotalCost = () => {
             const area = parseNumberWithCommas(areaInput.value) || 0;
@@ -483,10 +465,8 @@ const showOpportunityModal = (opportunity = null, prefillData = {}) => {
             const total = area * price;
             totalCostInput.value = total > 0 ? total.toLocaleString('en-US') : '';
         };
-        
         areaInput.addEventListener('input', updateTotalCost);
         priceInput.addEventListener('input', updateTotalCost);
-        
         updateTotalCost();
     }
 
@@ -621,17 +601,10 @@ const handleChatSubmit = async (e) => {
     try {
         const { httpsCallable } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-functions.js");
         const askGemini = httpsCallable(state.functions, 'askGemini');
-        const result = await askGemini({ 
-            userInput: userInput,
-            contextData: simplifiedData,
-            knowledgeBase: knowledgeBase 
-        });
-
+        const result = await askGemini({ userInput: userInput, contextData: simplifiedData, knowledgeBase: knowledgeBase });
         const botResponse = result.data.response || "عذراً، لم أتمكن من معالجة طلبك حالياً.";
-        
         loadingIndicator.remove();
         addMessageToChat(botResponse, 'bot');
-
     } catch (error) {
         console.error("Firebase function error:", error);
         loadingIndicator.remove();
@@ -649,86 +622,60 @@ const showInfoCard = (opportunity) => {
     exitEditMode(false);
     state.dom.infoCard.classList.remove('visible');
     
-    const statusDisplay = {
-        'مناسبة': { text: 'مناسبة', class: 'suitable' },
-        'غير مناسبة': { text: 'غير مناسبة', class: 'unsuitable' },
-        'تم الاستحواذ': { text: 'تم الاستحواذ', class: 'acquired' },
-    };
+    const statusDisplay = { 'مناسبة': { text: 'مناسبة', class: 'suitable' }, 'غير مناسبة': { text: 'غير مناسبة', class: 'unsuitable' }, 'تم الاستحواذ': { text: 'تم الاستحواذ', class: 'acquired' } };
 
     setTimeout(() => {
         state.dom.infoCardTitle.textContent = opportunity.name || 'لا يوجد اسم';
         const status = opportunity.status || '';
         const display = statusDisplay[status] || { text: 'غير محدد', class: 'not-studied' };
-        
         state.dom.infoCardStatusBadge.className = `status-badge status-${display.class}`;
         state.dom.infoCardStatusBadge.textContent = display.text;
-        const detailsContainer = state.dom.infoCardDetailsContainer;
-        detailsContainer.innerHTML = '';
+        state.dom.infoCardDetailsContainer.innerHTML = '';
 
-        const allFields = { ...config.mainInfoFields, ...config.studyFields, ...config.suggestedFields, ...(opportunity.customFields || {}) };
+        const mainInfoFields = ['opportunity_date', 'opportunity_type', 'area', 'buy_price_sqm', 'total_cost'];
+        const studyFields = ['design_cost', 'execution_cost', 'roi', 'irr'];
         
-        const createFieldElement = (key) => {
-            const field = allFields[key];
-            if (!field) return null;
-
-            const value = opportunity[key];
-            const hasValue = (value !== undefined && value !== null && String(value).trim() !== '');
-            
-            const itemDiv = document.createElement('div');
-            itemDiv.className = `detail-item ${field.isFullWidth ? 'notes-item' : ''} ${field.isHighlight && key !== 'total_cost' ? 'highlight-item' : ''}`;
-            itemDiv.dataset.fieldKey = key;
-            
-            let displayValue = hasValue ? formatFieldValue(key, value) : `<span class="placeholder-value">--</span>`;
-
-            // Recalculate total_cost if its components are present but it is not
-            if (key === 'total_cost' && !hasValue) {
-                const area = opportunity.area || 0;
-                const price = opportunity.buy_price_sqm || 0;
-                if (area > 0 && price > 0) {
-                    displayValue = formatFieldValue(key, area * price);
-                }
-            }
-            
-            itemDiv.innerHTML = `
-                <i class="item-icon fas ${field.icon || 'fa-info-circle'}"></i>
-                <div class="item-content">
-                    <div class="label">${field.label}</div>
-                    <div class="value">${displayValue}</div>
-                </div>
-                <button class="delete-field-btn" data-field-key="${key}"><i class="fas fa-times"></i></button>`;
-            return itemDiv;
+        const allOpportunityFields = { ...config.internalFields, ...config.baseFields, ...config.suggestedFields, ...(opportunity.customFields || {}) };
+        
+        const createDetailItem = (key, field, value) => {
+            if (value === undefined || value === null || String(value).trim() === '') return '';
+            const displayValue = formatFieldValue(key, value);
+            return `<div class="detail-item ${field.isFullWidth ? 'notes-item' : ''} ${field.isHighlight && key !== 'total_cost' ? 'highlight-item' : ''}" data-field-key="${key}">
+                        <i class="fas fa-grip-vertical drag-handle"></i>
+                        <i class="item-icon fas ${field.icon || 'fa-info-circle'}"></i>
+                        <div class="item-content">
+                            <div class="label">${field.label}</div>
+                            <div class="value">${displayValue}</div>
+                        </div>
+                        <button class="delete-field-btn" data-field-key="${key}"><i class="fas fa-times"></i></button>
+                    </div>`;
         };
         
-        const mainInfoKeys = Object.keys(config.mainInfoFields);
-        const studyKeys = Object.keys(config.studyFields);
-
-        // Section 1: Main Information
-        detailsContainer.innerHTML += `<div class="info-card-section-header">المعلومات الرئيسية</div>`;
-        mainInfoKeys.forEach(key => {
-            const el = createFieldElement(key);
-            if (el) detailsContainer.appendChild(el);
-        });
-
-        // Section 2: Study Information
-        detailsContainer.innerHTML += `<div class="info-card-section-header">دراسة الفرصة</div>`;
-         studyKeys.forEach(key => {
-            const el = createFieldElement(key);
-            if (el) detailsContainer.appendChild(el);
-        });
-
-        // Section 3: Other Fields from fieldOrder that haven't been displayed
-        const displayedKeys = new Set([...mainInfoKeys, ...studyKeys, 'name', 'coords', 'city', 'status', 'gmaps_link']);
-        const fieldOrder = opportunity.fieldOrder || [];
-        const otherFields = fieldOrder.filter(key => !displayedKeys.has(key) && allFields[key]);
-        
-        if (otherFields.length > 0) {
-            detailsContainer.innerHTML += `<div class="info-card-section-header">معلومات إضافية</div>`;
-            otherFields.forEach(key => {
-                const el = createFieldElement(key);
-                if(el) detailsContainer.appendChild(el);
+        const createSection = (title, fieldKeys) => {
+            let content = '';
+            fieldKeys.forEach(key => {
+                if(allOpportunityFields[key]) {
+                    content += createDetailItem(key, allOpportunityFields[key], opportunity[key]);
+                }
             });
-        }
-        
+            if (content.trim() === '') return '';
+            return `<div class="details-section">
+                        <h4>${title}</h4>
+                        <div class="details-section-content">${content}</div>
+                    </div>`;
+        };
+
+        let mainInfoHTML = createSection('المعلومات الرئيسية', mainInfoFields);
+        let studyHTML = createSection('دراسة الفرصة', studyFields);
+
+        // إضافة الحقول المتبقية في قسم "معلومات إضافية"
+        const remainingKeys = (opportunity.fieldOrder || Object.keys(allOpportunityFields)).filter(
+            key => !mainInfoFields.includes(key) && !studyFields.includes(key) && !['name', 'coords', 'city', 'status', 'gmaps_link'].includes(key)
+        );
+        let otherInfoHTML = createSection('معلومات إضافية', remainingKeys);
+
+        state.dom.infoCardDetailsContainer.innerHTML = mainInfoHTML + studyHTML + otherInfoHTML;
+
         const finalGmapsLink = opportunity.gmaps_link || (opportunity.coords ? `https://www.google.com/maps/search/?api=1&query=${opportunity.coords.latitude},${opportunity.coords.longitude}` : '#');
         state.dom.infoCardGmapsLink.href = finalGmapsLink;
         state.dom.infoCardActions.dataset.docId = opportunity.id;
@@ -741,8 +688,6 @@ const showInfoCard = (opportunity) => {
         state.dom.infoCard.classList.add('visible');
     }, 100);
 };
-
-
 
 const hideInfoCard = () => {
     exitEditMode(false);
@@ -810,19 +755,11 @@ const displayCityNavigator = () => {
         });
     });
 
-    const statusDisplay = {
-        'مناسبة': { text: 'مناسبة', class: 'suitable' },
-        'غير مناسبة': { text: 'غير مناسبة', class: 'unsuitable' },
-        'تم الاستحواذ': { text: 'تم الاستحواذ', class: 'acquired' },
-        '': { text: 'غير محدد', class: 'not-studied' }
-    };
-        state.dom.navigatorLegend.innerHTML = Object.values(statusDisplay)
-        .map(s => `<div class="legend-item"><span class="legend-color ${s.class}"></span> ${s.text}</div>`)
-        .join('');
+    const statusDisplay = { 'مناسبة': { text: 'مناسبة', class: 'suitable' }, 'غير مناسبة': { text: 'غير مناسبة', class: 'unsuitable' }, 'تم الاستحواذ': { text: 'تم الاستحواذ', class: 'acquired' }, '': { text: 'غير محدد', class: 'not-studied' } };
+    state.dom.navigatorLegend.innerHTML = Object.values(statusDisplay).map(s => `<div class="legend-item"><span class="legend-color ${s.class}"></span> ${s.text}</div>`).join('');
 };
 
 // ---===[ 6. معالجات الأحداث (Event Handlers) ]===---
-
 const handleMarkerClick = (e) => {
     focusOnOpportunity(e.target.opportunityData);
 };
@@ -834,16 +771,10 @@ const handleCityMarkerClick = (cityName) => {
 const handleCitySelection = (e) => {
     const selectedCity = e.currentTarget.dataset.city;
     if (state.currentCityFilter === selectedCity && state.currentViewMode !== 'cities') return;
-    
     state.currentCityFilter = selectedCity;
-    
     document.querySelectorAll('#city-list li').forEach(li => li.classList.remove('active'));
     e.currentTarget.classList.add('active');
-    
-    if (state.dom.infoCard.classList.contains('visible')) {
-        hideInfoCard();
-    }
-    
+    if (state.dom.infoCard.classList.contains('visible')) hideInfoCard();
     if (selectedCity === 'all') {
         state.currentViewMode = 'cities';
         document.querySelectorAll('#city-list li').forEach(li => li.style.display = 'flex');
@@ -854,11 +785,8 @@ const handleCitySelection = (e) => {
         state.currentViewMode = 'opportunities';
         document.querySelectorAll('#city-list li').forEach(li => {
             const city = li.dataset.city;
-            if (city !== 'all' && city !== selectedCity) {
-                li.style.display = 'none';
-            } else {
-                 li.style.display = 'flex';
-            }
+            if (city !== 'all' && city !== selectedCity) li.style.display = 'none';
+            else li.style.display = 'flex';
         });
         state.dom.cityNavigatorPanel?.classList.add('show-status-filters');
         displayFilteredMarkers();
@@ -888,11 +816,7 @@ const promptForNewCityNumber = (cityName) => {
             }
         };
 
-        const handleClose = () => {
-            cleanup();
-            reject(new Error("User cancelled city number input."));
-        };
-
+        const handleClose = () => { cleanup(); reject(new Error("User cancelled city number input.")); };
         const cleanup = () => {
             state.dom.cityNumberForm.removeEventListener('submit', handleSubmit);
             state.dom.cityNumberModal.querySelector('.modal-close-btn').removeEventListener('click', handleClose);
@@ -907,7 +831,6 @@ const promptForNewCityNumber = (cityName) => {
 const handleEditCityNumberClick = (cityName) => {
     const cityData = state.citiesData.find(c => c.name === cityName);
     if (!cityData) return;
-    
     state.dom.editCityNameSpan.textContent = cityName;
     state.dom.editCityNameHidden.value = cityName;
     state.dom.editCityDisplayIdInput.value = cityData.displayId;
@@ -931,10 +854,8 @@ const handleFormSubmit = async (e) => {
     }
     data.city = cityName;
     delete data.other_city;
-    
     if (data.opportunity_type === 'أخر') data.opportunity_type = data.other_opportunity_type;
     delete data.other_opportunity_type;
-    
     if (data.development_type === 'أخر') data.development_type = data.other_development_type;
     delete data.other_development_type;
 
@@ -961,9 +882,9 @@ const handleFormSubmit = async (e) => {
     }
     
     Object.keys(data).forEach(key => {
-        const allFields = { ...config.internalFields, ...config.mainInfoFields, ...config.studyFields, ...config.suggestedFields };
+        const allFields = { ...config.baseFields, ...config.suggestedFields, ...config.internalFields };
         const fieldDef = allFields[key];
-        if (fieldDef && (fieldDef.type === 'number' || fieldDef.isCurrency) && data[key]) {
+        if (fieldDef && fieldDef.type === 'number' && data[key]) {
             data[key] = parseNumberWithCommas(data[key]);
         }
         if (data[key] === '') {
@@ -988,16 +909,18 @@ const handleFormSubmit = async (e) => {
             await logAuditEvent('تعديل فرصة', { opportunityId: docId, name: data.name });
             state.dom.opportunityModal.classList.remove('visible');
         }
-
     } catch (error) { console.error(error); await showCustomConfirm('حدث خطأ أثناء حفظ البيانات.', 'خطأ', true); }
 };
 
 const handleDeleteOpportunity = async () => {
+    if (!state.currentUser || state.currentUser.role !== 'admin') {
+        await showCustomConfirm("ليس لديك الصلاحية لحذف الفرص.", 'خطأ', true);
+        return;
+    }
+
     const docId = state.dom.infoCardActions.dataset.docId;
     const opportunity = state.opportunitiesData.find(op => op.id === docId);
     if (!opportunity) return;
-    
-    if (!(await checkAndRequestAccess('admin'))) return;
 
     const confirmed = await showCustomConfirm(`هل أنت متأكد من حذف الفرصة "${opportunity.name}"؟\nلا يمكن التراجع عن هذا الإجراء.`);
     if (confirmed) {
@@ -1045,7 +968,6 @@ const handleZoomEnd = () => {
 };
 
 // ---===[ 7. دوال العرض والفلترة الرئيسية ]===---
-
 const displayFilteredMarkers = () => {
     clearAllMarkers();
     const filteredData = state.opportunitiesData.filter(op => {
@@ -1053,9 +975,7 @@ const displayFilteredMarkers = () => {
         const statusMatch = state.currentStatusFilter === 'all' || op.status === state.currentStatusFilter || (state.currentStatusFilter === '' && !op.status);
         return cityMatch && statusMatch;
     });
-
     filteredData.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
-
     const coords = [];
     filteredData.forEach((opportunity, index) => {
         const marker = createOpportunityMarker(opportunity, index);
@@ -1085,21 +1005,16 @@ const handleTitleClickToEdit = (e) => {
     const titleEl = e.currentTarget;
     const currentOpportunity = state.opportunitiesData.find(op => op.id === state.dom.infoCardActions.dataset.docId);
     if (!currentOpportunity || titleEl.querySelector('input')) return;
-
     const originalTitle = currentOpportunity.name;
     titleEl.innerHTML = `<input type="text" value="${originalTitle}">`;
     const input = titleEl.querySelector('input');
     input.focus();
     input.select();
-
     const stageChange = () => {
         const newTitle = input.value.trim();
         titleEl.textContent = newTitle || originalTitle; 
-        if (newTitle && newTitle !== originalTitle) {
-            state.editBuffer.name = newTitle;
-        } else {
-            delete state.editBuffer.name;
-        }
+        if (newTitle && newTitle !== originalTitle) state.editBuffer.name = newTitle;
+        else delete state.editBuffer.name;
     };
     input.addEventListener('blur', stageChange);
     input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
@@ -1110,27 +1025,20 @@ const handleStatusClickToEdit = (e) => {
     const badgeEl = e.currentTarget;
     const currentOpportunity = state.opportunitiesData.find(op => op.id === state.dom.infoCardActions.dataset.docId);
     if (!currentOpportunity || badgeEl.querySelector('select')) return;
-
     const originalStatus = currentOpportunity.status || '';
     const options = config.internalFields.status.options;
     let optionsHtml = '<option value="">--غير محدد--</option>' + options.map(opt => `<option value="${opt}" ${originalStatus === opt ? 'selected' : ''}>${opt}</option>`).join('');
-
     badgeEl.innerHTML = `<select>${optionsHtml}</select>`;
     const select = badgeEl.querySelector('select');
     select.focus();
-
     const stageChange = () => {
         const newStatus = select.value;
         const statusDisplay = { 'مناسبة': { text: 'مناسبة', class: 'suitable' }, 'غير مناسبة': { text: 'غير مناسبة', class: 'unsuitable' }, 'تم الاستحواذ': { text: 'تم الاستحواذ', class: 'acquired' } };
         const display = statusDisplay[newStatus] || { text: 'غير محدد', class: 'not-studied' };
         badgeEl.className = `status-badge status-${display.class}`;
         badgeEl.textContent = display.text;
-        
-        if (newStatus !== originalStatus) {
-            state.editBuffer.status = newStatus || null;
-        } else {
-            delete state.editBuffer.status;
-        }
+        if (newStatus !== originalStatus) state.editBuffer.status = newStatus || null;
+        else delete state.editBuffer.status;
     };
     select.addEventListener('blur', stageChange);
     select.addEventListener('change', stageChange);
@@ -1150,31 +1058,30 @@ const enterEditMode = () => {
     state.dom.infoCardDetailsContainer.querySelectorAll('.value').forEach(el => {
         el.addEventListener('click', handleValueClickToEdit);
     });
-
     state.dom.infoCardTitle.addEventListener('click', handleTitleClickToEdit);
     state.dom.infoCardStatusBadge.addEventListener('click', handleStatusClickToEdit);
 
-
     if (state.sortableInstance) state.sortableInstance.destroy();
+    // تعديل: تفعيل السحب من خلال المقبض
     state.sortableInstance = new Sortable(state.dom.infoCardDetailsContainer, {
         animation: 150,
         ghostClass: 'sortable-ghost',
+        handle: '.drag-handle', // استخدام المقبض للسحب
         onEnd: () => { 
             state.hasStructuralChanges = true;
-            state.editBuffer.fieldOrder = [...state.dom.infoCardDetailsContainer.children]
-                .map(item => item.dataset.fieldKey)
-                .filter(Boolean); // Filter out headers
+            // تحديث الترتيب بناءً على الأقسام
+            const newOrder = [];
+            state.dom.infoCardDetailsContainer.querySelectorAll('.detail-item').forEach(item => {
+                newOrder.push(item.dataset.fieldKey);
+            });
+            state.editBuffer.fieldOrder = newOrder;
         },
     });
 };
 
 const exitEditMode = async (saveChanges = true) => {
     if (!state.isEditMode) return;
-
-    if (state.isLocationEditMode) {
-        endLocationEdit(false);
-    }
-
+    if (state.isLocationEditMode) endLocationEdit(false);
     const docId = state.dom.infoCardActions.dataset.docId;
 
     if (saveChanges && (Object.keys(state.editBuffer).length > 0 || state.hasStructuralChanges)) {
@@ -1201,7 +1108,6 @@ const exitEditMode = async (saveChanges = true) => {
     state.dom.editModeBtn.innerHTML = '<i class="fas fa-edit"></i> تحرير';
     state.dom.addNewFieldBtn.classList.add('hidden');
     state.dom.editLocationBtn.classList.add('hidden');
-
     state.dom.infoCardTitle.removeEventListener('click', handleTitleClickToEdit);
     state.dom.infoCardStatusBadge.removeEventListener('click', handleStatusClickToEdit);
 
@@ -1212,58 +1118,35 @@ const exitEditMode = async (saveChanges = true) => {
 
     if (!saveChanges) {
         const originalOpportunity = state.opportunitiesData.find(op => op.id === docId);
-        if (originalOpportunity) {
-            showInfoCard(originalOpportunity);
-        }
+        if (originalOpportunity) showInfoCard(originalOpportunity);
     }
 };
 
 const handleValueClickToEdit = (e) => {
     const valueEl = e.currentTarget;
-    if (valueEl.querySelector('input, select, textarea')) return; 
-
+    if (valueEl.querySelector('input, select')) return; 
     const itemEl = valueEl.closest('.detail-item');
     const key = itemEl.dataset.fieldKey;
     const currentOpportunity = state.opportunitiesData.find(op => op.id === state.dom.infoCardActions.dataset.docId);
     let currentValue = currentOpportunity[key] || '';
-    
-    if(key === 'gmaps_link' && valueEl.querySelector('a')) {
-        currentValue = valueEl.querySelector('a').getAttribute('href');
-    }
-
-    const allFields = { ...config.internalFields, ...config.mainInfoFields, ...config.studyFields, ...config.suggestedFields, ...(currentOpportunity.customFields || {}) };
+    if(key === 'gmaps_link' && valueEl.querySelector('a')) currentValue = valueEl.querySelector('a').getAttribute('href');
+    const allFields = { ...config.internalFields, ...config.baseFields, ...config.suggestedFields, ...(currentOpportunity.customFields || {}) };
 
     const stageChange = (newValue) => {
         let processedValue = newValue;
         const fieldConfig = allFields[key];
-        if (fieldConfig && (fieldConfig.type === 'number' || fieldConfig.isCurrency)) {
-            processedValue = parseNumberWithCommas(newValue);
-        }
-        
-        const hasValue = (processedValue !== undefined && processedValue !== null && String(processedValue).trim() !== '');
-        const displayValue = hasValue 
-            ? ((key === 'gmaps_link') ? `<a href="${processedValue}" target="_blank" class="value-link">${processedValue}</a>` : formatFieldValue(key, processedValue))
-            : `<span class="placeholder-value">--</span>`;
-
-        
-        if (String(processedValue) !== String(currentValue)) {
-            state.editBuffer[key] = processedValue;
-        } else {
-            delete state.editBuffer[key];
-        }
-        
+        if (fieldConfig && fieldConfig.type === 'number') processedValue = parseNumberWithCommas(newValue);
+        const displayValue = (key === 'gmaps_link') ? `<a href="${processedValue}" target="_blank" class="value-link">${processedValue}</a>` : formatFieldValue(key, processedValue);
+        if (String(processedValue) !== String(currentValue)) state.editBuffer[key] = processedValue;
+        else delete state.editBuffer[key];
         valueEl.innerHTML = displayValue;
-
         if (key === 'area' || key === 'buy_price_sqm') {
             const area = parseNumberWithCommas(state.editBuffer.area ?? currentOpportunity.area) || 0;
             const price = parseNumberWithCommas(state.editBuffer.buy_price_sqm ?? currentOpportunity.buy_price_sqm) || 0;
             const totalCost = area * price;
             state.editBuffer['total_cost'] = totalCost;
-
             const totalCostValueEl = state.dom.infoCardDetailsContainer.querySelector(`[data-field-key="total_cost"] .value`);
-            if (totalCostValueEl) {
-                totalCostValueEl.innerHTML = formatFieldValue('total_cost', totalCost) || `<span class="placeholder-value">--</span>`;
-            }
+            if (totalCostValueEl) totalCostValueEl.innerHTML = formatFieldValue('total_cost', totalCost);
         }
     };
     
@@ -1272,68 +1155,29 @@ const handleValueClickToEdit = (e) => {
         const options = fieldConfig.options;
         const hasOtherOption = options.includes('أخر');
         const isOther = hasOtherOption && currentValue && !options.includes(currentValue);
-        
         let optionsHtml = '<option value="">--غير محدد--</option>';
         optionsHtml += options.map(opt => `<option value="${opt}" ${(!isOther && currentValue === opt) || (isOther && opt === 'أخر') ? 'selected' : ''}>${opt}</option>`).join('');
-        
-        valueEl.innerHTML = `
-            <select class="value-select">${optionsHtml}</select>
-            ${hasOtherOption ? `<input class="value-input other-input" type="text" value="${isOther ? currentValue : ''}" style="margin-top: 5px; ${isOther ? '' : 'display: none;'}">` : ''}
-        `;
+        valueEl.innerHTML = `<select class="value-select">${optionsHtml}</select>${hasOtherOption ? `<input class="value-input other-input" type="text" value="${isOther ? currentValue : ''}" style="margin-top: 5px; ${isOther ? '' : 'display: none;'}">` : ''}`;
         const select = valueEl.querySelector('select');
         const input = valueEl.querySelector('input');
-
-        if(hasOtherOption) {
-            select.onchange = () => { input.style.display = select.value === 'أخر' ? 'block' : 'none'; if(select.value === 'أخر') input.focus(); };
-        }
-        
-        const saveSpecialFieldChange = () => {
-            const newValue = (hasOtherOption && select.value === 'أخر') ? input.value : select.value;
-            stageChange(newValue);
-        };
-
-        const handleBlur = (event) => {
-            setTimeout(() => {
-                if (document.activeElement !== select && document.activeElement !== input) {
-                    saveSpecialFieldChange();
-                }
-            }, 100);
-        };
-        
+        if(hasOtherOption) select.onchange = () => { input.style.display = select.value === 'أخر' ? 'block' : 'none'; if(select.value === 'أخر') input.focus(); };
+        const saveSpecialFieldChange = () => { const newValue = (hasOtherOption && select.value === 'أخر') ? input.value : select.value; stageChange(newValue); };
+        const handleBlur = (event) => { setTimeout(() => { if (document.activeElement !== select && document.activeElement !== input) saveSpecialFieldChange(); }, 100); };
         select.addEventListener('blur', handleBlur);
         if(input) input.addEventListener('blur', handleBlur);
         if(input) input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
         select.focus();
-
-    } else if (fieldConfig && fieldConfig.type === 'textarea') {
-        valueEl.innerHTML = `<textarea class="value-textarea" rows="4">${currentValue}</textarea>`;
-        const textarea = valueEl.querySelector('textarea');
-        textarea.focus();
-
-        const handleBlur = () => stageChange(textarea.value);
-        textarea.addEventListener('blur', handleBlur);
-        
     } else {
         const inputType = fieldConfig.type === 'date' ? 'date' : 'text';
         valueEl.innerHTML = `<input class="value-input" type="${inputType}" value="${currentValue}">`;
         const input = valueEl.querySelector('input');
         input.focus();
         input.select(); 
-
         const handleBlur = () => stageChange(input.value);
         input.addEventListener('blur', handleBlur);
-
         input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault(); 
-                input.blur(); 
-            }
-            if (e.key === 'Escape') {
-                input.removeEventListener('blur', handleBlur);
-                 valueEl.innerHTML = (key === 'gmaps_link') 
-                    ? `<a href="${currentValue}" target="_blank" class="value-link">${currentValue}</a>`
-                    : formatFieldValue(key, currentValue);
-            }
+            if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+            if (e.key === 'Escape') { input.removeEventListener('blur', handleBlur); valueEl.innerHTML = (key === 'gmaps_link') ? `<a href="${currentValue}" target="_blank" class="value-link">${currentValue}</a>` : formatFieldValue(key, currentValue); }
         });
     }
 };
@@ -1344,52 +1188,38 @@ const handleAddNewField = (targetFormGrid) => {
     const select = state.dom.fieldKeySelect;
     const valueContainer = document.getElementById('field-value-container');
     select.innerHTML = '<option value="">--اختر حقلاً--</option>';
-    
-    const existingFields = targetFormGrid 
-        ? new Set([...targetFormGrid.querySelectorAll('[data-field-key]')].map(el => el.dataset.fieldKey))
-        : new Set([...state.dom.infoCardDetailsContainer.querySelectorAll('.detail-item')].map(el => el.dataset.fieldKey));
-    
-    const allSuggestedFields = {...config.mainInfoFields, ...config.studyFields, ...config.suggestedFields};
-    for (const key in allSuggestedFields) {
-        if(!existingFields.has(key)) {
-            select.innerHTML += `<option value="${key}">${allSuggestedFields[key].label}</option>`;
-        }
-    }
+    const existingFields = targetFormGrid ? new Set([...targetFormGrid.querySelectorAll('[data-field-key]')].map(el => el.dataset.fieldKey)) : new Set([...state.dom.infoCardDetailsContainer.querySelectorAll('.detail-item')].map(el => el.dataset.fieldKey));
+    for (const key in config.suggestedFields) if(!existingFields.has(key)) select.innerHTML += `<option value="${key}">${config.suggestedFields[key].label}</option>`;
     select.innerHTML += `<option value="custom">--حقل مخصص--</option>`;
     state.dom.customFieldGroup.classList.add('hidden');
     state.dom.fieldLabelInput.readOnly = true;
-    valueContainer.innerHTML = `<label for="field-value">قيمة الحقل</label><input type="text" id="field-value" required>`;
+    valueContainer.innerHTML = `<input type="text" id="field-value" required>`;
     state.dom.addFieldModal.classList.add('visible');
 
     select.onchange = () => {
         const selectedKey = select.value;
-        const fieldConfig = allSuggestedFields[selectedKey];
-        valueContainer.innerHTML = `<label for="field-value">قيمة الحقل</label>`;
-
+        const fieldConfig = config.suggestedFields[selectedKey];
+        valueContainer.innerHTML = '';
         if (selectedKey === 'custom') {
             state.dom.customFieldGroup.classList.remove('hidden');
             state.dom.fieldLabelInput.value = '';
             state.dom.fieldLabelInput.readOnly = false;
             state.dom.fieldKeyCustom.focus();
-            valueContainer.innerHTML += `<input type="text" id="field-value" required>`;
+            valueContainer.innerHTML = `<input type="text" id="field-value" required>`;
         } else if (selectedKey) {
             state.dom.customFieldGroup.classList.add('hidden');
             state.dom.fieldLabelInput.value = fieldConfig.label;
             state.dom.fieldLabelInput.readOnly = true;
-            
             if (fieldConfig && fieldConfig.type === 'select' && fieldConfig.options) {
                 let optionsHtml = '<option value="">--اختر--</option>' + fieldConfig.options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
-                valueContainer.innerHTML += `<select id="field-value" required>${optionsHtml}</select>`;
-            } else if (fieldConfig && fieldConfig.type === 'textarea') {
-                 valueContainer.innerHTML += `<textarea id="field-value" rows="4" required></textarea>`;
+                valueContainer.innerHTML = `<select id="field-value" required>${optionsHtml}</select>`;
             } else {
                  const inputType = fieldConfig.type === 'date' ? 'date' : 'text';
-                 valueContainer.innerHTML += `<input type="${inputType}" id="field-value" required>`;
+                 valueContainer.innerHTML = `<input type="${inputType}" id="field-value" required>`;
             }
-
         } else {
              state.dom.fieldLabelInput.value = '';
-             valueContainer.innerHTML += `<input type="text" id="field-value" required>`;
+             valueContainer.innerHTML = `<input type="text" id="field-value" required>`;
         }
     };
     
@@ -1400,67 +1230,62 @@ const handleAddNewField = (targetFormGrid) => {
         const label = state.dom.fieldLabelInput.value;
         const valueEl = document.getElementById('field-value');
         const value = valueEl.value;
-
-        if (!key || !label || !value) {
-            await showCustomConfirm('يرجى تعبئة جميع الحقول.', 'خطأ', true);
-            return;
-        }
-        
+        if (!key || !label || !value) { await showCustomConfirm('يرجى تعبئة جميع الحقول.', 'خطأ', true); return; }
         if (targetFormGrid) {
-            const fieldConfig = allSuggestedFields[key] || { label: label, type: 'text' };
+            const fieldConfig = config.suggestedFields[key] || { label: label, type: 'text' };
             const fieldHtml = createModalFormField(key, fieldConfig, value);
             targetFormGrid.insertAdjacentHTML('beforeend', fieldHtml);
             state.dom.addFieldModal.classList.remove('visible');
             return;
         }
-
-        const icon = selectedKey !== 'custom' ? (allSuggestedFields[key]?.icon || 'fa-plus-circle') : 'fa-plus-circle';
-        
-        const baseConfig = (selectedKey !== 'custom' ? allSuggestedFields[key] : {}) || {};
-        const customFieldData = {
-            label: label,
-            icon: icon,
-            type: baseConfig.type || 'text',
-        };
-        if (baseConfig.options) {
-            customFieldData.options = baseConfig.options;
-        }
-         if (baseConfig.isFullWidth) customFieldData.isFullWidth = true;
-
+        const icon = selectedKey !== 'custom' ? (config.suggestedFields[key]?.icon || 'fa-plus-circle') : 'fa-plus-circle';
+        const baseConfig = (selectedKey !== 'custom' ? config.suggestedFields[key] : {}) || {};
+        const customFieldData = { label: label, icon: icon, type: baseConfig.type || 'text' };
+        if (baseConfig.options) customFieldData.options = baseConfig.options;
         state.hasStructuralChanges = true;
         state.editBuffer[key] = value;
         state.editBuffer[`customFields.${key}`] = customFieldData;
+        
+        // تعديل: إضافة الحقل الجديد إلى قسم المعلومات الإضافية
+        let otherInfoSection = state.dom.infoCardDetailsContainer.querySelector('.details-section:last-of-type .details-section-content');
+        if (!otherInfoSection) {
+            state.dom.infoCardDetailsContainer.innerHTML += `<div class="details-section"><h4>معلومات إضافية</h4><div class="details-section-content"></div></div>`;
+            otherInfoSection = state.dom.infoCardDetailsContainer.querySelector('.details-section:last-of-type .details-section-content');
+        }
 
-        // Re-render the relevant part of the info card
-        const docId = state.dom.infoCardActions.dataset.docId;
-        const tempOpportunity = {...state.opportunitiesData.find(op => op.id === docId)};
-        tempOpportunity[key] = value;
-        if (!tempOpportunity.customFields) tempOpportunity.customFields = {};
-        tempOpportunity.customFields[key] = customFieldData;
-        if (!tempOpportunity.fieldOrder) tempOpportunity.fieldOrder = [];
-        tempOpportunity.fieldOrder.push(key);
-        showInfoCard(tempOpportunity);
-
+        const itemDiv = document.createElement('div');
+        itemDiv.className = `detail-item`;
+        itemDiv.dataset.fieldKey = key;
+        itemDiv.innerHTML = `
+            <i class="fas fa-grip-vertical drag-handle"></i>
+            <i class="item-icon fas ${icon}"></i>
+            <div class="item-content">
+                <div class="label">${label}</div>
+                <div class="value">${formatFieldValue(key, value)}</div>
+            </div>
+            <button class="delete-field-btn" data-field-key="${key}"><i class="fas fa-times"></i></button>`;
+        otherInfoSection.appendChild(itemDiv);
         state.dom.addFieldModal.classList.remove('visible');
-
-        state.editBuffer.fieldOrder = [...state.dom.infoCardDetailsContainer.querySelectorAll('.detail-item')].map(item => item.dataset.fieldKey);
+        
+        const newOrder = [];
+        state.dom.infoCardDetailsContainer.querySelectorAll('.detail-item').forEach(item => newOrder.push(item.dataset.fieldKey));
+        state.editBuffer.fieldOrder = newOrder;
     };
 };
 const handleDeleteField = async (fieldKey) => {
-    if (config.internalFields[fieldKey] || config.mainInfoFields[fieldKey] || config.studyFields[fieldKey]) {
-        await showCustomConfirm("لا يمكن حذف الحقول الأساسية أو حقول الدراسة.", 'خطأ', true);
+    if (config.baseFields[fieldKey] || config.internalFields[fieldKey]) {
+        await showCustomConfirm("لا يمكن حذف الحقول الأساسية.", 'خطأ', true);
         return;
     }
-
     const { deleteField } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
     state.hasStructuralChanges = true;
     state.editBuffer[fieldKey] = deleteField();
     state.editBuffer[`customFields.${fieldKey}`] = deleteField();
-    
     state.dom.infoCardDetailsContainer.querySelector(`[data-field-key="${fieldKey}"]`)?.remove();
-    state.editBuffer.fieldOrder = [...state.dom.infoCardDetailsContainer.children]
-        .map(item => item.dataset.fieldKey)
-        .filter(Boolean);
+    
+    const newOrder = [];
+    state.dom.infoCardDetailsContainer.querySelectorAll('.detail-item').forEach(item => newOrder.push(item.dataset.fieldKey));
+    state.editBuffer.fieldOrder = newOrder;
 };
 
 const applyStructureToAllOpportunities = async (structuralUpdates) => {
@@ -1469,12 +1294,10 @@ const applyStructureToAllOpportunities = async (structuralUpdates) => {
     try {
         const querySnapshot = await getDocs(state.opportunitiesCollection);
         const batch = writeBatch(state.db);
-        
         querySnapshot.forEach(docSnap => {
             const docRef = doc(state.db, 'opportunities', docSnap.id);
             batch.update(docRef, structuralUpdates);
         });
-
         await batch.commit();
         await logAuditEvent('تغيير هيكل (كل الفرص)', { changes: Object.keys(structuralUpdates) });
         await showCustomConfirm("تم تطبيق التغييرات بنجاح على كل الفرص.", 'نجاح', true);
@@ -1488,23 +1311,18 @@ const applyStructureToAllOpportunities = async (structuralUpdates) => {
 const promptForScopeAndApplyChanges = (docId, allUpdates) => {
     return new Promise(async (resolve) => {
         state.dom.applyScopeModal.classList.add('visible');
-
+        const { deleteField } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
         const structuralUpdates = {};
-        const originalOpp = state.opportunitiesData.find(op => op.id === docId) || {};
-        const originalFieldOrder = originalOpp.fieldOrder || [];
-
-        if (allUpdates.fieldOrder) {
-            structuralUpdates.fieldOrder = allUpdates.fieldOrder;
-        }
-
-        const newFields = allUpdates.fieldOrder ? allUpdates.fieldOrder.filter(f => !originalFieldOrder.includes(f)) : [];
-
+        if (allUpdates.fieldOrder) structuralUpdates.fieldOrder = allUpdates.fieldOrder;
+        
+        // تعديل: تعميم قيمة الحقل الجديد
         for (const key in allUpdates) {
-            if (key.startsWith('customFields.') || (allUpdates[key] && allUpdates[key]._methodName === 'delete')) {
+            if (key.startsWith('customFields.') || (allUpdates[key] && typeof allUpdates[key] === 'object' && allUpdates[key]._methodName === 'delete')) {
                 structuralUpdates[key] = allUpdates[key];
-            }
-             else if (newFields.includes(key)) {
-                structuralUpdates[key] = allUpdates[key];
+                if(key.includes('.')) {
+                   const plainKey = key.split('.')[1];
+                   structuralUpdates[plainKey] = allUpdates[plainKey]; // إضافة قيمة الحقل الجديد
+                }
             }
         }
         
@@ -1514,12 +1332,8 @@ const promptForScopeAndApplyChanges = (docId, allUpdates) => {
                 await updateDoc(doc(state.db, 'opportunities', docId), allUpdates);
                 await logAuditEvent('تحديث فرصة مع تغيير هيكلي', { opportunityId: docId, changes: Object.keys(allUpdates) });
                 await showCustomConfirm('تم تعديل الفرصة بنجاح.', 'نجاح', true);
-            } catch (error) {
-                 await showCustomConfirm('فشل حفظ التعديلات.', 'خطأ', true);
-            } finally {
-                cleanup();
-                resolve();
-            }
+            } catch (error) { await showCustomConfirm('فشل حفظ التعديلات.', 'خطأ', true); } 
+            finally { cleanup(); resolve(); }
         };
 
         const handleAll = async () => {
@@ -1529,14 +1343,10 @@ const promptForScopeAndApplyChanges = (docId, allUpdates) => {
             } catch (e) {
                 console.error("Error saving current opportunity before batch update:", e);
                 await showCustomConfirm('فشل حفظ التعديلات على الفرصة الحالية.', 'خطأ', true);
-                cleanup();
-                resolve();
-                return;
+                cleanup(); resolve(); return;
             }
-            
             await applyStructureToAllOpportunities(structuralUpdates);
-            cleanup();
-            resolve();
+            cleanup(); resolve();
         };
         
         const cleanup = () => {
@@ -1544,7 +1354,6 @@ const promptForScopeAndApplyChanges = (docId, allUpdates) => {
             state.dom.applyScopeAllBtn.onclick = null;
             state.dom.applyScopeModal.classList.remove('visible');
         };
-
         state.dom.applyScopeOneBtn.onclick = handleOne;
         state.dom.applyScopeAllBtn.onclick = handleAll;
     });
@@ -1554,18 +1363,14 @@ const promptForScopeAndApplyChanges = (docId, allUpdates) => {
 const startLocationEdit = (fromForm = false) => {
     state.isLocationEditMode = true;
     state.dom.locationEditor.dataset.fromForm = fromForm;
-    if (!fromForm) {
-        state.dom.infoCard.classList.remove('visible');
-    }
+    if (!fromForm) state.dom.infoCard.classList.remove('visible');
     state.dom.mapSelectionPin.classList.remove('hidden');
     state.dom.locationEditor.classList.remove('hidden');
     state.dom.mapContainer.classList.add('location-edit-active');
-
     const updateCoordsInput = () => {
         const center = state.map.getCenter();
         state.dom.coordsEditorInput.value = `${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}`;
     };
-
     state.map.on('move', updateCoordsInput);
     updateCoordsInput(); 
 };
@@ -1575,7 +1380,6 @@ const endLocationEdit = async (save = false) => {
     const fromForm = state.dom.locationEditor.dataset.fromForm === 'true';
     const docId = state.dom.infoCardActions.dataset.docId;
     const currentOpportunity = state.opportunitiesData.find(op => op.id === docId);
-    
     const coordsFromInput = state.dom.coordsEditorInput.value;
     const [lat, lon] = coordsFromInput.split(',').map(s => parseFloat(s.trim()));
     
@@ -1591,11 +1395,7 @@ const endLocationEdit = async (save = false) => {
                 const newCoords = new GeoPoint(lat, lon);
                 try {
                     await updateDoc(doc(state.db, 'opportunities', docId), { coords: newCoords });
-                    await logAuditEvent('تحديث الموقع', {
-                        opportunityId: docId,
-                        name: currentOpportunity.name,
-                        newCoords: newCoordsString
-                    });
+                    await logAuditEvent('تحديث الموقع', { opportunityId: docId, name: currentOpportunity.name, newCoords: newCoordsString });
                 } catch(error) {
                     console.error("Failed to update location:", error);
                     await showCustomConfirm("فشل تحديث الموقع.", 'خطأ', true);
@@ -1603,7 +1403,6 @@ const endLocationEdit = async (save = false) => {
             } else { 
                 if (fromForm) state.dom.opportunityModal.classList.add('visible');
                 else if (currentOpportunity) handleMarkerClick({ target: { _icon: null, opportunityData: currentOpportunity }, latlng: L.latLng(currentOpportunity.coords.latitude, currentOpportunity.coords.longitude) });
-                
                 state.isLocationEditMode = false;
                 state.dom.mapSelectionPin.classList.add('hidden');
                 state.dom.locationEditor.classList.add('hidden');
@@ -1617,23 +1416,18 @@ const endLocationEdit = async (save = false) => {
     state.dom.mapSelectionPin.classList.add('hidden');
     state.dom.locationEditor.classList.add('hidden');
     state.dom.mapContainer.classList.remove('location-edit-active');
-
-    if (fromForm) {
-        state.dom.opportunityModal.classList.add('visible');
-    } else if (currentOpportunity) {
+    if (fromForm) state.dom.opportunityModal.classList.add('visible');
+    else if (currentOpportunity) {
         const freshData = state.opportunitiesData.find(op => op.id === docId) || currentOpportunity;
-         const marker = L.marker([freshData.coords.latitude, freshData.coords.longitude]);
-         handleMarkerClick({ target: { _icon: null, opportunityData: freshData }, latlng: marker.getLatLng() });
+        const marker = L.marker([freshData.coords.latitude, freshData.coords.longitude]);
+        handleMarkerClick({ target: { _icon: null, opportunityData: freshData }, latlng: marker.getLatLng() });
     }
 };
 
 const panToCoordsFromInput = async () => {
     const coords = state.dom.coordsEditorInput.value.split(',').map(s => parseFloat(s.trim()));
-    if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
-        state.map.flyTo([coords[0], coords[1]], state.map.getZoom());
-    } else {
-        await showCustomConfirm('الرجاء إدخال الإحداثيات بصيغة صحيحة، مثال: 24.7136, 46.6753', 'خطأ', true);
-    }
+    if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) state.map.flyTo([coords[0], coords[1]], state.map.getZoom());
+    else await showCustomConfirm('الرجاء إدخال الإحداثيات بصيغة صحيحة، مثال: 24.7136, 46.6753', 'خطأ', true);
 };
 
 
@@ -1641,42 +1435,22 @@ const panToCoordsFromInput = async () => {
 const generateLogMessage = (log) => {
     const { action, user, details } = log;
     let message = `قام <strong>${user}</strong> بـ `;
-
     switch (action) {
-        case 'إضافة فرصة':
-            message += `<strong>إضافة فرصة جديدة</strong> باسم "${details.name || details.opportunityId}"`;
-            break;
-        case 'تعديل فرصة':
-             message += `<strong>تعديل بيانات أساسية</strong> للفرصة "${details.name || details.opportunityId}"`;
-             break;
-        case 'حذف فرصة':
-             message += `<strong>حذف الفرصة</strong> "${details.name || details.opportunityId}"`;
-             break;
-        case 'تحديث حقل':
-            message += `<strong>تحديث حقل</strong> "${details.field}" للفرصة "<strong>${details.opportunityName}</strong>".`;
-            break;
-        case 'تغيير هيكل (فرصة واحدة)':
-            message += `<strong>تغيير هيكل الحقول</strong> للفرصة "${details.opportunityId}".`;
-            break;
-        case 'تغيير هيكل (كل الفرص)':
-            message += `<strong>تغيير هيكل الحقول</strong> لجميع الفرص.`;
-            break;
-        case 'إضافة مستخدم':
-            message += `<strong>إضافة مستخدم جديد</strong>: "${details.username}" بصلاحية "${details.role}".`;
-            break;
-        case 'حذف مستخدم':
-            message += `<strong>حذف المستخدم</strong>: "${details.username}".`;
-            break;
-        case 'تحديث الموقع':
-            message += `<strong>تحديث موقع</strong> الفرصة "${details.name}" إلى ${details.newCoords}.`;
-            break;
-        default:
-            message += `<strong>${action}</strong>`;
+        case 'إضافة فرصة': message += `<strong>إضافة فرصة جديدة</strong> باسم "${details.name || details.opportunityId}"`; break;
+        case 'تعديل فرصة': message += `<strong>تعديل بيانات أساسية</strong> للفرصة "${details.name || details.opportunityId}"`; break;
+        case 'حذف فرصة': message += `<strong>حذف الفرصة</strong> "${details.name || details.opportunityId}"`; break;
+        case 'تحديث حقل': message += `<strong>تحديث حقل</strong> "${details.field}" للفرصة "<strong>${details.opportunityName}</strong>".`; break;
+        case 'تغيير هيكل (فرصة واحدة)': message += `<strong>تغيير هيكل الحقول</strong> للفرصة "${details.opportunityId}".`; break;
+        case 'تغيير هيكل (كل الفرص)': message += `<strong>تغيير هيكل الحقول</strong> لجميع الفرص.`; break;
+        case 'إضافة مستخدم': message += `<strong>إضافة مستخدم جديد</strong>: "${details.username}" بصلاحية "${details.role}".`; break;
+        case 'حذف مستخدم': message += `<strong>حذف المستخدم</strong>: "${details.username}".`; break;
+        case 'تحديث الموقع': message += `<strong>تحديث موقع</strong> الفرصة "${details.name}" إلى ${details.newCoords}.`; break;
+        default: message += `<strong>${action}</strong>`;
     }
     return message;
 };
 const showAdminPanel = async () => {
-    if (await checkAndRequestAccess('admin')) {
+    if (await requestAdminAccess('admin')) {
         state.dom.adminPanelModal.classList.add('visible');
         loadUsers();
         loadAuditLog(); 
@@ -1710,16 +1484,9 @@ const loadUsers = async () => {
         const user = doc.data();
         const userItem = document.createElement('div');
         userItem.className = 'user-item';
-        userItem.innerHTML = `
-            <div class="user-info">
-                <span><i class="fas fa-user"></i> ${user.username}</span>
-                <span class="role">${user.role}</span>
-            </div>
-            <button class="delete-user-btn" data-id="${doc.id}" data-username="${user.username}"><i class="fas fa-trash-alt"></i></button>
-        `;
+        userItem.innerHTML = `<div class="user-info"><span><i class="fas fa-user"></i> ${user.username}</span><span class="role">${user.role}</span></div><button class="delete-user-btn" data-id="${doc.id}" data-username="${user.username}"><i class="fas fa-trash-alt"></i></button>`;
         state.dom.usersListContainer.appendChild(userItem);
     });
-
     document.querySelectorAll('.delete-user-btn').forEach(button => {
         button.addEventListener('click', (e) => {
             const btn = e.currentTarget;
@@ -1733,98 +1500,61 @@ const handleAddUser = async (e) => {
     const { addDoc } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData.entries());
-    
     try {
         await addDoc(state.usersCollection, data);
         await logAuditEvent('إضافة مستخدم', { username: data.username, role: data.role });
         e.target.reset();
         loadUsers();
-    } catch(err) {
-        await showCustomConfirm("فشل إضافة المستخدم.", 'خطأ', true);
-    }
+    } catch(err) { await showCustomConfirm("فشل إضافة المستخدم.", 'خطأ', true); }
 };
 
 const loadAuditLog = async (filterDate = null) => {
     const { getDocs, query, orderBy, limit, where, Timestamp } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
-    
     let q;
     if (filterDate) {
-        const start = new Date(filterDate);
-        start.setHours(0, 0, 0, 0);
-        const end = new Date(filterDate);
-        end.setHours(23, 59, 59, 999);
-        q = query(state.auditLogCollection, 
-                  where("timestamp", ">=", Timestamp.fromDate(start)),
-                  where("timestamp", "<=", Timestamp.fromDate(end)),
-                  orderBy("timestamp", "desc"));
+        const start = new Date(filterDate); start.setHours(0, 0, 0, 0);
+        const end = new Date(filterDate); end.setHours(23, 59, 59, 999);
+        q = query(state.auditLogCollection, where("timestamp", ">=", Timestamp.fromDate(start)), where("timestamp", "<=", Timestamp.fromDate(end)), orderBy("timestamp", "desc"));
     } else {
         q = query(state.auditLogCollection, orderBy("timestamp", "desc"), limit(50));
     }
-    
     const snapshot = await getDocs(q);
     state.dom.auditLogContainer.innerHTML = '';
-
-    if(snapshot.empty) {
-        state.dom.auditLogContainer.innerHTML = '<p>لا توجد سجلات لهذه الفترة.</p>';
-        return;
-    }
-
+    if(snapshot.empty) { state.dom.auditLogContainer.innerHTML = '<p>لا توجد سجلات لهذه الفترة.</p>'; return; }
     snapshot.forEach(doc => {
         const log = doc.data();
         const logItem = document.createElement('div');
         logItem.className = 'log-item';
         const date = log.timestamp?.toDate().toLocaleString('ar-SA', { dateStyle: 'short', timeStyle: 'short' }) || '...';
         const message = generateLogMessage(log);
-        logItem.innerHTML = `
-            <div class="log-header">${message}</div>
-            <div class="log-meta">${date}</div>
-        `;
+        logItem.innerHTML = `<div class="log-header">${message}</div><div class="log-meta">${date}</div>`;
         state.dom.auditLogContainer.appendChild(logItem);
     });
 };
 
 
 // ---===[ 10. دالة التهيئة الرئيسية (Main Initialization) ]===---
-
 const logAuditEvent = async (action, details) => {
     if (!state.currentUser) return;
     try {
         const { addDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
-        await addDoc(state.auditLogCollection, {
-            action,
-            details,
-            user: state.currentUser.username,
-            timestamp: serverTimestamp()
-        });
-    } catch (error) {
-        console.error("Failed to log audit event:", error);
-    }
+        await addDoc(state.auditLogCollection, { action, details, user: state.currentUser.username, timestamp: serverTimestamp() });
+    } catch (error) { console.error("Failed to log audit event:", error); }
 };
 
 const handleDeepLink = (retryCount = 0) => {
-    if (retryCount > 5) {
-        console.error("Deep link failed after multiple retries.");
-        return;
-    }
-
+    if (retryCount > 5) { console.error("Deep link failed after multiple retries."); return; }
     const urlParams = new URLSearchParams(window.location.search);
     const opportunityId = urlParams.get('opportunity');
     if (!opportunityId) return;
-
     const opportunity = state.opportunitiesData.find(op => op.id === opportunityId);
     if (!opportunity) {
-        if (retryCount < 3) {
-            setTimeout(() => handleDeepLink(retryCount + 1), 500);
-        }
+        if (retryCount < 3) setTimeout(() => handleDeepLink(retryCount + 1), 500);
         return;
     }
-
     const isMarkerDisplayed = state.displayedOpportunityMarkers.some(m => m.opportunityData.id === opportunityId);
-
     if (isMarkerDisplayed) {
-        setTimeout(() => {
-            focusOnOpportunity(opportunity);
-        }, 300);
+        setTimeout(() => focusOnOpportunity(opportunity), 300);
     } else {
         const cityLi = state.dom.cityNavigatorList.querySelector(`li[data-city="${opportunity.city}"]`);
         if (cityLi) {
@@ -1839,43 +1569,25 @@ const handleDeepLink = (retryCount = 0) => {
 
 const renderMapAndNav = async () => {
     if (!isCitiesDataLoaded || !isOppsDataLoaded) return;
-
     const citiesInOpps = [...new Set(state.opportunitiesData.map(op => op?.city).filter(Boolean))];
-    
     state.cityListForMarkers = citiesInOpps.map(cityName => {
         const cityData = state.citiesData.find(c => c.name === cityName);
         const firstOpp = state.opportunitiesData.find(op => op.city === cityName && op.coords);
-        return {
-            name: cityName,
-            coords: firstOpp ? [firstOpp.coords.latitude, firstOpp.coords.longitude] : null,
-            displayId: cityData ? cityData.displayId : null
-        };
+        return { name: cityName, coords: firstOpp ? [firstOpp.coords.latitude, firstOpp.coords.longitude] : null, displayId: cityData ? cityData.displayId : null };
     }).filter(c => c.coords && c.displayId !== null);
-    
     displayCityNavigator();
-    
     const currentCityElement = state.dom.cityNavigatorList.querySelector(`li[data-city="${state.currentCityFilter}"]`) || state.dom.cityNavigatorList.querySelector(`li[data-city="all"]`);
-    if(currentCityElement) {
-       handleCitySelection({ currentTarget: currentCityElement });
-    }
-
+    if(currentCityElement) handleCitySelection({ currentTarget: currentCityElement });
     if (state.dom.infoCard.classList.contains('visible') && !state.isLocationEditMode) {
         const docId = state.dom.infoCardActions.dataset.docId;
         const updatedOpp = state.opportunitiesData.find(op => op.id === docId);
-        if (updatedOpp) {
-            if (!state.isEditMode) {
-                showInfoCard(updatedOpp);
-            }
-        } else {
-            hideInfoCard();
-        }
+        if (updatedOpp) { if (!state.isEditMode) showInfoCard(updatedOpp); } 
+        else hideInfoCard();
     }
-
     if (state.dom.loadingScreen) {
         state.dom.loadingScreen.classList.add('hidden');
         setTimeout(() => state.dom.loadingScreen?.remove(), 500);
         state.dom.loadingScreen = null;
-
         handleDeepLink();
     }
 };
@@ -1886,12 +1598,10 @@ const initApp = async () => {
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js");
     const { getAuth, signInAnonymously } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js");
     const { getFunctions } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-functions.js");
-    const { getFirestore, collection, getDocs, onSnapshot, writeBatch, doc, addDoc } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+    const { getFirestore, collection, getDocs, onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
     
     const storedUser = sessionStorage.getItem('currentUser');
-    if (storedUser) {
-        state.currentUser = JSON.parse(storedUser);
-    }
+    if (storedUser) state.currentUser = JSON.parse(storedUser);
 
     try {
         const app = initializeApp(firebaseConfig);
@@ -1899,12 +1609,10 @@ const initApp = async () => {
         state.auth = getAuth(app);
         state.functions = getFunctions(app); 
         await signInAnonymously(state.auth);
-
         state.opportunitiesCollection = collection(state.db, 'opportunities');
         state.citiesCollection = collection(state.db, 'cities');
         state.usersCollection = collection(state.db, 'users');
         state.auditLogCollection = collection(state.db, 'audit_log');
-        
     } catch (error) { 
         console.error("Firebase initialization failed:", error);
         state.dom.loadingScreen.innerHTML = `<p>فشل تهيئة التطبيق. (${error.message})</p>`;
@@ -1918,14 +1626,10 @@ const initApp = async () => {
             const oppsPromise = getDocs(state.opportunitiesCollection);
             const citiesPromise = getDocs(state.citiesCollection);
             const [oppsSnapshot, citiesSnapshot] = await Promise.all([oppsPromise, citiesPromise]);
-
             state.opportunitiesData = oppsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             state.citiesData = citiesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            isOppsDataLoaded = true;
-            isCitiesDataLoaded = true;
-
+            isOppsDataLoaded = true; isCitiesDataLoaded = true;
             await renderMapAndNav();
-
             state.unsubscribeOpps = onSnapshot(state.opportunitiesCollection, (snapshot) => {
                 state.opportunitiesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderMapAndNav();
@@ -1934,211 +1638,91 @@ const initApp = async () => {
                 state.citiesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderMapAndNav();
             });
-
         } catch (error) {
             console.error("Error loading initial data:", error);
             let userMessage = "فشل تحميل البيانات. الرجاء تحديث الصفحة.";
-            if (error.code === 'permission-denied') {
-                userMessage = "فشل تحميل البيانات: خطأ في الصلاحيات. يرجى مراجعة قواعد الأمان في Firebase والتأكد من أنها تسمح بالقراءة للمستخدمين المسجلين.";
-            } else {
-                userMessage += `\n(${error.message})`;
-            }
+            if (error.code === 'permission-denied') userMessage = "فشل تحميل البيانات: خطأ في الصلاحيات. يرجى مراجعة قواعد الأمان في Firebase والتأكد من أنها تسمح بالقراءة للمستخدمين المسجلين.";
+            else userMessage += `\n(${error.message})`;
             state.dom.loadingScreen.innerHTML = `<p>${userMessage}</p>`;
         }
     };
-
     loadInitialDataAndAttachListeners();
-
-
     state.dom.cityNavigatorPanel.classList.add('visible');
     
-    state.dom.chatbotFab.addEventListener('click', () => {
-        state.dom.chatbotContainer.classList.toggle('visible');
-        state.dom.chatbotCallout.classList.remove('visible');
-    });
-    state.dom.chatbotCloseBtn.addEventListener('click', () => {
-        state.dom.chatbotContainer.classList.remove('visible');
-    });
+    // --- Event Listeners ---
+    state.dom.chatbotFab.addEventListener('click', () => { state.dom.chatbotContainer.classList.toggle('visible'); state.dom.chatbotCallout.classList.remove('visible'); });
+    state.dom.chatbotCloseBtn.addEventListener('click', () => state.dom.chatbotContainer.classList.remove('visible'));
     state.dom.chatbotForm.addEventListener('submit', handleChatSubmit);
-
-    setTimeout(() => {
-        if (!state.dom.chatbotContainer.classList.contains('visible') && !localStorage.getItem('calloutDismissed')) {
-            state.dom.chatbotCallout.classList.add('visible');
-        }
-    }, 5000);
-    
-    state.dom.closeCalloutBtn.addEventListener('click', () => {
-        state.dom.chatbotCallout.classList.remove('visible');
-        localStorage.setItem('calloutDismissed', 'true');
-    });
-
-    state.dom.chatbotSettingsBtn.addEventListener('click', async () => {
-        if (await checkAndRequestAccess('admin')) {
-            state.dom.knowledgeBaseInput.value = localStorage.getItem('knowledgeBase') || '';
-            state.dom.chatbotSettingsModal.classList.add('visible');
-        }
-    });
-
-    state.dom.chatbotSettingsForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const knowledgeBase = state.dom.knowledgeBaseInput.value;
-        localStorage.setItem('knowledgeBase', knowledgeBase);
-        state.dom.chatbotSettingsModal.classList.remove('visible');
-        await showCustomConfirm("تم حفظ إعدادات المساعد الذكي بنجاح.", 'نجاح', true);
-    });
-
+    setTimeout(() => { if (!state.dom.chatbotContainer.classList.contains('visible')) state.dom.chatbotCallout.classList.add('visible'); }, 5000);
+    state.dom.closeCalloutBtn.addEventListener('click', () => state.dom.chatbotCallout.classList.remove('visible'));
+    state.dom.chatbotSettingsBtn.addEventListener('click', async () => { if (await requestAdminAccess('admin')) { state.dom.knowledgeBaseInput.value = localStorage.getItem('knowledgeBase') || ''; state.dom.chatbotSettingsModal.classList.add('visible'); } });
+    state.dom.chatbotSettingsForm.addEventListener('submit', async (e) => { e.preventDefault(); localStorage.setItem('knowledgeBase', state.dom.knowledgeBaseInput.value); state.dom.chatbotSettingsModal.classList.remove('visible'); await showCustomConfirm("تم حفظ إعدادات المساعد الذكي بنجاح.", 'نجاح', true); });
     state.dom.zoomInBtn.addEventListener('click', () => state.map.zoomIn());
     state.dom.zoomOutBtn.addEventListener('click', () => state.map.zoomOut());
-    state.dom.zoomAllBtn.addEventListener('click', () => {
-        const allCitiesLi = state.dom.cityNavigatorList.querySelector('li[data-city="all"]');
-        if (allCitiesLi) allCitiesLi.click();
-    });
-
-    state.dom.addOpportunityBtn.addEventListener('click', async () => { if (await checkAndRequestAccess('editor')) showOpportunityModal(); });
+    state.dom.zoomAllBtn.addEventListener('click', () => { const allCitiesLi = state.dom.cityNavigatorList.querySelector('li[data-city="all"]'); if (allCitiesLi) allCitiesLi.click(); });
+    state.dom.addOpportunityBtn.addEventListener('click', async () => { if (await requestAdminAccess('editor')) showOpportunityModal(); });
     state.dom.addDynamicFieldBtn.addEventListener('click', () => handleAddNewField(state.dom.opportunityFormGrid));
-
-    state.dom.statusFilterButtons.forEach(button => button.addEventListener('click', (e) => {
-        state.currentStatusFilter = e.currentTarget.getAttribute('data-status');
-        state.dom.statusFilterButtons.forEach(btn => btn.classList.remove('active'));
-        e.currentTarget.classList.add('active');
-        displayFilteredMarkers();
-    }));
+    state.dom.statusFilterButtons.forEach(button => button.addEventListener('click', (e) => { state.currentStatusFilter = e.currentTarget.getAttribute('data-status'); state.dom.statusFilterButtons.forEach(btn => btn.classList.remove('active')); e.currentTarget.classList.add('active'); displayFilteredMarkers(); }));
     state.dom.infoCardCloseBtn.addEventListener('click', hideInfoCard);
-    
     state.dom.opportunityForm.addEventListener('submit', handleFormSubmit);
-    
     state.dom.editCityNumberForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const cityName = state.dom.editCityNameHidden.value;
         const newDisplayId = parseInt(state.dom.editCityDisplayIdInput.value);
-
-        if (!cityName || !newDisplayId || newDisplayId <= 0) {
-            await showCustomConfirm("الرجاء إدخال رقم صحيح أكبر من صفر.", 'خطأ', true);
-            return;
-        }
-
+        if (!cityName || !newDisplayId || newDisplayId <= 0) { await showCustomConfirm("الرجاء إدخال رقم صحيح أكبر من صفر.", 'خطأ', true); return; }
         const isTaken = state.citiesData.some(c => c.name !== cityName && c.displayId === newDisplayId);
-        if (isTaken) {
-            await showCustomConfirm(`الرقم ${newDisplayId} مستخدم حالياً لمدينة أخرى.`, 'خطأ', true);
-            return;
-        }
-        
+        if (isTaken) { await showCustomConfirm(`الرقم ${newDisplayId} مستخدم حالياً لمدينة أخرى.`, 'خطأ', true); return; }
         const { doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
         const cityRef = doc(state.db, "cities", cityName);
-        try {
-            await updateDoc(cityRef, { displayId: newDisplayId });
-            await logAuditEvent('تعديل ترقيم مدينة', { cityName: cityName, newId: newDisplayId });
-            state.dom.editCityNumberModal.classList.remove('visible');
-        } catch (error) {
-            console.error("Error updating city number:", error);
-            await showCustomConfirm("فشل تحديث رقم المدينة.", 'خطأ', true);
-        }
+        try { await updateDoc(cityRef, { displayId: newDisplayId }); await logAuditEvent('تعديل ترقيم مدينة', { cityName: cityName, newId: newDisplayId }); state.dom.editCityNumberModal.classList.remove('visible'); } 
+        catch (error) { console.error("Error updating city number:", error); await showCustomConfirm("فشل تحديث رقم المدينة.", 'خطأ', true); }
     });
-
     state.dom.deleteOpportunityBtn.addEventListener('click', handleDeleteOpportunity);
     state.dom.shareOpportunityBtn.addEventListener('click', async () => {
         const docId = state.dom.infoCardActions.dataset.docId;
-        if (!docId) {
-            await showCustomConfirm('فشل نسخ الرابط، لم يتم العثور على معرّف الفرصة.', 'خطأ', true);
-            return;
-        }
-    
-        const url = new URL(window.location.href);
-        url.search = `?opportunity=${docId}`;
-        const shareUrl = url.href;
-    
-        const textArea = document.createElement("textarea");
-        textArea.value = shareUrl;
-    
-        textArea.style.position = 'fixed';
-        textArea.style.top = '-9999px';
-        textArea.style.left = '-9999px';
-        
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-    
-        try {
-            const successful = document.execCommand('copy');
-            if (!successful) {
-                throw new Error('execCommand returned false');
-            }
-            await showCustomConfirm('تم نسخ رابط المشاركة بنجاح!', 'تم النسخ', true);
-        } catch (err) {
-            console.error('Copying failed:', err);
-            await showCustomConfirm(`فشل النسخ التلقائي. يرجى نسخ الرابط يدوياً:\n\n${shareUrl}`, 'انسخ الرابط', true);
-        }
-    
+        if (!docId) { await showCustomConfirm('فشل نسخ الرابط، لم يتم العثور على معرّف الفرصة.', 'خطأ', true); return; }
+        const url = new URL(window.location.href); url.search = `?opportunity=${docId}`; const shareUrl = url.href;
+        const textArea = document.createElement("textarea"); textArea.value = shareUrl;
+        textArea.style.position = 'fixed'; textArea.style.top = '-9999px'; textArea.style.left = '-9999px';
+        document.body.appendChild(textArea); textArea.focus(); textArea.select();
+        try { if (!document.execCommand('copy')) throw new Error('execCommand returned false'); await showCustomConfirm('تم نسخ رابط المشاركة بنجاح!', 'تم النسخ', true); } 
+        catch (err) { console.error('Copying failed:', err); await showCustomConfirm(`فشل النسخ التلقائي. يرجى نسخ الرابط يدوياً:\n\n${shareUrl}`, 'انسخ الرابط', true); }
         document.body.removeChild(textArea);
     });
-
-    state.dom.editModeBtn.addEventListener('click', async () => {
-        if (state.isEditMode) {
-            exitEditMode(true);
-        } else {
-            if (await checkAndRequestAccess('editor')) enterEditMode();
-        }
-    });
-    
+    state.dom.editModeBtn.addEventListener('click', async () => { if (state.isEditMode) exitEditMode(true); else if (await requestAdminAccess('editor')) enterEditMode(); });
     state.dom.editLocationBtn.addEventListener('click', () => startLocationEdit(false));
     state.dom.confirmLocationBtn.addEventListener('click', () => endLocationEdit(true));
     state.dom.cancelLocationBtn.addEventListener('click', () => endLocationEdit(false));
-    
     state.dom.applyCoordsBtn.addEventListener('click', panToCoordsFromInput);
-    state.dom.coordsEditorInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            panToCoordsFromInput();
-        }
-    });
-
+    state.dom.coordsEditorInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') panToCoordsFromInput(); });
     state.dom.addNewFieldBtn.addEventListener('click', () => handleAddNewField(null));
     state.dom.infoCardDetailsContainer.addEventListener('click', (e) => {
         const deleteBtn = e.target.closest('.delete-field-btn');
-        if (state.isEditMode && deleteBtn) {
-            const fieldKey = deleteBtn.dataset.fieldKey;
-            handleDeleteField(fieldKey);
-        }
+        if (state.isEditMode && deleteBtn) handleDeleteField(deleteBtn.dataset.fieldKey);
     });
-    
     state.dom.adminPanelBtn.addEventListener('click', showAdminPanel);
     state.dom.addUserForm.addEventListener('submit', handleAddUser);
-    document.querySelectorAll('.admin-tabs .tab-btn').forEach(button => {
-        button.addEventListener('click', () => {
-            document.querySelectorAll('.admin-tabs .tab-btn, .admin-tab-content').forEach(el => el.classList.remove('active'));
-            button.classList.add('active');
-            document.getElementById(button.dataset.tab).classList.add('active');
-        });
-    });
-
+    document.querySelectorAll('.admin-tabs .tab-btn').forEach(button => { button.addEventListener('click', () => { document.querySelectorAll('.admin-tabs .tab-btn, .admin-tab-content').forEach(el => el.classList.remove('active')); button.classList.add('active'); document.getElementById(button.dataset.tab).classList.add('active'); }); });
     state.dom.logDateFilter.addEventListener('change', (e) => loadAuditLog(e.target.value));
-    state.dom.clearLogFilterBtn.addEventListener('click', () => {
-        state.dom.logDateFilter.value = '';
-        loadAuditLog();
+    state.dom.clearLogFilterBtn.addEventListener('click', () => { state.dom.logDateFilter.value = ''; loadAuditLog(); });
+
+    // تعديل: إضافة إغلاق البطاقة بزر ESC
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && state.dom.infoCard.classList.contains('visible') && !state.isEditMode) {
+            hideInfoCard();
+        }
     });
 
     if (state.map) {
         state.map.on('click', (e) => { if (e.originalEvent.target.closest('.leaflet-marker-icon') === null && !e.originalEvent.target.closest('.info-card') && !e.originalEvent.target.closest('.location-editor')) hideInfoCard(); });
         state.map.on('zoomend', handleZoomEnd);
-        
         state.map.on('contextmenu', async (e) => {
             e.originalEvent.preventDefault(); 
-            
             const confirmed = await showCustomConfirm(`هل تريد إضافة فرصة جديدة في هذا الموقع؟`, 'إضافة فرصة', false);
-            if (!confirmed) return;
-
-            if (await checkAndRequestAccess('editor')) {
-                const coords = e.latlng;
-                
-                const prefillData = {
-                    coords: coords,
-                };
-                
-                showOpportunityModal(null, prefillData);
-            }
+            if (confirmed && await requestAdminAccess('editor')) showOpportunityModal(null, { coords: e.latlng });
         });
     }
 };
 
 // ---===[ 11. نقطة البداية (Entry Point) ]===---
 document.addEventListener('DOMContentLoaded', initApp);
-
