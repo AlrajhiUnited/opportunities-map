@@ -81,7 +81,7 @@ const state = {
     unsubscribeCities: null,
     isEditMode: false,
     isLocationEditMode: false,
-    sortableInstance: null,
+    sortableInstances: null,
     modalSortableInstance: null,
     currentUser: null,
     locationUpdateListener: null,
@@ -637,7 +637,6 @@ const showInfoCard = (opportunity) => {
         const studyFields = ['design_cost', 'execution_cost', 'roi', 'irr'];
         const allFields = { ...config.internalFields, ...config.baseFields, ...config.suggestedFields, ...(opportunity.customFields || {}) };
 
-        // ---===[ تعديل: منطق إظهار الحقول الفارغة في بطاقة العرض ]===---
         const createSectionHTML = (title, fieldKeys, notesKey) => {
             let contentHTML = '';
             const existingKeys = new Set();
@@ -650,6 +649,7 @@ const showInfoCard = (opportunity) => {
 
                  if (field && (hasValue || isPredefined)) {
                     contentHTML += `<div class="detail-item" data-field-key="${key}">
+                                        <i class="fas fa-grip-vertical drag-handle"></i>
                                         <i class="item-icon fas ${field.icon || 'fa-info-circle'}"></i>
                                         <div class="item-content">
                                             <div class="label">${field.label}</div>
@@ -1099,7 +1099,6 @@ const handleStatusClickToEdit = (e) => {
     select.addEventListener('change', stageChange);
 };
 
-
 const enterEditMode = () => {
     state.isEditMode = true;
     state.editBuffer = {};
@@ -1117,8 +1116,31 @@ const enterEditMode = () => {
     state.dom.infoCardTitle.addEventListener('click', handleTitleClickToEdit);
     state.dom.infoCardStatusBadge.addEventListener('click', handleStatusClickToEdit);
 
+    if (state.sortableInstances) {
+        state.sortableInstances.forEach(instance => instance.destroy());
+    }
+    state.sortableInstances = [];
 
-    if (state.sortableInstance) state.sortableInstance.destroy();
+    const sections = state.dom.infoCardBody.querySelectorAll('.section-content');
+    const onSortEnd = () => {
+        state.hasStructuralChanges = true;
+        const allFieldKeys = [];
+        sections.forEach(section => {
+            const keys = [...section.children].map(item => item.dataset.fieldKey);
+            allFieldKeys.push(...keys);
+        });
+        state.editBuffer.fieldOrder = allFieldKeys;
+    };
+
+    sections.forEach(section => {
+        const instance = new Sortable(section, {
+            animation: 150,
+            handle: '.drag-handle',
+            ghostClass: 'sortable-ghost',
+            onEnd: onSortEnd,
+        });
+        state.sortableInstances.push(instance);
+    });
 };
 
 const exitEditMode = async (saveChanges = true) => {
@@ -1158,9 +1180,9 @@ const exitEditMode = async (saveChanges = true) => {
     state.dom.infoCardTitle.removeEventListener('click', handleTitleClickToEdit);
     state.dom.infoCardStatusBadge.removeEventListener('click', handleStatusClickToEdit);
 
-    if (state.sortableInstance) {
-        state.sortableInstance.destroy();
-        state.sortableInstance = null;
+    if (state.sortableInstances) {
+        state.sortableInstances.forEach(instance => instance.destroy());
+        state.sortableInstances = null;
     }
 
     if (!saveChanges) {
@@ -1341,6 +1363,7 @@ const handleAddNewField = (targetFormGrid) => {
         itemDiv.className = `detail-item`;
         itemDiv.dataset.fieldKey = key;
         itemDiv.innerHTML = `
+            <i class="fas fa-grip-vertical drag-handle"></i>
             <i class="item-icon fas ${icon}"></i>
             <div class="item-content">
                 <div class="label">${label}</div>
