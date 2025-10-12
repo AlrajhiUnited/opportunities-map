@@ -1240,7 +1240,11 @@ const handleValueClickToEdit = (e) => {
             processedValue = parseNumberWithCommas(newValue);
         }
         
-        const displayValue = (key === 'gmaps_link') ? `<a href="${processedValue}" target="_blank" class="value-link">${processedValue}</a>` : formatFieldValue(key, processedValue);
+        const hasValue = (processedValue !== undefined && processedValue !== null && String(processedValue).trim() !== '');
+        const displayValue = hasValue 
+            ? ((key === 'gmaps_link') ? `<a href="${processedValue}" target="_blank" class="value-link">${processedValue}</a>` : formatFieldValue(key, processedValue))
+            : `<span class="placeholder-value">--</span>`;
+
         
         if (String(processedValue) !== String(currentValue)) {
             state.editBuffer[key] = processedValue;
@@ -1258,7 +1262,7 @@ const handleValueClickToEdit = (e) => {
 
             const totalCostValueEl = state.dom.infoCardDetailsContainer.querySelector(`[data-field-key="total_cost"] .value`);
             if (totalCostValueEl) {
-                totalCostValueEl.innerHTML = formatFieldValue('total_cost', totalCost);
+                totalCostValueEl.innerHTML = formatFieldValue('total_cost', totalCost) || `<span class="placeholder-value">--</span>`;
             }
         }
     };
@@ -1486,24 +1490,21 @@ const promptForScopeAndApplyChanges = (docId, allUpdates) => {
         state.dom.applyScopeModal.classList.add('visible');
 
         const structuralUpdates = {};
-        // Always include field order if it changed
+        const originalOpp = state.opportunitiesData.find(op => op.id === docId) || {};
+        const originalFieldOrder = originalOpp.fieldOrder || [];
+
         if (allUpdates.fieldOrder) {
             structuralUpdates.fieldOrder = allUpdates.fieldOrder;
         }
 
-        // Include definitions for new/deleted fields AND their values
+        const newFields = allUpdates.fieldOrder ? allUpdates.fieldOrder.filter(f => !originalFieldOrder.includes(f)) : [];
+
         for (const key in allUpdates) {
-            if (key.startsWith('customFields.')) {
-                // This is a custom field definition change (add/delete)
+            if (key.startsWith('customFields.') || (allUpdates[key] && allUpdates[key]._methodName === 'delete')) {
                 structuralUpdates[key] = allUpdates[key];
-                const plainKey = key.split('.')[1];
-                // Also include the value for the new field
-                if (allUpdates[plainKey] !== undefined) {
-                    structuralUpdates[plainKey] = allUpdates[plainKey];
-                }
-            } else if (allUpdates[key]?._methodName === 'delete') {
-                // This is a field deletion
-                 structuralUpdates[key] = allUpdates[key];
+            }
+             else if (newFields.includes(key)) {
+                structuralUpdates[key] = allUpdates[key];
             }
         }
         
