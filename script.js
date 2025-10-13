@@ -27,10 +27,10 @@ const config = {
         },
         study: {
             dev_cost: { label: 'تكاليف التطوير', icon: 'fa-hard-hat', type: 'number', isCurrency: true, order: 1 },
-            design_cost: { label: 'تكاليف التصميم', icon: 'fa-drafting-compass', isCurrency: true, order: 2 },
-            execution_cost: { label: 'تكاليف التنفيذ', icon: 'fa-tools', isCurrency: true, order: 3 },
-            roi: { label: 'العائد (ROI)', icon: 'fa-chart-line', unit: '%', order: 4 },
-            irr: { label: 'العائد الداخلي (IRR)', icon: 'fa-percentage', unit: '%', order: 5 },
+            design_cost: { label: 'تكاليف التصميم', icon: 'fa-drafting-compass', type: 'number', isCurrency: true, order: 2 },
+            execution_cost: { label: 'تكاليف التنفيذ', icon: 'fa-tools', type: 'number', isCurrency: true, order: 3 },
+            roi: { label: 'العائد', icon: 'fa-chart-line', type: 'number', unit: '%', order: 4 },
+            irr: { label: 'العائد الداخلي', icon: 'fa-percentage', type: 'number', unit: '%', order: 5 },
         }
     },
     internalFields: {
@@ -681,7 +681,6 @@ const showInfoCard = (opportunity) => {
             itemDiv.dataset.fieldKey = key;
             
             let displayValue = formatFieldValue(key, value);
-            // Special case for coords to avoid showing GeoPoint object
             if (key === 'coords' && typeof value === 'object' && value.latitude) {
                 displayValue = `${value.latitude.toFixed(4)}, ${value.longitude.toFixed(4)}`;
             }
@@ -707,48 +706,44 @@ const showInfoCard = (opportunity) => {
         const mainGrid = mainSectionDiv.querySelector('#details-grid-main');
         const studyGrid = studySectionDiv.querySelector('#details-grid-study');
 
-        const allOpportunityKeys = Object.keys(opportunity);
+        const fieldsToDisplay = { main: [], study: [] };
 
-        allOpportunityKeys.forEach(key => {
-            // Exclude keys that are not displayable fields
-            if (['id', 'customFields', 'fieldOrder', 'name', 'status'].includes(key)) return;
+        // Combine internal, base, suggested, and custom fields
+        const combinedFields = { ...opportunity, ...(opportunity.customFields || {}) };
 
+        for (const key in combinedFields) {
             const fieldDef = allDefinedFields[key];
-            const value = opportunity[key];
-            
-            if (fieldDef) {
-                const item = createDetailItem(key, fieldDef, value);
-                if (item) {
-                    let section = fieldDef.section;
-                    if (!section) {
-                        if (config.baseFields.study[key] || config.suggestedFields[key]?.section === 'study') {
-                            section = 'study';
-                        } else {
-                            section = 'main';
-                        }
-                    }
-                    
-                    if (section === 'study') {
-                        studyGrid.appendChild(item);
+            if (fieldDef && !['id', 'customFields', 'fieldOrder', 'name', 'status'].includes(key)) {
+                let section = fieldDef.section;
+                 if (!section) {
+                    if (config.baseFields.study[key]) {
+                        section = 'study';
                     } else {
-                        mainGrid.appendChild(item);
+                        section = 'main';
                     }
                 }
+                fieldsToDisplay[section].push(key);
             }
-        });
+        }
         
+        // Use the defined order, falling back to the discovered fields
+        const mainOrder = fieldOrder.main || fieldsToDisplay.main;
+        const studyOrder = fieldOrder.study || fieldsToDisplay.study;
+
+        mainOrder.forEach(key => {
+            const item = createDetailItem(key, allDefinedFields[key], opportunity[key]);
+            if (item) mainGrid.appendChild(item);
+        });
+
+        studyOrder.forEach(key => {
+            const item = createDetailItem(key, allDefinedFields[key], opportunity[key]);
+            if (item) studyGrid.appendChild(item);
+        });
+
         if (mainGrid.children.length > 0) {
-            (fieldOrder.main || []).forEach(key => {
-                const item = mainGrid.querySelector(`[data-field-key="${key}"]`);
-                if (item) mainGrid.appendChild(item);
-            });
             state.dom.infoCardDetailsContainer.appendChild(mainSectionDiv);
         }
         if (studyGrid.children.length > 0) {
-            (fieldOrder.study || []).forEach(key => {
-                const item = studyGrid.querySelector(`[data-field-key="${key}"]`);
-                if (item) studyGrid.appendChild(item);
-            });
             state.dom.infoCardDetailsContainer.appendChild(studySectionDiv);
         }
         
