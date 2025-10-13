@@ -489,28 +489,65 @@ const clearAllMarkers = () => {
 const focusOnOpportunity = (opportunity) => {
     if (!opportunity || !opportunity.coords) return;
 
-    const marker = state.displayedOpportunityMarkers.find(m => m.opportunityData.id === opportunity.id);
-    if (marker && marker._icon) {
-        if (state.activeMarkerWrapperElement) {
-            state.activeMarkerWrapperElement.classList.remove('marker-selected');
-        }
-        marker._icon.classList.add('marker-selected');
-        state.activeMarkerWrapperElement = marker._icon;
-    }
-
-    const latlng = [opportunity.coords.latitude, opportunity.coords.longitude];
-    const targetZoom = Math.max(state.map.getZoom(), 16);
-    const cardWidth = state.dom.infoCard.offsetWidth || 740;
-    const offsetX = -(cardWidth / 2) - 80;
-
-    const markerPoint = state.map.project(latlng, targetZoom);
-    const newCenterPoint = markerPoint.add(new L.Point(offsetX, 0));
-    const newCenterLatLng = state.map.unproject(newCenterPoint, targetZoom);
-
-    state.map.flyTo(newCenterLatLng, targetZoom, { duration: 1.0 });
-
+    // Show the info card first
     showInfoCard(opportunity);
+
+    // Wait a brief moment for the card to potentially influence layout, then fly
+    setTimeout(() => {
+        const marker = state.displayedOpportunityMarkers.find(m => m.opportunityData.id === opportunity.id);
+        if (marker && marker._icon) {
+            if (state.activeMarkerWrapperElement) {
+                state.activeMarkerWrapperElement.classList.remove('marker-selected');
+            }
+            marker._icon.classList.add('marker-selected');
+            state.activeMarkerWrapperElement = marker._icon;
+        }
+
+        const latlng = [opportunity.coords.latitude, opportunity.coords.longitude];
+        const targetZoom = Math.max(state.map.getZoom(), 16);
+        
+        // Dynamic offset calculation based on info card visibility and position
+        let offsetX = 0;
+        if (state.dom.infoCard.classList.contains('visible')) {
+            const cardWidth = state.dom.infoCard.offsetWidth;
+            const windowWidth = window.innerWidth;
+            // If card takes up most of the screen (mobile), don't offset much. Otherwise, offset to the side.
+            if (cardWidth < windowWidth * 0.8) {
+                 offsetX = -(cardWidth / 2) - 80;
+            }
+        }
+
+        const markerPoint = state.map.project(latlng, targetZoom);
+        const newCenterPoint = markerPoint.add(new L.Point(offsetX, 0));
+        const newCenterLatLng = state.map.unproject(newCenterPoint, targetZoom);
+
+        state.map.flyTo(newCenterLatLng, targetZoom, { duration: 1.0 });
+    }, 150); // Small delay to ensure card is rendered
 };
+
+const focusOnOpportunityById = (opportunityId) => {
+    const opportunity = state.opportunitiesData.find(op => op.id === opportunityId);
+    if (!opportunity) {
+        console.warn(`Could not find opportunity with ID: ${opportunityId}`);
+        return;
+    }
+    
+    // Check if we are in the correct city view
+    if (state.currentCityFilter !== 'all' && state.currentCityFilter !== opportunity.city) {
+        // Switch to the correct city
+        const cityLi = state.dom.cityNavigatorList.querySelector(`li[data-city="${opportunity.city}"]`);
+        if (cityLi) {
+            cityLi.click();
+            // Need to wait for markers to be rendered before focusing
+            setTimeout(() => focusOnOpportunity(opportunity), 1500); // Wait for flyTo animation and marker rendering
+        } else {
+             focusOnOpportunity(opportunity); // Fallback if city not in list for some reason
+        }
+    } else {
+        focusOnOpportunity(opportunity);
+    }
+};
+
 
 // Function to render attached files in the chat UI
 const renderAttachments = () => {
@@ -542,39 +579,36 @@ const handleFileUpload = async (files) => {
     if (!files || files.length === 0) return;
     // Ensure user is logged in to get a UID for the storage path
     if (!state.currentUser?.uid && !state.auth.currentUser?.uid) {
-        await showCustomConfirm('يجب تسجيل الدخول أولاً لرفع الملفات.', 'خطأ', true);
-        return;
+        await requestAdminAccess('viewer'); // Request at least viewer access to get a UID
+        if(!state.currentUser?.uid) {
+            await showCustomConfirm('يجب تسجيل الدخول أولاً لرفع الملفات.', 'خطأ', true);
+            return;
+        }
     }
     const uid = state.currentUser?.uid || state.auth.currentUser.uid;
 
     const { ref, uploadBytes } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js");
+    let uploadIndicator = addMessageToChat(`جاري رفع ${files.length} ملف...`, 'bot', true);
 
-    for (const file of files) {
-        const filePath = `knowledge_files/${uid}/${file.name}`;
-        // Avoid duplicate file paths in the same session
-        if (state.chatFileRefs.includes(filePath)) continue;
-
+    const uploadPromises = Array.from(files).map(file => {
+        const filePath = `knowledge_files/${uid}/${Date.now()}_${file.name}`;
+        if (state.chatFileRefs.includes(filePath)) return Promise.resolve();
         const storageRef = ref(state.storage, filePath);
-        try {
-            addMessageToChat(`جاري رفع الملف: ${file.name}...`, 'bot');
-            await uploadBytes(storageRef, file);
+        return uploadBytes(storageRef, file).then(() => {
             state.chatFileRefs.push(filePath);
-            renderAttachments();
-             // Find and remove the "uploading..." message
-            const messages = state.dom.chatbotMessages.querySelectorAll('.bot-message');
-            messages.forEach(msg => {
-                if (msg.textContent.includes(`جاري رفع الملف: ${file.name}`)) {
-                    msg.remove();
-                }
-            });
+        });
+    });
 
-        } catch (error) {
-            console.error("File upload error:", error);
-            await showCustomConfirm(`فشل رفع الملف: ${file.name}`, 'خطأ', true);
-        }
+    try {
+        await Promise.all(uploadPromises);
+        uploadIndicator.remove();
+        renderAttachments();
+    } catch (error) {
+        console.error("File upload error:", error);
+        uploadIndicator.remove();
+        await showCustomConfirm(`فشل رفع بعض الملفات.`, 'خطأ', true);
     }
 };
-
 
 const addMessageToChat = (text, sender, isLoading = false) => {
     const messageDiv = document.createElement('div');
@@ -582,29 +616,32 @@ const addMessageToChat = (text, sender, isLoading = false) => {
 
     if (isLoading) {
         messageDiv.classList.add('loading-message');
-        messageDiv.innerHTML = `<div class="typing-indicator"><span></span><span></span><span></span></div>`;
+        messageDiv.innerHTML = `<div class="typing-indicator"><span></span><span></span><span></span></div><p style="margin-right: 10px;">${text || ''}</p>`;
     } else {
         // Basic markdown-to-HTML conversion
         let html = text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;")
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
             .replace(/\*(.*?)\*/g, '<em>$1</em>')       // Italic
-            .replace(/(\n\s*){2,}/g, '</p><p>')          // Paragraphs
-            .replace(/\n\d+\.\s/g, (match) => `</li><li>`) // Numbered list items
-            .replace(/\n\*\s/g, (match) => `</li><li>`)    // Bulleted list items
-            .replace(/<li>/, ''); // Remove first spurious list item
-
-        // Wrap lists
-        if (html.includes('<li>')) {
-             if (text.trim().match(/^\d+\./m)) { // It's a numbered list
-                html = `<ol><li>${html}</li></ol>`;
-             } else if (text.trim().match(/^\*/m)) { // It's a bulleted list
-                html = `<ul><li>${html}</li></ul>`;
-             }
-        }
+            .replace(/(\r\n|\n|\r)/gm, '<br>') // Line breaks
+            .replace(/<br>\s*<br>/g, '</p><p>'); // Paragraphs from double line breaks
         
-        const p = document.createElement('div'); // Use div to contain html
-        p.innerHTML = `<p>${html}</p>`;
-        messageDiv.appendChild(p);
+        html = html.replace(/<br>(\d+\.)/g, '<ol><li>').replace(/<br>\*/g, '<ul><li>');
+        html = html.replace(/<br>(\d+\.)/g, '</li><li>').replace(/<br>\*/g, '</li><li>');
+        
+        if (html.includes('<li>')) {
+            html = html.replace(/<\/li>$/, ''); // clean up potential dangling tags
+            if (html.includes('<ol>')) html += '</li></ol>';
+            if (html.includes('<ul>')) html += '</li></ul>';
+        }
+
+        const contentHolder = document.createElement('div');
+        contentHolder.innerHTML = `<p>${html}</p>`;
+        messageDiv.appendChild(contentHolder);
     }
     
     state.dom.chatbotMessages.appendChild(messageDiv);
@@ -622,12 +659,13 @@ const handleChatSubmit = async (e) => {
     const loadingIndicator = addMessageToChat('', 'bot', true);
 
     const simplifiedData = state.opportunitiesData.map(opp => ({
+        id: opp.id,
         name: opp.name,
         city: opp.city,
         status: opp.status,
         area: opp.area,
         total_cost: opp.total_cost,
-        roi: opp.roi, // Added ROI
+        roi: opp.roi,
         opportunity_type: opp.opportunity_type,
         development_type: opp.development_type,
         opportunity_date: opp.opportunity_date,
@@ -642,9 +680,26 @@ const handleChatSubmit = async (e) => {
             userInput: userInput, 
             contextData: simplifiedData, 
             knowledgeBase: knowledgeBase,
-            fileRefs: state.chatFileRefs // Pass the file references
+            fileRefs: state.chatFileRefs
         });
-        const botResponse = result.data.response || "عذراً، لم أتمكن من معالجة طلبك حالياً.";
+        
+        let botResponse = result.data.response || "عذراً، لم أتمكن من معالجة طلبك حالياً.";
+        const highlightCommand = "ACTION_HIGHLIGHT_OPPORTUNITY::";
+        
+        if (botResponse.includes(highlightCommand)) {
+            try {
+                const jsonString = botResponse.substring(botResponse.indexOf(highlightCommand) + highlightCommand.length);
+                const actionData = JSON.parse(jsonString);
+                if (actionData.opportunityId) {
+                    focusOnOpportunityById(actionData.opportunityId);
+                }
+                botResponse = botResponse.substring(0, botResponse.indexOf(highlightCommand)).trim();
+            } catch (e) {
+                console.error("Error parsing highlight action:", e);
+                botResponse = botResponse.substring(0, botResponse.indexOf(highlightCommand)).trim();
+            }
+        }
+
         loadingIndicator.remove();
         addMessageToChat(botResponse, 'bot');
     } catch (error) {
@@ -1440,3 +1495,4 @@ const initApp = async () => {
 
 // ---===[ 11. نقطة البداية (Entry Point) ]===---
 document.addEventListener('DOMContentLoaded', initApp);
+
