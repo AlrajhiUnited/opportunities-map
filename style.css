@@ -425,7 +425,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 .chatbot-callout {
     position: absolute;
     bottom: 175px; 
-    right: 22px; /* تم التعديل للتوسيط الدقيق */
+    right: 15px; /* تعديل: تمت المحاذاة مع حافة الأزرار */
     background: var(--color-black);
     color: var(--color-white);
     padding: 10px 15px;
@@ -441,7 +441,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
     pointer-events: none;
 }
 .chatbot-callout.visible { opacity: 1; transform: translateY(0); visibility: visible; pointer-events: auto; }
-.chatbot-callout::after { content: ''; position: absolute; bottom: -8px; right: 15px; width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 8px solid var(--color-black); }
+.chatbot-callout::after { content: ''; position: absolute; bottom: -8px; right: 14px; /* تعديل: تم توسيط السهم فوق الزر */ width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 8px solid var(--color-black); }
 .callout-close-btn { position: absolute; top: 4px; left: 8px; background: none; border: none; color: #aaa; font-size: 22px; font-weight: bold; cursor: pointer; line-height: 1; padding: 2px; }
 .callout-close-btn:hover { color: var(--color-white); }
 
@@ -470,7 +470,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 .chatbot-header { background-color: var(--color-gold); color: var(--color-white); padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
 .chatbot-header h3 { font-size: 1.1em; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 10px; }
 .chatbot-header-btn { background: none; border: none; color: var(--color-white); font-size: 20px; font-weight: bold; cursor: pointer; opacity: 0.8; transition: all 0.2s; margin-left: 10px; }
-/* تعديل: إزالة اللون الذهبي عند التمرير */
+/* تعديل: إرجاع اللون الأصلي عند التمرير */
 .chatbot-header-btn:hover {
     opacity: 1;
 }
@@ -516,5 +516,6 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
     }
     .app-logo { height: 40px; }
 }
+
 
 
