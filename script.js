@@ -661,6 +661,7 @@ const showInfoCard = (opportunity) => {
         state.dom.infoCardStatusBadge.textContent = display.text;
         state.dom.infoCardDetailsContainer.innerHTML = '';
 
+        // ** الإصلاح هنا **
         const allDefinedFields = {
             ...config.baseFields.main, ...config.baseFields.study,
             ...config.internalFields, ...config.suggestedFields,
@@ -672,39 +673,63 @@ const showInfoCard = (opportunity) => {
             study: Object.keys(config.baseFields.study).sort((a,b) => config.baseFields.study[a].order - config.baseFields.study[b].order),
         };
 
-        ['main', 'study'].forEach(section => {
-            const sectionDiv = document.createElement('div');
-            sectionDiv.className = 'info-card-section';
-            const title = section === 'main' ? 'المعلومات الرئيسية' : 'دراسة الفرصة';
-            const icon = section === 'main' ? 'fa-info-circle' : 'fa-clipboard-check';
-            sectionDiv.innerHTML = `<h4><i class="fas ${icon}"></i> ${title}</h4><div class="details-grid" id="details-grid-${section}"></div>`;
-            state.dom.infoCardDetailsContainer.appendChild(sectionDiv);
-            
-            const grid = sectionDiv.querySelector('.details-grid');
+        // Create section elements first
+        const mainSectionDiv = document.createElement('div');
+        mainSectionDiv.className = 'info-card-section';
+        mainSectionDiv.innerHTML = `<h4><i class="fas fa-info-circle"></i> المعلومات الرئيسية</h4><div class="details-grid" id="details-grid-main"></div>`;
+        const studySectionDiv = document.createElement('div');
+        studySectionDiv.className = 'info-card-section';
+        studySectionDiv.innerHTML = `<h4><i class="fas fa-clipboard-check"></i> دراسة الفرصة</h4><div class="details-grid" id="details-grid-study"></div>`;
 
-            fieldOrder[section]?.forEach(key => {
-                const field = allDefinedFields[key];
-                const value = opportunity[key];
+        const mainGrid = mainSectionDiv.querySelector('#details-grid-main');
+        const studyGrid = studySectionDiv.querySelector('#details-grid-study');
 
-                if (field && (value !== undefined && value !== null && String(value).trim() !== '')) {
-                    const itemDiv = document.createElement('div');
-                    itemDiv.className = `detail-item ${field.isFullWidth ? 'notes-item' : ''} ${field.isHighlight && key !== 'total_cost' ? 'highlight-item' : ''}`;
-                    itemDiv.dataset.fieldKey = key;
-                    itemDiv.dataset.section = section;
-                    let displayValue = formatFieldValue(key, value);
-                    itemDiv.innerHTML = `
-                        <i class="item-icon fas ${field.icon || 'fa-info-circle'}"></i>
-                        <div class="item-content">
-                            <div class="label">${field.label}</div>
-                            <div class="value">${displayValue}</div>
-                        </div>
-                        <i class="fas fa-grip-vertical drag-handle-info-card"></i>
-                        <button class="delete-field-btn" data-field-key="${key}"><i class="fas fa-times"></i></button>`;
-                    grid.appendChild(itemDiv);
+        // Populate grids
+        Object.entries(allDefinedFields).forEach(([key, field]) => {
+            const value = opportunity[key];
+            if (field && (value !== undefined && value !== null && String(value).trim() !== '')) {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = `detail-item ${field.isFullWidth ? 'notes-item' : ''} ${field.isHighlight && key !== 'total_cost' ? 'highlight-item' : ''}`;
+                itemDiv.dataset.fieldKey = key;
+                
+                let displayValue = formatFieldValue(key, value);
+                itemDiv.innerHTML = `
+                    <i class="item-icon fas ${field.icon || 'fa-info-circle'}"></i>
+                    <div class="item-content">
+                        <div class="label">${field.label}</div>
+                        <div class="value">${displayValue}</div>
+                    </div>
+                    <i class="fas fa-grip-vertical drag-handle-info-card"></i>
+                    <button class="delete-field-btn" data-field-key="${key}"><i class="fas fa-times"></i></button>`;
+                
+                // Determine which section to append to
+                const section = field.section || (config.baseFields.main[key] ? 'main' : (config.baseFields.study[key] ? 'study' : 'main'));
+                itemDiv.dataset.section = section;
+                
+                if (section === 'study') {
+                    studyGrid.appendChild(itemDiv);
+                } else {
+                    mainGrid.appendChild(itemDiv);
                 }
-            });
+            }
         });
 
+        // Reorder based on fieldOrder
+        if (mainGrid.children.length > 0) {
+            fieldOrder.main.forEach(key => {
+                const item = mainGrid.querySelector(`[data-field-key="${key}"]`);
+                if (item) mainGrid.appendChild(item);
+            });
+            state.dom.infoCardDetailsContainer.appendChild(mainSectionDiv);
+        }
+        if (studyGrid.children.length > 0) {
+            fieldOrder.study.forEach(key => {
+                const item = studyGrid.querySelector(`[data-field-key="${key}"]`);
+                if (item) studyGrid.appendChild(item);
+            });
+            state.dom.infoCardDetailsContainer.appendChild(studySectionDiv);
+        }
+        
         const finalGmapsLink = opportunity.gmaps_link || (opportunity.coords ? `https://www.google.com/maps/search/?api=1&query=${opportunity.coords.latitude},${opportunity.coords.longitude}` : '#');
         state.dom.infoCardGmapsLink.href = finalGmapsLink;
         state.dom.infoCardActions.dataset.docId = opportunity.id;
@@ -2187,7 +2212,6 @@ const initApp = async () => {
     }
 };
 
-// ** الإصلاح هنا **
 const loadInitialDataAndAttachListeners = async () => {
     const { onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
     try {
