@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>خريطة الفرص العقارية</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" xintegrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="map-container">
+        <!-- شاشة التحميل -->
+        <div id="loading-screen"><div class="spinner"></div><p>جاري تحميل الخريطة...</p></div>
+
+        <!-- الشعار -->
+        <img src="img/logo.png" alt="Project Logo" class="app-logo">
+
+        <!-- لوحة التنقل بين المدن -->
+        <div id="city-navigator">
+            <div class="navigator-header">
+                <h4><i class="fas fa-map-marked-alt"></i> اختر المدينة</h4>
+            </div>
+            <ul id="city-list"></ul>
+            <div class="status-filters">
+                <div class="status-filters-grid">
+                    <button data-status="مناسبة">مناسبة</button>
+                    <button data-status="غير مناسبة">غير مناسبة</button>
+                    <button data-status="تم الاستحواذ">تم الاستحواذ</button>
+                    <button data-status="">غير محدد</button>
+                </div>
+                <button data-status="all" class="active">الكل</button>
+            </div>
+            <div id="navigator-legend" class="navigator-legend"></div>
+        </div>
+
+        <!-- أزرار التحكم بالخريطة -->
+        <div class="map-controls-left">
+            <button id="zoom-in-btn" class="map-control-button" title="تكبير"><i class="fas fa-plus"></i></button>
+            <button id="zoom-out-btn" class="map-control-button" title="تصغير"><i class="fas fa-minus"></i></button>
+            <button id="zoom-all-btn" class="map-control-button" title="عرض الكل"><i class="fas fa-compress-arrows-alt"></i></button>
+        </div>
+        
+        <div class="map-controls-right">
+            <div id="chatbot-callout" class="chatbot-callout">
+                <button id="close-callout-btn" class="callout-close-btn">×</button>
+                <p>أنا هنا للمساعدة! اضغط عليّ لطرح أي سؤال.</p>
+            </div>
+            <button id="chatbot-fab" class="map-control-button" title="المساعد الذكي"><i class="fas fa-robot"></i></button>
+            <button id="add-opportunity-btn" class="map-control-button fab" title="إضافة فرصة جديدة"><i class="fas fa-plus"></i></button>
+            <button id="admin-panel-btn" class="map-control-button" title="لوحة التحكم"><i class="fas fa-user-shield"></i></button>
+        </div>
+
+
+        <!-- عنصر الخريطة -->
+        <div id="map"></div>
+        <div id="map-selection-pin" class="map-selection-pin hidden"><i class="fas fa-map-marker-alt"></i></div>
+        
+        <div id="location-editor" class="location-editor hidden">
+            <h4><i class="fas fa-map-marker-alt"></i> تعديل الموقع</h4>
+            <p>اسحب الخريطة أو أدخل الإحداثيات لتحديد الموقع.</p>
+            <div class="form-group">
+                <div class="input-with-button">
+                    <input type="text" id="coords-editor-input" dir="ltr" placeholder="e.g., 24.7136, 46.6753">
+                    <button type="button" id="apply-coords-btn" class="gmaps-form-btn" title="تطبيق الإحداثيات"><i class="fas fa-crosshairs"></i></button>
+                </div>
+            </div>
+            <div class="location-editor-actions">
+                <button id="confirm-location-btn" class="action-btn edit-btn"><i class="fas fa-check"></i> تأكيد</button>
+                <button id="cancel-location-btn" class="action-btn"><i class="fas fa-times"></i> إلغاء</button>
+            </div>
+        </div>
+
+
+        <!-- بطاقة عرض تفاصيل الفرصة -->
+        <div id="info-card" class="info-card">
+            <div class="info-card-header">
+                <button id="info-card-close" class="info-card-close" title="إغلاق">×</button>
+                <div class="title-badge-wrapper">
+                    <h3 id="info-card-title"></h3>
+                    <span id="info-card-status-badge" class="status-badge"></span>
+                </div>
+            </div>
+            <div id="info-card-details" class="info-card-details"></div>
+            <div id="info-card-actions" class="info-card-actions">
+                 <div class="action-buttons">
+                    <button id="edit-mode-btn" class="action-btn edit-btn"><i class="fas fa-edit"></i> تحرير</button>
+                    <!-- تعديل: تم تغيير الزر إلى "تم" وإظهاره فقط في وضع التحرير -->
+                    <button id="done-edit-btn" class="action-btn edit-btn hidden"><i class="fas fa-check"></i> تم</button>
+                    <button id="share-opportunity-btn" class="action-btn"><i class="fas fa-share-alt"></i> مشاركة</button>
+                    <button id="edit-location-btn" class="action-btn edit-btn hidden"><i class="fas fa-map-marker-alt"></i> تعديل الموقع</button>
+                    <button id="add-new-field-btn" class="action-btn add-field-btn hidden"><i class="fas fa-plus-circle"></i> إضافة حقل</button>
+                    <button id="delete-opportunity-btn" class="action-btn delete-btn hidden"><i class="fas fa-trash-alt"></i> حذف الفرصة</button>
+                </div>
+                <a id="info-card-gmaps-link" href="#" target="_blank" class="gmaps-link">
+                    <i class="fas fa-external-link-alt"></i> عرض على خرائط جوجل
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- واجهة الشات بوت -->
+    <div id="chatbot-container" class="chatbot-container">
+        <div class="chatbot-header">
+            <h3><i class="fas fa-robot"></i> المساعد العقاري الذكي</h3>
+            <div>
+                <button id="chatbot-settings-btn" class="chatbot-header-btn" title="الإعدادات"><i class="fas fa-cog"></i></button>
+                <button id="chatbot-close-btn" class="chatbot-header-btn">×</button>
+            </div>
+        </div>
+        <div id="chatbot-messages" class="chatbot-messages">
+             <div class="message bot-message">
+                <p>أهلاً بك! أنا مساعدك العقاري. كيف يمكنني مساعدتك في تحليل بيانات الفرص اليوم؟</p>
+            </div>
+        </div>
+        <div class="chatbot-input-container">
+            <form id="chatbot-form">
+                <input type="text" id="chatbot-input" placeholder="اسأل عن الفرص المتاحة..." autocomplete="off">
+                <button type="submit" id="chatbot-send-btn"><i class="fas fa-paper-plane"></i></button>
+            </form>
+        </div>
+    </div>
+
+    <!-- نافذة إعدادات الشات بوت -->
+     <div id="chatbot-settings-modal" class="modal-container">
+        <div class="modal-content">
+            <button class="modal-close-btn" data-modal-id="chatbot-settings-modal">×</button>
+            <h3>إعدادات المساعد الذكي</h3>
+            <p class="modal-subtitle">قم بتغذية المساعد بمعلومات إضافية خاصة بالمشروع.</p>
+            <form id="chatbot-settings-form">
+                <div class="form-group full-width">
+                    <label for="knowledge-base-input">قاعدة المعرفة</label>
+                    <textarea id="knowledge-base-input" rows="8" placeholder="مثال: مدير المشروع هو المهندس سامر. الهدف الاستراتيجي هو التركيز على الفرص السكنية."></textarea>
+                </div>
+                <button type="submit" class="form-submit-btn">حفظ الإعدادات</button>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- نافذة إضافة/تحرير الفرصة -->
+    <div id="opportunity-modal" class="modal-container">
+        <div class="modal-content">
+            <button class="modal-close-btn" data-modal-id="opportunity-modal">×</button>
+            <h3 id="modal-title">إضافة فرصة جديدة</h3>
+            <p class="modal-subtitle">املأ الحقول أدناه أو انقر على الخريطة لتحديد الإحداثيات.</p>
+            <form id="opportunity-form">
+                <div class="form-grid"></div>
+                <button type="button" id="add-dynamic-field-btn" class="add-dynamic-field-btn"><i class="fas fa-plus"></i> إضافة حقل مخصص</button>
+                <button type="submit" class="form-submit-btn">حفظ البيانات</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- نافذة إضافة حقل جديد -->
+    <div id="add-field-modal" class="modal-container">
+        <div class="modal-content">
+            <button class="modal-close-btn" data-modal-id="add-field-modal">×</button>
+            <h3>إضافة حقل جديد</h3>
+            <form id="add-field-form">
+                <div class="form-group">
+                    <label for="field-key-select">اختر الحقل</label>
+                    <select id="field-key-select"></select>
+                </div>
+                <div id="custom-field-group" class="form-group hidden">
+                     <label for="field-key-custom">معرّف الحقل المخصص (انجليزي)</label>
+                     <input type="text" id="field-key-custom" placeholder="مثال: buildingRatio">
+                </div>
+                 <div class="form-group">
+                    <label for="field-label">عنوان الحقل (سيتم تعبئته تلقائياً)</label>
+                    <input type="text" id="field-label" required>
+                </div>
+                <div class="form-group" id="field-value-container">
+                    <label for="field-value">قيمة الحقل</label>
+                    <input type="text" id="field-value" required>
+                </div>
+                <button type="submit" class="form-submit-btn">إضافة</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- نافذة تحديد نطاق التغيير -->
+    <div id="apply-scope-modal" class="modal-container">
+        <div class="modal-content">
+             <button class="modal-close-btn" data-modal-id="apply-scope-modal">×</button>
+            <h3 id="apply-scope-title">تطبيق تغييرات الهيكل</h3>
+            <p id="apply-scope-message">هل تريد تطبيق هذه التغييرات على هذه الفرصة فقط أم على كل الفرص في المشروع؟</p>
+            <div class="scope-actions">
+                <button id="apply-scope-one" class="action-btn edit-btn">هذه الفرصة فقط</button>
+                <button id="apply-scope-all" class="action-btn">كل الفرص</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- إضافة: نافذة تحديد قسم الحقل -->
+    <div id="add-to-section-modal" class="modal-container">
+        <div class="modal-content">
+             <button class="modal-close-btn" data-modal-id="add-to-section-modal">×</button>
+            <h3>تحديد القسم</h3>
+            <p>اختر القسم الذي تود إضافة الحقل الجديد إليه:</p>
+            <div class="scope-actions">
+                <button id="add-to-main-section-btn" class="action-btn">المعلومات الرئيسية</button>
+                <button id="add-to-study-section-btn" class="action-btn">دراسة الفرصة</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة كلمة المرور -->
+    <div id="password-modal" class="modal-container password-modal">
+        <div class="modal-content">
+            <h3>مطلوب إذن الدخول</h3>
+            <p>الرجاء إدخال اسم المستخدم وكلمة المرور للمتابعة.</p>
+            <form id="password-form">
+                <div class="form-group">
+                    <input type="text" id="username-input" placeholder="اسم المستخدم" required>
+                </div>
+                 <div class="form-group">
+                    <input type="password" id="password-input" placeholder="كلمة المرور" required>
+                </div>
+                <div class="password-actions">
+                    <button type="submit" class="form-submit-btn">دخول</button>
+                    <button type="button" id="password-cancel-btn" class="cancel-btn">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- نافذة لوحة تحكم المسؤولين -->
+    <div id="admin-panel-modal" class="modal-container">
+        <div class="modal-content">
+            <button class="modal-close-btn" data-modal-id="admin-panel-modal">×</button>
+            <h3><i class="fas fa-user-shield"></i> لوحة تحكم المسؤولين</h3>
+            <p class="modal-subtitle">إدارة المستخدمين والصلاحيات وسجل التغييرات.</p>
+            
+            <div class="admin-tabs">
+                <button class="tab-btn active" data-tab="users-tab"><i class="fas fa-users"></i> إدارة المستخدمين</button>
+                <button class="tab-btn" data-tab="logs-tab"><i class="fas fa-history"></i> سجل التغييرات</button>
+            </div>
+
+            <div id="users-tab" class="admin-tab-content active">
+                <h4>إضافة مستخدم جديد</h4>
+                <form id="add-user-form" class="form-grid">
+                    <div class="form-group">
+                        <label>اسم المستخدم</label>
+                        <input type="text" name="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label>كلمة المرور</label>
+                        <input type="password" name="password" required>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>الصلاحية</label>
+                        <select name="role" required>
+                            <option value="viewer">استعراض فقط</option>
+                            <option value="editor">تحرير فقط</option>
+                            <option value="admin">صلاحيات كاملة</option>
+                        </select>
+                    </div>
+                    <div class="form-group full-width">
+                         <button type="submit" class="form-submit-btn">إضافة مستخدم</button>
+                    </div>
+                </form>
+                <hr class="admin-divider">
+                <h4>المستخدمون الحاليون</h4>
+                <div id="users-list-container"></div>
+            </div>
+
+            <div id="logs-tab" class="admin-tab-content">
+                <div class="log-filters">
+                    <label for="log-date-filter">فلترة حسب التاريخ:</label>
+                    <input type="date" id="log-date-filter">
+                    <button id="clear-log-filter-btn">مسح الفلتر</button>
+                </div>
+                <div id="audit-log-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة تحديد ترقيم المدينة الجديدة -->
+    <div id="city-number-modal" class="modal-container">
+        <div class="modal-content">
+             <button class="modal-close-btn" data-modal-id="city-number-modal">×</button>
+            <h3 id="city-number-modal-title">تحديد ترقيم لمدينة جديدة</h3>
+            <p>المدينة "<strong id="new-city-name-span"></strong>" غير موجودة. يرجى إدخال رقم العرض الخاص بها على الخريطة.</p>
+            <form id="city-number-form">
+                <div class="form-group">
+                    <label for="city-display-id-input">رقم العرض</label>
+                    <input type="number" id="city-display-id-input" required min="1">
+                </div>
+                <div class="password-actions">
+                    <button type="submit" class="form-submit-btn">موافق</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- نافذة تعديل ترقيم المدينة -->
+    <div id="edit-city-number-modal" class="modal-container">
+        <div class="modal-content">
+             <button class="modal-close-btn" data-modal-id="edit-city-number-modal">×</button>
+            <h3>تعديل ترقيم المدينة</h3>
+            <p>تعديل رقم العرض للمدينة: <strong id="edit-city-name-span"></strong></p>
+            <form id="edit-city-number-form">
+                 <input type="hidden" id="edit-city-name-hidden">
+                <div class="form-group">
+                    <label for="edit-city-display-id-input">رقم العرض الجديد</label>
+                    <input type="number" id="edit-city-display-id-input" required min="1">
+                </div>
+                <div class="password-actions">
+                    <button type="submit" class="form-submit-btn">حفظ التعديل</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- نافذة التأكيد المخصصة -->
+    <div id="custom-confirm-modal" class="modal-container">
+        <div class="modal-content">
+            <h3 id="custom-confirm-title">تأكيد</h3>
+            <p id="custom-confirm-message">هل أنت متأكد؟</p>
+            <div class="confirm-actions">
+                <button id="custom-confirm-ok-btn" class="action-btn edit-btn">موافق</button>
+                <button id="custom-confirm-cancel-btn" class="action-btn">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- SortableJS for Drag & Drop -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <!-- Custom JS (Module) -->
+    <script type="module" src="script.js"></script>
+
+</body>
+</html>
+
