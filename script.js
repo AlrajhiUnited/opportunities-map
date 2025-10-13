@@ -681,6 +681,11 @@ const showInfoCard = (opportunity) => {
             itemDiv.dataset.fieldKey = key;
             
             let displayValue = formatFieldValue(key, value);
+            // Special case for coords to avoid showing GeoPoint object
+            if (key === 'coords' && typeof value === 'object' && value.latitude) {
+                displayValue = `${value.latitude.toFixed(4)}, ${value.longitude.toFixed(4)}`;
+            }
+
             itemDiv.innerHTML = `
                 <i class="item-icon fas ${field.icon || 'fa-info-circle'}"></i>
                 <div class="item-content">
@@ -702,17 +707,27 @@ const showInfoCard = (opportunity) => {
         const mainGrid = mainSectionDiv.querySelector('#details-grid-main');
         const studyGrid = studySectionDiv.querySelector('#details-grid-study');
 
-        // ** الإصلاح النهائي هنا **
         const allOpportunityKeys = Object.keys(opportunity);
 
         allOpportunityKeys.forEach(key => {
+            // Exclude keys that are not displayable fields
+            if (['id', 'customFields', 'fieldOrder', 'name', 'status'].includes(key)) return;
+
             const fieldDef = allDefinedFields[key];
             const value = opportunity[key];
             
-            if (fieldDef && (value !== undefined && value !== null && String(value).trim() !== '')) {
+            if (fieldDef) {
                 const item = createDetailItem(key, fieldDef, value);
                 if (item) {
-                    const section = fieldDef.section || 'main'; // Default to main if not specified
+                    let section = fieldDef.section;
+                    if (!section) {
+                        if (config.baseFields.study[key] || config.suggestedFields[key]?.section === 'study') {
+                            section = 'study';
+                        } else {
+                            section = 'main';
+                        }
+                    }
+                    
                     if (section === 'study') {
                         studyGrid.appendChild(item);
                     } else {
@@ -723,14 +738,14 @@ const showInfoCard = (opportunity) => {
         });
         
         if (mainGrid.children.length > 0) {
-            fieldOrder.main.forEach(key => {
+            (fieldOrder.main || []).forEach(key => {
                 const item = mainGrid.querySelector(`[data-field-key="${key}"]`);
                 if (item) mainGrid.appendChild(item);
             });
             state.dom.infoCardDetailsContainer.appendChild(mainSectionDiv);
         }
         if (studyGrid.children.length > 0) {
-            fieldOrder.study.forEach(key => {
+            (fieldOrder.study || []).forEach(key => {
                 const item = studyGrid.querySelector(`[data-field-key="${key}"]`);
                 if (item) studyGrid.appendChild(item);
             });
@@ -2261,6 +2276,4 @@ const handleFirestoreError = (error) => {
 
 // ---===[ 11. نقطة البداية (Entry Point) ]===---
 document.addEventListener('DOMContentLoaded', initApp);
-
-
 
