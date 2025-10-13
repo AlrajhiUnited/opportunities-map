@@ -122,9 +122,14 @@
                 <p>أهلاً بك! أنا مساعدك العقاري. كيف يمكنني مساعدتك في تحليل بيانات الفرص اليوم؟</p>
             </div>
         </div>
+        <div id="chatbot-file-attachments" class="chatbot-file-attachments"></div>
         <div class="chatbot-input-container">
             <form id="chatbot-form">
-                <input type="text" id="chatbot-input" placeholder="اسأل عن الفرص المتاحة..." autocomplete="off">
+                <button type="button" id="chatbot-attach-btn" class="chatbot-attach-btn" title="إرفاق ملفات">
+                    <i class="fas fa-paperclip"></i>
+                </button>
+                <input type="file" id="chatbot-file-input" multiple hidden>
+                <input type="text" id="chatbot-input" placeholder="اسأل عن الفرص أو ارفق ملفاً..." autocomplete="off">
                 <button type="submit" id="chatbot-send-btn"><i class="fas fa-paper-plane"></i></button>
             </form>
         </div>
@@ -344,4 +349,3 @@
 
 </body>
 </html>
-
