@@ -405,7 +405,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
     z-index: 10;
 }
 .map-controls-right {
-    position: relative; /* ضروري لتموضع النافذة المنبثقة */
+    position: absolute; 
 }
 .chatbot-callout.visible { opacity: 1; transform: translateY(0); visibility: visible; pointer-events: auto; }
 .chatbot-callout::after { content: ''; position: absolute; bottom: -8px; right: 14px; /* تم توسيط السهم فوق الزر */ width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 8px solid var(--color-black); }
