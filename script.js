@@ -87,7 +87,7 @@ const state = {
     unsubscribeCities: null,
     isEditMode: false,
     isLocationEditMode: false,
-    sortableInstances: {}, // تعديل: لدعم السحب في أقسام متعددة
+    sortableInstances: {},
     modalSortableInstance: null,
     currentUser: null,
     locationUpdateListener: null,
@@ -143,7 +143,7 @@ const cacheDomElements = () => {
         passwordCancelBtn: document.getElementById('password-cancel-btn'),
         infoCardActions: document.getElementById('info-card-actions'),
         editModeBtn: document.getElementById('edit-mode-btn'),
-        doneEditBtn: document.getElementById('done-edit-btn'), // إضافة
+        doneEditBtn: document.getElementById('done-edit-btn'),
         deleteOpportunityBtn: document.getElementById('delete-opportunity-btn'),
         shareOpportunityBtn: document.getElementById('share-opportunity-btn'),
         editLocationBtn: document.getElementById('edit-location-btn'),
@@ -184,7 +184,6 @@ const cacheDomElements = () => {
         chatbotSettingsModal: document.getElementById('chatbot-settings-modal'),
         chatbotSettingsForm: document.getElementById('chatbot-settings-form'),
         knowledgeBaseInput: document.getElementById('knowledge-base-input'),
-        // إضافة: نافذة اختيار القسم
         addToSectionModal: document.getElementById('add-to-section-modal'),
         addToMainSectionBtn: document.getElementById('add-to-main-section-btn'),
         addToStudySectionBtn: document.getElementById('add-to-study-section-btn'),
@@ -580,14 +579,13 @@ const showInfoCard = (opportunity) => {
         state.dom.infoCardStatusBadge.textContent = display.text;
         state.dom.infoCardDetailsContainer.innerHTML = '';
 
-        // تعديل: تعريف الحقول والأقسام
         const mainInfoFields = ['opportunity_date', 'opportunity_type', 'area', 'buy_price_sqm', 'total_cost'];
         const studyFields = ['design_cost', 'execution_cost', 'roi', 'irr'];
         
         const allOpportunityFields = { ...config.internalFields, ...config.baseFields, ...config.suggestedFields, ...(opportunity.customFields || {}) };
         
         const createDetailItem = (key, field, value) => {
-            const displayValue = formatFieldValue(key, value) || '—'; // إظهار شرطة إذا كانت القيمة فارغة
+            const displayValue = formatFieldValue(key, value) || '—';
             return `<div class="detail-item ${field.isFullWidth ? 'notes-item' : ''} ${field.isHighlight && key !== 'total_cost' ? 'highlight-item' : ''}" data-field-key="${key}">
                         <i class="fas fa-grip-vertical drag-handle"></i>
                         <i class="item-icon fas ${field.icon || 'fa-info-circle'}"></i>
@@ -787,7 +785,14 @@ const handleZoomEnd = () => {
 const displayFilteredMarkers = () => {
     clearAllMarkers();
     const filteredData = state.opportunitiesData.filter(op => (op.city === state.currentCityFilter) && (state.currentStatusFilter === 'all' || op.status === state.currentStatusFilter || (state.currentStatusFilter === '' && !op.status)));
-    filteredData.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+    
+    // تعديل: ترتيب الفرص حسب المساحة من الأصغر للأكبر
+    filteredData.sort((a, b) => {
+        const areaA = parseNumberWithCommas(a.area) || 0;
+        const areaB = parseNumberWithCommas(b.area) || 0;
+        return areaA - areaB;
+    });
+
     const coords = [];
     filteredData.forEach((opportunity, index) => { const marker = createOpportunityMarker(opportunity, index); if (marker) { marker.addTo(state.map); state.displayedOpportunityMarkers.push(marker); coords.push(opportunity.coords); } });
     zoomToShowMarkers(coords);
@@ -842,7 +847,6 @@ const enterEditMode = () => {
     state.hasStructuralChanges = false;
     state.dom.infoCard.classList.add('edit-mode', 'header-editable');
     
-    // تعديل: إظهار وإخفاء الأزرار المناسبة
     state.dom.editModeBtn.classList.add('hidden');
     state.dom.doneEditBtn.classList.remove('hidden');
     state.dom.shareOpportunityBtn.classList.add('hidden');
@@ -854,13 +858,12 @@ const enterEditMode = () => {
     state.dom.infoCardTitle.addEventListener('click', handleTitleClickToEdit);
     state.dom.infoCardStatusBadge.addEventListener('click', handleStatusClickToEdit);
 
-    // تعديل: تفعيل السحب لكل قسم
     Object.values(state.sortableInstances).forEach(inst => inst.destroy());
     state.sortableInstances = {};
     state.dom.infoCardDetailsContainer.querySelectorAll('.details-section-content').forEach(sectionContent => {
         const sectionId = sectionContent.parentElement.dataset.sectionId;
         state.sortableInstances[sectionId] = new Sortable(sectionContent, {
-            group: 'shared-fields', // للسماح بالنقل بين الأقسام
+            group: 'shared-fields',
             animation: 150,
             handle: '.drag-handle',
             ghostClass: 'sortable-ghost',
@@ -897,13 +900,12 @@ const exitEditMode = async (saveChanges = true) => {
     state.isEditMode = false;
     state.dom.infoCard.classList.remove('edit-mode', 'header-editable');
     
-    // تعديل: تبديل الأزرار
     state.dom.editModeBtn.classList.remove('hidden');
     state.dom.doneEditBtn.classList.add('hidden');
     state.dom.shareOpportunityBtn.classList.remove('hidden');
     state.dom.addNewFieldBtn.classList.add('hidden');
     state.dom.editLocationBtn.classList.add('hidden');
-    if(state.currentUser?.role !== 'admin') state.dom.deleteOpportunityBtn.classList.add('hidden'); // إخفاء الحذف لغير المدير
+    if(state.currentUser?.role !== 'admin') state.dom.deleteOpportunityBtn.classList.add('hidden');
 
     state.dom.infoCardTitle.removeEventListener('click', handleTitleClickToEdit);
     state.dom.infoCardStatusBadge.removeEventListener('click', handleStatusClickToEdit);
@@ -963,7 +965,6 @@ const handleValueClickToEdit = (e) => {
     }
 };
 
-// إضافة: دالة جديدة لسؤال المستخدم عن القسم
 const promptForSection = () => {
     return new Promise((resolve) => {
         state.dom.addToSectionModal.classList.add('visible');
@@ -1003,9 +1004,8 @@ const handleAddNewField = async (targetFormGrid) => {
         if (!key || !label || !value) { await showCustomConfirm('يرجى تعبئة جميع الحقول.', 'خطأ', true); return; }
         if (targetFormGrid) { const fieldConfig = config.suggestedFields[key] || { label: label, type: 'text' }; const fieldHtml = createModalFormField(key, fieldConfig, value); targetFormGrid.insertAdjacentHTML('beforeend', fieldHtml); state.dom.addFieldModal.classList.remove('visible'); return; }
         
-        // تعديل: سؤال المستخدم عن القسم
         const sectionId = await promptForSection();
-        if (!sectionId) { state.dom.addFieldModal.classList.remove('visible'); return; } // User cancelled
+        if (!sectionId) { state.dom.addFieldModal.classList.remove('visible'); return; }
         
         const icon = selectedKey !== 'custom' ? (config.suggestedFields[key]?.icon || 'fa-plus-circle') : 'fa-plus-circle';
         const baseConfig = (selectedKey !== 'custom' ? config.suggestedFields[key] : {}) || {};
@@ -1260,7 +1260,13 @@ const initApp = async () => {
     state.dom.addOpportunityBtn.addEventListener('click', async () => { if (await requestAdminAccess('editor')) showOpportunityModal(); });
     state.dom.addDynamicFieldBtn.addEventListener('click', () => handleAddNewField(state.dom.opportunityFormGrid));
     state.dom.statusFilterButtons.forEach(button => button.addEventListener('click', (e) => { state.currentStatusFilter = e.currentTarget.getAttribute('data-status'); state.dom.statusFilterButtons.forEach(btn => btn.classList.remove('active')); e.currentTarget.classList.add('active'); displayFilteredMarkers(); }));
-    state.dom.infoCardCloseBtn.addEventListener('click', hideInfoCard);
+    
+    // تعديل: ضمان الإغلاق من أول ضغطة
+    state.dom.infoCardCloseBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        hideInfoCard();
+    });
+
     state.dom.opportunityForm.addEventListener('submit', handleFormSubmit);
     state.dom.editCityNumberForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -1295,7 +1301,28 @@ const initApp = async () => {
     document.querySelectorAll('.admin-tabs .tab-btn').forEach(button => { button.addEventListener('click', () => { document.querySelectorAll('.admin-tabs .tab-btn, .admin-tab-content').forEach(el => el.classList.remove('active')); button.classList.add('active'); document.getElementById(button.dataset.tab).classList.add('active'); }); });
     state.dom.logDateFilter.addEventListener('change', (e) => loadAuditLog(e.target.value));
     state.dom.clearLogFilterBtn.addEventListener('click', () => { state.dom.logDateFilter.value = ''; loadAuditLog(); });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && state.dom.infoCard.classList.contains('visible') && !state.isEditMode) hideInfoCard(); });
+    
+    // تعديل: توسيع وظيفة زر ESC لإغلاق جميع النوافذ المنبثقة
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const openModals = [
+                state.dom.customConfirmModal, state.dom.addToSectionModal, state.dom.applyScopeModal,
+                state.dom.addFieldModal, state.dom.opportunityModal, state.dom.adminPanelModal,
+                state.dom.chatbotSettingsModal, state.dom.cityNumberModal, state.dom.editCityNumberModal,
+                state.dom.passwordModal,
+            ];
+            const topModal = openModals.find(modal => modal.classList.contains('visible'));
+
+            if (topModal) {
+                topModal.classList.remove('visible');
+            } else if (state.dom.chatbotContainer.classList.contains('visible')) {
+                state.dom.chatbotContainer.classList.remove('visible');
+            } else if (state.dom.infoCard.classList.contains('visible')) {
+                hideInfoCard();
+            }
+        }
+    });
+
     if (state.map) {
         state.map.on('click', (e) => { if (e.originalEvent.target.closest('.leaflet-marker-icon') === null && !e.originalEvent.target.closest('.info-card') && !e.originalEvent.target.closest('.location-editor')) hideInfoCard(); });
         state.map.on('zoomend', handleZoomEnd);
