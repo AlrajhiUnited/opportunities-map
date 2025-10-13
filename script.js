@@ -34,10 +34,10 @@ const config = {
         }
     },
     internalFields: {
-         name: { label: 'اسم الفرصة', icon: 'fa-tag', type: 'text', required: true },
-         city: { label: 'المدينة', icon: 'fa-city', type: 'select', required: true },
-         coords: { label: 'الإحداثيات', icon: 'fa-map-marker-alt', type: 'text', required: true },
-         status: { label: 'نتيجة دراسة الفرصة', icon: 'fa-tasks', type: 'select', options: ['مناسبة', 'غير مناسبة', 'تم الاستحواذ'] },
+         name: { label: 'اسم الفرصة', icon: 'fa-tag', type: 'text', required: true, section: 'main' },
+         city: { label: 'المدينة', icon: 'fa-city', type: 'select', required: true, section: 'main' },
+         coords: { label: 'الإحداثيات', icon: 'fa-map-marker-alt', type: 'text', required: true, section: 'main' },
+         status: { label: 'نتيجة دراسة الفرصة', icon: 'fa-tasks', type: 'select', options: ['مناسبة', 'غير مناسبة', 'تم الاستحواذ'], section: 'main' },
     },
     suggestedFields: {
         development_type: { label: 'نوع التطوير', icon: 'fa-cogs', type: 'select', options: ['تطوير ذاتي', 'شراكة', 'صندوق عقاري', 'تطوير للغير', 'أخر'], section: 'main' },
@@ -661,7 +661,6 @@ const showInfoCard = (opportunity) => {
         state.dom.infoCardStatusBadge.textContent = display.text;
         state.dom.infoCardDetailsContainer.innerHTML = '';
 
-        // ** الإصلاح هنا **
         const allDefinedFields = {
             ...config.baseFields.main, ...config.baseFields.study,
             ...config.internalFields, ...config.suggestedFields,
@@ -672,8 +671,27 @@ const showInfoCard = (opportunity) => {
             main: Object.keys(config.baseFields.main).sort((a,b) => config.baseFields.main[a].order - config.baseFields.main[b].order),
             study: Object.keys(config.baseFields.study).sort((a,b) => config.baseFields.study[a].order - config.baseFields.study[b].order),
         };
+        
+        const createDetailItem = (key, field, value) => {
+            if (!field || (value === undefined || value === null || String(value).trim() === '')) {
+                return null;
+            }
+            const itemDiv = document.createElement('div');
+            itemDiv.className = `detail-item ${field.isFullWidth ? 'notes-item' : ''} ${field.isHighlight && key !== 'total_cost' ? 'highlight-item' : ''}`;
+            itemDiv.dataset.fieldKey = key;
+            
+            let displayValue = formatFieldValue(key, value);
+            itemDiv.innerHTML = `
+                <i class="item-icon fas ${field.icon || 'fa-info-circle'}"></i>
+                <div class="item-content">
+                    <div class="label">${field.label}</div>
+                    <div class="value">${displayValue}</div>
+                </div>
+                <i class="fas fa-grip-vertical drag-handle-info-card"></i>
+                <button class="delete-field-btn" data-field-key="${key}"><i class="fas fa-times"></i></button>`;
+            return itemDiv;
+        };
 
-        // Create section elements first
         const mainSectionDiv = document.createElement('div');
         mainSectionDiv.className = 'info-card-section';
         mainSectionDiv.innerHTML = `<h4><i class="fas fa-info-circle"></i> المعلومات الرئيسية</h4><div class="details-grid" id="details-grid-main"></div>`;
@@ -684,37 +702,26 @@ const showInfoCard = (opportunity) => {
         const mainGrid = mainSectionDiv.querySelector('#details-grid-main');
         const studyGrid = studySectionDiv.querySelector('#details-grid-study');
 
-        // Populate grids
-        Object.entries(allDefinedFields).forEach(([key, field]) => {
+        // ** الإصلاح النهائي هنا **
+        const allOpportunityKeys = Object.keys(opportunity);
+
+        allOpportunityKeys.forEach(key => {
+            const fieldDef = allDefinedFields[key];
             const value = opportunity[key];
-            if (field && (value !== undefined && value !== null && String(value).trim() !== '')) {
-                const itemDiv = document.createElement('div');
-                itemDiv.className = `detail-item ${field.isFullWidth ? 'notes-item' : ''} ${field.isHighlight && key !== 'total_cost' ? 'highlight-item' : ''}`;
-                itemDiv.dataset.fieldKey = key;
-                
-                let displayValue = formatFieldValue(key, value);
-                itemDiv.innerHTML = `
-                    <i class="item-icon fas ${field.icon || 'fa-info-circle'}"></i>
-                    <div class="item-content">
-                        <div class="label">${field.label}</div>
-                        <div class="value">${displayValue}</div>
-                    </div>
-                    <i class="fas fa-grip-vertical drag-handle-info-card"></i>
-                    <button class="delete-field-btn" data-field-key="${key}"><i class="fas fa-times"></i></button>`;
-                
-                // Determine which section to append to
-                const section = field.section || (config.baseFields.main[key] ? 'main' : (config.baseFields.study[key] ? 'study' : 'main'));
-                itemDiv.dataset.section = section;
-                
-                if (section === 'study') {
-                    studyGrid.appendChild(itemDiv);
-                } else {
-                    mainGrid.appendChild(itemDiv);
+            
+            if (fieldDef && (value !== undefined && value !== null && String(value).trim() !== '')) {
+                const item = createDetailItem(key, fieldDef, value);
+                if (item) {
+                    const section = fieldDef.section || 'main'; // Default to main if not specified
+                    if (section === 'study') {
+                        studyGrid.appendChild(item);
+                    } else {
+                        mainGrid.appendChild(item);
+                    }
                 }
             }
         });
-
-        // Reorder based on fieldOrder
+        
         if (mainGrid.children.length > 0) {
             fieldOrder.main.forEach(key => {
                 const item = mainGrid.querySelector(`[data-field-key="${key}"]`);
