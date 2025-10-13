@@ -216,14 +216,13 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 .leaflet-tooltip.opportunity-tooltip::before { border: none; }
 
 /* ---===[ 6. بطاقة المعلومات (Info Card) ]===--- */
-/* تعديل: تصغير البطاقة وتنسيق الخطوط */
 .info-card {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%) scale(0.9);
     width: 90%;
-    max-width: 740px; /* تم التصغير */
+    max-width: 740px;
     background-color: var(--color-white);
     border-radius: 15px;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
@@ -235,7 +234,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
     border-top: 5px solid var(--color-gold);
     display: flex;
     flex-direction: column;
-    max-height: 85vh; /* تم التصغير */
+    max-height: 85vh;
 }
 .info-card.visible {
     opacity: 1;
@@ -246,7 +245,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 .info-card.edit-mode .info-card-details-content { background-color: #fffaf2; }
 .info-card-header { display: flex; align-items: center; padding: 15px 20px 15px 60px; position: relative; flex-shrink: 0; }
 .title-badge-wrapper { display: flex; align-items: center; flex-grow: 1; justify-content: space-between; gap: 10px; }
-#info-card-title { color: var(--color-black); font-size: 1.2em; font-weight: 700; margin: 0; } /* تم تصغير الخط */
+#info-card-title { color: var(--color-black); font-size: 1.2em; font-weight: 700; margin: 0; }
 .status-badge { padding: 4px 12px; border-radius: 15px; font-size: 0.8em; font-weight: bold; color: var(--color-white); text-align: center; white-space: nowrap; flex-shrink: 0; }
 .status-badge.status-suitable { background-color: var(--color-status-suitable); }
 .status-badge.status-unsuitable { background-color: var(--color-status-unsuitable); }
@@ -272,7 +271,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
     border-bottom: none;
 }
 .details-section h4 {
-    font-size: 1.05em; /* تم تصغير الخط */
+    font-size: 1.05em;
     color: var(--color-dark-gold);
     margin-bottom: 15px;
     padding-bottom: 8px;
@@ -281,12 +280,12 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 }
 .details-section-content {
     display: grid; 
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* تعديل الأعمدة لتكون متجاوبة */
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 15px 20px;
 }
 .detail-item { background-color: var(--color-white); padding: 12px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: relative; display: flex; align-items: center; gap: 12px; }
-.detail-item .label { font-size: 0.8em; color: var(--color-black); font-weight: 700; } /* تم تصغير الخط */
-.detail-item .value { font-size: 0.95em; font-weight: 400; color: var(--color-black); } /* تم تصغير الخط */
+.detail-item .label { font-size: 0.8em; color: var(--color-black); font-weight: 700; }
+.detail-item .value { font-size: 0.95em; font-weight: 400; color: var(--color-black); }
 .item-icon { font-size: 1.3em; color: var(--color-gold); width: 25px; text-align: center; }
 .item-content { flex-grow: 1; }
 .detail-item.highlight-item .value { color: var(--color-dark-gold); font-weight: 700; }
@@ -422,10 +421,9 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 }
 #chatbot-fab:hover { animation: none; }
 
-/* تعديل: تعديل مكان النافذة المنبثقة */
 .chatbot-callout {
     position: absolute;
-    bottom: 180px; /* تم الرفع لتكون فوق الأزرار */
+    bottom: 175px; 
     right: 15px;
     background: var(--color-black);
     color: var(--color-white);
@@ -470,8 +468,12 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 .chatbot-container.visible { transform: translateY(0) scale(1); opacity: 1; visibility: visible; }
 .chatbot-header { background-color: var(--color-gold); color: var(--color-white); padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
 .chatbot-header h3 { font-size: 1.1em; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 10px; }
-.chatbot-header-btn { background: none; border: none; color: var(--color-white); font-size: 20px; font-weight: bold; cursor: pointer; opacity: 0.8; transition: opacity 0.2s; margin-left: 10px; }
-.chatbot-header-btn:hover { opacity: 1; }
+.chatbot-header-btn { background: none; border: none; color: var(--color-white); font-size: 20px; font-weight: bold; cursor: pointer; opacity: 0.8; transition: all 0.2s; margin-left: 10px; }
+/* تعديل: إضافة لون ذهبي عند التمرير */
+.chatbot-header-btn:hover {
+    opacity: 1;
+    color: var(--color-dark-gold);
+}
 .chatbot-messages { flex-grow: 1; padding: 15px; overflow-y: auto; background-color: #f9f9f9; display: flex; flex-direction: column; gap: 12px; }
 .message { max-width: 85%; padding: 10px 15px; border-radius: 18px; line-height: 1.5; word-wrap: break-word; }
 .message p { margin: 0; }
