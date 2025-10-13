@@ -50,7 +50,6 @@
             <button id="zoom-all-btn" class="map-control-button" title="عرض الكل"><i class="fas fa-compress-arrows-alt"></i></button>
         </div>
         
-        <!-- تعديل: تم نقل الأزرار وترتيبها -->
         <div class="map-controls-right">
             <div id="chatbot-callout" class="chatbot-callout">
                 <button id="close-callout-btn" class="callout-close-btn">×</button>
@@ -91,11 +90,12 @@
                     <span id="info-card-status-badge" class="status-badge"></span>
                 </div>
             </div>
-            <!-- تعديل: سيتم ملء هذا القسم ديناميكياً بالأقسام والحقول -->
             <div id="info-card-details" class="info-card-details"></div>
             <div id="info-card-actions" class="info-card-actions">
                  <div class="action-buttons">
                     <button id="edit-mode-btn" class="action-btn edit-btn"><i class="fas fa-edit"></i> تحرير</button>
+                    <!-- تعديل: تم تغيير الزر إلى "تم" وإظهاره فقط في وضع التحرير -->
+                    <button id="done-edit-btn" class="action-btn edit-btn hidden"><i class="fas fa-check"></i> تم</button>
                     <button id="share-opportunity-btn" class="action-btn"><i class="fas fa-share-alt"></i> مشاركة</button>
                     <button id="edit-location-btn" class="action-btn edit-btn hidden"><i class="fas fa-map-marker-alt"></i> تعديل الموقع</button>
                     <button id="add-new-field-btn" class="action-btn add-field-btn hidden"><i class="fas fa-plus-circle"></i> إضافة حقل</button>
@@ -197,6 +197,19 @@
             <div class="scope-actions">
                 <button id="apply-scope-one" class="action-btn edit-btn">هذه الفرصة فقط</button>
                 <button id="apply-scope-all" class="action-btn">كل الفرص</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- إضافة: نافذة تحديد قسم الحقل -->
+    <div id="add-to-section-modal" class="modal-container">
+        <div class="modal-content">
+             <button class="modal-close-btn" data-modal-id="add-to-section-modal">×</button>
+            <h3>تحديد القسم</h3>
+            <p>اختر القسم الذي تود إضافة الحقل الجديد إليه:</p>
+            <div class="scope-actions">
+                <button id="add-to-main-section-btn" class="action-btn">المعلومات الرئيسية</button>
+                <button id="add-to-study-section-btn" class="action-btn">دراسة الفرصة</button>
             </div>
         </div>
     </div>
@@ -331,3 +344,4 @@
 
 </body>
 </html>
+
