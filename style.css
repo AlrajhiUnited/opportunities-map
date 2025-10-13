@@ -25,13 +25,12 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 .leaflet-tile-pane { filter: grayscale(85%) contrast(0.9) brightness(1.05); }
 #map-container.location-edit-active .leaflet-tile-pane { filter: grayscale(90%) brightness(0.8); }
 
-/* ===== تعديل: تكبير الشعار ===== */
 .app-logo {
     position: absolute;
     top: 15px;
     right: 15px;
     z-index: 1010;
-    height: 60px; /* تم التكبير */
+    height: 60px;
     width: auto;
     background: rgba(255,255,255,0.7);
     padding: 5px;
@@ -73,7 +72,6 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 .map-control-button { background: var(--color-white); border: 1px solid #dbdbdb; border-radius: 12px; padding: 8px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.1); font-size: 1.2em; color: var(--color-black); width: 44px; height: 44px; display: flex; justify-content: center; align-items: center; transition: all 0.2s ease; margin-bottom: 10px; }
 .map-control-button:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.12); }
 
-/* ---===[ تعديل: نقل الأزرار وتغيير اتجاهها ]===--- */
 .map-controls-left { position: absolute; z-index: 1000; bottom: 15px; left: 15px; }
 .map-controls-right { 
     position: absolute; 
@@ -81,14 +79,13 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
     bottom: 15px; 
     right: 15px; 
     display: flex; 
-    flex-direction: column; /* تم التعديل */
+    flex-direction: column;
 }
 .map-controls-right .map-control-button {
      margin-bottom: 0;
      margin-top: 10px;
 }
 
-/* تعديل: كل الأزرار باللون الذهبي */
 .fab, #admin-panel-btn.map-control-button, #chatbot-fab.map-control-button { 
     background-color: var(--color-gold); 
     color: var(--color-white); 
@@ -102,7 +99,6 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 
 
 /* ---===[ 4. لوحة التنقل للمدن (تصميم جديد) ]===--- */
-/* تعديل: تكبير النافذة */
 #city-navigator { 
     position: absolute; 
     top: 15px; 
@@ -123,16 +119,15 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
     opacity: 0; 
     visibility: hidden; 
     transition: all 0.4s ease-out; 
-    width: 340px; /* تم التكبير */
+    width: 340px;
     color: var(--color-white); 
 }
 #city-navigator.visible { opacity: 1; visibility: visible; }
 .navigator-header h4 { font-size: 1.1em; font-weight: 600; padding-bottom: 10px; display: flex; align-items: center; gap: 10px; }
 .navigator-header h4 i { color: var(--color-gold); }
 #city-navigator ul { list-style: none; padding: 0; margin: 0; flex-grow: 1; }
-/* تعديل: تحسين التنسيق الداخلي */
 #city-navigator li { 
-    padding: 14px 18px; /* تم التكبير */
+    padding: 14px 18px;
     margin-bottom: 5px; 
     cursor: pointer; 
     border-radius: 10px; 
@@ -140,8 +135,8 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
     display: flex; 
     align-items: center; 
     justify-content: space-between; 
-    gap: 15px; /* تم التكبير */
-    font-size: 1.05em; /* تم التكبير */
+    gap: 15px;
+    font-size: 1.05em;
     background-color: rgba(255, 255, 255, 0.05); 
     border: 1px solid transparent; 
 }
@@ -221,14 +216,14 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 .leaflet-tooltip.opportunity-tooltip::before { border: none; }
 
 /* ---===[ 6. بطاقة المعلومات (Info Card) ]===--- */
-/* تعديل: توسيع البطاقة */
+/* تعديل: تصغير البطاقة وتنسيق الخطوط */
 .info-card {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%) scale(0.9);
     width: 90%;
-    max-width: 800px; /* تم التوسيع */
+    max-width: 740px; /* تم التصغير */
     background-color: var(--color-white);
     border-radius: 15px;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
@@ -240,7 +235,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
     border-top: 5px solid var(--color-gold);
     display: flex;
     flex-direction: column;
-    max-height: 90vh;
+    max-height: 85vh; /* تم التصغير */
 }
 .info-card.visible {
     opacity: 1;
@@ -251,7 +246,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 .info-card.edit-mode .info-card-details-content { background-color: #fffaf2; }
 .info-card-header { display: flex; align-items: center; padding: 15px 20px 15px 60px; position: relative; flex-shrink: 0; }
 .title-badge-wrapper { display: flex; align-items: center; flex-grow: 1; justify-content: space-between; gap: 10px; }
-#info-card-title { color: var(--color-black); font-size: 1.3em; font-weight: 700; margin: 0; }
+#info-card-title { color: var(--color-black); font-size: 1.2em; font-weight: 700; margin: 0; } /* تم تصغير الخط */
 .status-badge { padding: 4px 12px; border-radius: 15px; font-size: 0.8em; font-weight: bold; color: var(--color-white); text-align: center; white-space: nowrap; flex-shrink: 0; }
 .status-badge.status-suitable { background-color: var(--color-status-suitable); }
 .status-badge.status-unsuitable { background-color: var(--color-status-unsuitable); }
@@ -261,7 +256,6 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 .info-card-close { position: absolute; top: 50%; left: 20px; transform: translateY(-50%); background: none; border: none; font-size: 28px; line-height: 1; font-weight: bold; color: #aaa; cursor: pointer; padding: 0; z-index: 10; }
 .info-card-close:hover { color: var(--color-black); }
 
-/* تعديل: تقسيم البطاقة إلى 3 أعمدة وأقسام */
 .info-card-details { 
     padding: 0; 
     background-color: var(--color-light-gray); 
@@ -278,7 +272,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
     border-bottom: none;
 }
 .details-section h4 {
-    font-size: 1.1em;
+    font-size: 1.05em; /* تم تصغير الخط */
     color: var(--color-dark-gold);
     margin-bottom: 15px;
     padding-bottom: 8px;
@@ -287,13 +281,13 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 }
 .details-section-content {
     display: grid; 
-    grid-template-columns: repeat(3, 1fr); /* 3 أعمدة */
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* تعديل الأعمدة لتكون متجاوبة */
     gap: 15px 20px;
 }
 .detail-item { background-color: var(--color-white); padding: 12px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: relative; display: flex; align-items: center; gap: 12px; }
-.detail-item .label { font-size: 0.85em; color: var(--color-black); font-weight: 700; }
-.detail-item .value { font-size: 1em; font-weight: 400; color: var(--color-black); }
-.item-icon { font-size: 1.4em; color: var(--color-gold); width: 25px; text-align: center; }
+.detail-item .label { font-size: 0.8em; color: var(--color-black); font-weight: 700; } /* تم تصغير الخط */
+.detail-item .value { font-size: 0.95em; font-weight: 400; color: var(--color-black); } /* تم تصغير الخط */
+.item-icon { font-size: 1.3em; color: var(--color-gold); width: 25px; text-align: center; }
 .item-content { flex-grow: 1; }
 .detail-item.highlight-item .value { color: var(--color-dark-gold); font-weight: 700; }
 .detail-item[data-field-key="total_cost"] .value { color: var(--color-black) !important; font-weight: 400 !important; }
@@ -304,7 +298,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 .value .value-link:hover { text-decoration: underline; }
 
 /* عناصر وضع التحرير */
-.info-card.edit-mode .detail-item { cursor: default; } /* Remove grab from whole item */
+.info-card.edit-mode .detail-item { cursor: default; }
 .info-card.edit-mode .value { cursor: pointer; }
 .info-card.edit-mode.header-editable #info-card-title, 
 .info-card.edit-mode.header-editable #info-card-status-badge { cursor: pointer; transition: background-color 0.2s; }
@@ -313,7 +307,6 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 #info-card-title input { font: inherit; font-size: 1em; font-weight: 700; color: var(--color-black); border: 1px solid var(--color-gold); border-radius: 5px; padding: 4px 6px; width: 100%; }
 #info-card-status-badge select { font-family: var(--font-main); border: 1px solid var(--color-gold); border-radius: 5px; font-size: 0.9em; }
 
-/* تعديل: إضافة مقبض السحب */
 .detail-item .drag-handle {
     display: none;
     position: absolute;
@@ -325,7 +318,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
     padding: 5px;
 }
 .info-card.edit-mode .detail-item .drag-handle { display: block; }
-.info-card.edit-mode .detail-item { padding-left: 30px; } /* Make space for handle */
+.info-card.edit-mode .detail-item { padding-left: 30px; }
 
 .delete-field-btn { display: none; position: absolute; top: 8px; right: 8px; background: none; border: none; color: #ccc; font-size: 1.1em; cursor: pointer; transition: color 0.2s; padding: 0; line-height: 1; }
 .info-card.edit-mode .delete-field-btn { display: block; }
@@ -380,7 +373,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 .form-submit-btn:hover { background-color: var(--color-dark-gold); }
 
 /* نافذة كلمة المرور وتحديد النطاق */
-.password-modal .modal-content, #apply-scope-modal .modal-content, #city-number-modal .modal-content { max-width: 400px; text-align: center; }
+.password-modal .modal-content, #apply-scope-modal .modal-content, #city-number-modal .modal-content, #add-to-section-modal .modal-content { max-width: 400px; text-align: center; }
 #password-form input { text-align: center; font-size: 1.2em; letter-spacing: 2px; }
 .password-actions, .scope-actions { display: flex; gap: 10px; margin-top: 20px; }
 .password-actions .cancel-btn, .scope-actions .action-btn { width: 100%; padding: 12px; border: 1px solid #ccc; background-color: #f0f0f0; border-radius: 8px; cursor: pointer; font-family: var(--font-main); font-size: 1.1em; }
@@ -429,10 +422,11 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 }
 #chatbot-fab:hover { animation: none; }
 
+/* تعديل: تعديل مكان النافذة المنبثقة */
 .chatbot-callout {
     position: absolute;
-    bottom: 75px;
-    right: 0;
+    bottom: 180px; /* تم الرفع لتكون فوق الأزرار */
+    right: 15px;
     background: var(--color-black);
     color: var(--color-white);
     padding: 10px 15px;
@@ -452,15 +446,14 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 .callout-close-btn { position: absolute; top: 4px; left: 8px; background: none; border: none; color: #aaa; font-size: 22px; font-weight: bold; cursor: pointer; line-height: 1; padding: 2px; }
 .callout-close-btn:hover { color: var(--color-white); }
 
-/* تعديل: تصغير نافذة الشات بوت */
 .chatbot-container {
     position: absolute;
     bottom: 15px;
     right: 15px;
     z-index: 2100;
-    width: 330px; /* تم التصغير */
+    width: 330px;
     max-width: calc(100% - 30px);
-    height: 480px; /* تم التصغير */
+    height: 480px;
     max-height: calc(100vh - 100px);
     background-color: var(--color-white);
     border-radius: 15px;
@@ -507,7 +500,6 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
         transform: translateX(-50%) scale(0.9);
     }
     .info-card.visible { transform: translateX(-50%) scale(1); }
-    /* تعديل: عمود واحد للشاشات الصغيرة */
     .details-section-content { grid-template-columns: 1fr; }
     .map-control-button { width: 40px; height: 40px; font-size: 1.1em; }
     .map-controls-right { right: 10px; bottom: 10px; }
@@ -522,3 +514,4 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
     }
     .app-logo { height: 40px; }
 }
+
