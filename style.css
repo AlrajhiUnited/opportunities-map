@@ -77,7 +77,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 
 .fab-stack { 
     display: flex; 
-    flex-direction: column; /* تم التعديل: لعكس الترتيب */
+    flex-direction: column-reverse; /* ** الإصلاح هنا: لعكس الترتيب وبناء الأزرار للأعلى ** */
     gap: 10px; 
 }
 .fab { background-color: var(--color-gold); color: var(--color-white); border: none; }
