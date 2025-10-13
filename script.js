@@ -2169,6 +2169,7 @@ const initApp = async () => {
 
     onAuthStateChanged(state.auth, (user) => {
         if (user) {
+            state.currentUser = { uid: user.uid }; // Store user info
             console.log("Authentication successful, UID:", user.uid);
             loadInitialDataAndAttachListeners();
             loadKnowledgeFiles();
@@ -2186,7 +2187,8 @@ const initApp = async () => {
     }
 };
 
-const loadInitialDataAndAttachListeners = () => {
+// ** الإصلاح هنا **
+const loadInitialDataAndAttachListeners = async () => {
     const { onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
     try {
         state.unsubscribeOpps = onSnapshot(state.opportunitiesCollection, (snapshot) => {
