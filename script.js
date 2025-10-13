@@ -612,7 +612,7 @@ const handleChatSubmit = async (e) => {
     }));
 
     const knowledgeBase = localStorage.getItem('knowledgeBase') || '';
-    const fileRefs = state.knowledgeFiles.map(f => f.name);
+    const fileRefs = state.knowledgeFiles.map(f => f.path);
 
     try {
         const { httpsCallable } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-functions.js");
@@ -1058,6 +1058,11 @@ const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    if (!state.auth.currentUser) {
+        await showCustomConfirm("يجب تسجيل الدخول لرفع الملفات.", "خطأ", true);
+        return;
+    }
+
     const loadingMsg = addMessageToChat(`جاري رفع الملف: ${file.name}...`, 'bot', true);
 
     try {
@@ -1076,7 +1081,6 @@ const handleFileUpload = async (e) => {
         
         loadingMsg.remove();
         addMessageToChat(`تم رفع الملف "${file.name}" بنجاح. يمكنك الآن طرح أسئلة حوله.`, 'bot');
-        loadKnowledgeFiles(); // Refresh the list
     } catch (error) {
         console.error("File upload error:", error);
         loadingMsg.remove();
@@ -1084,6 +1088,42 @@ const handleFileUpload = async (e) => {
     } finally {
         e.target.value = ''; // Reset input
     }
+};
+
+const handleShareOpportunity = async () => {
+    const docId = state.dom.infoCardActions.dataset.docId;
+    if (!docId) {
+        await showCustomConfirm('فشل نسخ الرابط، لم يتم العثور على معرّف الفرصة.', 'خطأ', true);
+        return;
+    }
+
+    const url = new URL(window.location.href);
+    url.search = `?opportunity=${docId}`;
+    const shareUrl = url.href;
+
+    const textArea = document.createElement("textarea");
+    textArea.value = shareUrl;
+
+    textArea.style.position = 'fixed';
+    textArea.style.top = '-9999px';
+    textArea.style.left = '-9999px';
+    
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+        const successful = document.execCommand('copy');
+        if (!successful) {
+            throw new Error('execCommand returned false');
+        }
+        await showCustomConfirm('تم نسخ رابط المشاركة بنجاح!', 'تم النسخ', true);
+    } catch (err) {
+        console.error('Copying failed:', err);
+        await showCustomConfirm(`فشل النسخ التلقائي. يرجى نسخ الرابط يدوياً:\n\n${shareUrl}`, 'انسخ الرابط', true);
+    }
+
+    document.body.removeChild(textArea);
 };
 
 // ---===[ 7. دوال العرض والفلترة الرئيسية ]===---
@@ -1261,7 +1301,931 @@ const exitEditMode = async (saveChanges = true) => {
     }
 };
 
-// ... (The rest of the file is included below)
+const handleValueClickToEdit = (e) => {
+    const valueEl = e.currentTarget;
+    if (valueEl.querySelector('input, select')) return; 
+
+    const itemEl = valueEl.closest('.detail-item');
+    const key = itemEl.dataset.fieldKey;
+    const currentOpportunity = state.opportunitiesData.find(op => op.id === state.dom.infoCardActions.dataset.docId);
+    let currentValue = currentOpportunity[key] || '';
+    
+    if(key === 'gmaps_link' && valueEl.querySelector('a')) {
+        currentValue = valueEl.querySelector('a').getAttribute('href');
+    }
+
+    const allFields = { ...getAllFields(), ...(currentOpportunity.customFields || {}) };
+
+    const stageChange = (newValue) => {
+        let processedValue = newValue;
+        const fieldConfig = allFields[key];
+        if (fieldConfig && fieldConfig.type === 'number') {
+            processedValue = parseNumberWithCommas(newValue);
+        }
+        
+        const displayValue = (key === 'gmaps_link') ? `<a href="${processedValue}" target="_blank" class="value-link">${processedValue}</a>` : formatFieldValue(key, processedValue);
+        
+        if (String(processedValue) !== String(currentValue)) {
+            state.editBuffer[key] = processedValue;
+        } else {
+            delete state.editBuffer[key];
+        }
+        
+        valueEl.innerHTML = displayValue;
+
+        if (key === 'area' || key === 'buy_price_sqm') {
+            const area = parseNumberWithCommas(state.editBuffer.area ?? currentOpportunity.area) || 0;
+            const price = parseNumberWithCommas(state.editBuffer.buy_price_sqm ?? currentOpportunity.buy_price_sqm) || 0;
+            const totalCost = area * price;
+            state.editBuffer['total_cost'] = totalCost;
+
+            const totalCostValueEl = state.dom.infoCardDetailsContainer.querySelector(`[data-field-key="total_cost"] .value`);
+            if (totalCostValueEl) {
+                totalCostValueEl.innerHTML = formatFieldValue('total_cost', totalCost);
+            }
+        }
+    };
+    
+    const fieldConfig = allFields[key];
+    if (fieldConfig && fieldConfig.type === 'select') {
+        const options = fieldConfig.options;
+        const hasOtherOption = options.includes('أخر');
+        const isOther = hasOtherOption && currentValue && !options.includes(currentValue);
+        
+        let optionsHtml = '<option value="">--غير محدد--</option>';
+        optionsHtml += options.map(opt => `<option value="${opt}" ${(!isOther && currentValue === opt) || (isOther && opt === 'أخر') ? 'selected' : ''}>${opt}</option>`).join('');
+        
+        valueEl.innerHTML = `
+            <select class="value-select">${optionsHtml}</select>
+            ${hasOtherOption ? `<input class="value-input other-input" type="text" value="${isOther ? currentValue : ''}" style="margin-top: 5px; ${isOther ? '' : 'display: none;'}">` : ''}
+        `;
+        const select = valueEl.querySelector('select');
+        const input = valueEl.querySelector('input');
+
+        if(hasOtherOption) {
+            select.onchange = () => { input.style.display = select.value === 'أخر' ? 'block' : 'none'; if(select.value === 'أخر') input.focus(); };
+        }
+        
+        const saveSpecialFieldChange = () => {
+            const newValue = (hasOtherOption && select.value === 'أخر') ? input.value : select.value;
+            stageChange(newValue);
+        };
+
+        const handleBlur = (event) => {
+            setTimeout(() => {
+                if (document.activeElement !== select && document.activeElement !== input) {
+                    saveSpecialFieldChange();
+                }
+            }, 100);
+        };
+        
+        select.addEventListener('blur', handleBlur);
+        if(input) input.addEventListener('blur', handleBlur);
+        if(input) input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
+        select.focus();
+
+    } else {
+        const inputType = fieldConfig.type === 'date' ? 'date' : 'text';
+        valueEl.innerHTML = `<input class="value-input" type="${inputType}" value="${currentValue}">`;
+        const input = valueEl.querySelector('input');
+        input.focus();
+        input.select(); 
+
+        const handleBlur = () => stageChange(input.value);
+        input.addEventListener('blur', handleBlur);
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault(); 
+                input.blur(); 
+            }
+            if (e.key === 'Escape') {
+                input.removeEventListener('blur', handleBlur);
+                 valueEl.innerHTML = (key === 'gmaps_link') 
+                    ? `<a href="${currentValue}" target="_blank" class="value-link">${currentValue}</a>`
+                    : formatFieldValue(key, currentValue);
+            }
+        });
+    }
+};
+
+
+const handleAddNewField = (targetFormGrid) => {
+    state.dom.addFieldForm.reset();
+    const select = state.dom.fieldKeySelect;
+    const valueContainer = document.getElementById('field-value-container');
+    select.innerHTML = '<option value="">--اختر حقلاً--</option>';
+    
+    const docId = state.dom.infoCardActions.dataset.docId;
+    const opportunity = state.opportunitiesData.find(op => op.id === docId);
+
+    const existingFields = new Set(Object.keys(opportunity || {}));
+
+    for (const key in config.suggestedFields) {
+        if(!existingFields.has(key)) {
+            select.innerHTML += `<option value="${key}">${config.suggestedFields[key].label}</option>`;
+        }
+    }
+    select.innerHTML += `<option value="custom">--حقل مخصص--</option>`;
+    state.dom.customFieldGroup.classList.add('hidden');
+    state.dom.fieldLabelInput.readOnly = true;
+    valueContainer.innerHTML = `<label for="field-value">قيمة الحقل</label><input type="text" id="field-value" required>`;
+    state.dom.addFieldModal.classList.add('visible');
+
+    select.onchange = () => {
+        const selectedKey = select.value;
+        const fieldConfig = config.suggestedFields[selectedKey];
+        valueContainer.innerHTML = '<label for="field-value">قيمة الحقل</label>';
+
+        if (selectedKey === 'custom') {
+            state.dom.customFieldGroup.classList.remove('hidden');
+            state.dom.fieldLabelInput.value = '';
+            state.dom.fieldLabelInput.readOnly = false;
+            state.dom.fieldKeyCustom.focus();
+            valueContainer.innerHTML += `<input type="text" id="field-value" required>`;
+        } else if (selectedKey) {
+            state.dom.customFieldGroup.classList.add('hidden');
+            state.dom.fieldLabelInput.value = fieldConfig.label;
+            state.dom.fieldLabelInput.readOnly = true;
+            
+            if (fieldConfig && fieldConfig.type === 'select' && fieldConfig.options) {
+                let optionsHtml = '<option value="">--اختر--</option>' + fieldConfig.options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+                valueContainer.innerHTML += `<select id="field-value" required>${optionsHtml}</select>`;
+            } else {
+                 const inputType = fieldConfig.type === 'date' ? 'date' : 'text';
+                 valueContainer.innerHTML += `<input type="${inputType}" id="field-value" required>`;
+            }
+
+        } else {
+             state.dom.fieldLabelInput.value = '';
+             valueContainer.innerHTML += `<input type="text" id="field-value" required>`;
+        }
+    };
+    
+    state.dom.addFieldForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const selectedKey = select.value;
+        const key = (selectedKey === 'custom' ? formData.get('field-key-custom') : selectedKey).trim();
+        const label = formData.get('field-label');
+        const value = formData.get('field-value');
+        const section = formData.get('fieldSection');
+
+        if (!key || !label || !value || !section) {
+            await showCustomConfirm('يرجى تعبئة جميع الحقول.', 'خطأ', true);
+            return;
+        }
+        
+        const suggestedField = config.suggestedFields[key];
+        const icon = selectedKey !== 'custom' ? (suggestedField?.icon || 'fa-plus-circle') : 'fa-plus-circle';
+        
+        const customFieldData = {
+            label: label,
+            icon: icon,
+            type: suggestedField?.type || 'text',
+            section: section,
+        };
+        if (suggestedField?.options) customFieldData.options = suggestedField.options;
+
+        state.hasStructuralChanges = true;
+        state.editBuffer[key] = value;
+        state.editBuffer[`customFields.${key}`] = customFieldData;
+
+
+        const itemDiv = document.createElement('div');
+        itemDiv.className = `detail-item`;
+        itemDiv.dataset.fieldKey = key;
+        itemDiv.dataset.section = section;
+        itemDiv.innerHTML = `
+            <i class="item-icon fas ${icon}"></i>
+            <div class="item-content">
+                <div class="label">${label}</div>
+                <div class="value">${formatFieldValue(key, value)}</div>
+            </div>
+            <i class="fas fa-grip-vertical drag-handle-info-card"></i>
+            <button class="delete-field-btn" data-field-key="${key}"><i class="fas fa-times"></i></button>`;
+            
+        const targetGrid = document.getElementById(`details-grid-${section}`);
+        targetGrid.appendChild(itemDiv);
+        state.dom.addFieldModal.classList.remove('visible');
+
+        state.editBuffer.fieldOrder = {
+            main: [...document.getElementById('details-grid-main').children].map(item => item.dataset.fieldKey),
+            study: [...document.getElementById('details-grid-study').children].map(item => item.dataset.fieldKey),
+        };
+    };
+};
+
+const handleDeleteField = async (fieldKey) => {
+    const isBaseField = Object.keys(config.baseFields.main).includes(fieldKey) || Object.keys(config.baseFields.study).includes(fieldKey);
+    if (isBaseField) {
+        await showCustomConfirm("لا يمكن حذف الحقول الأساسية.", 'خطأ', true);
+        return;
+    }
+
+    const { deleteField } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+    state.hasStructuralChanges = true;
+    state.editBuffer[fieldKey] = deleteField();
+    state.editBuffer[`customFields.${fieldKey}`] = deleteField();
+    
+    state.dom.infoCardDetailsContainer.querySelector(`[data-field-key="${fieldKey}"]`)?.remove();
+    state.editBuffer.fieldOrder = {
+        main: [...document.getElementById('details-grid-main').children].map(item => item.dataset.fieldKey),
+        study: [...document.getElementById('details-grid-study').children].map(item => item.dataset.fieldKey),
+    };
+};
+
+const applyStructureToAllOpportunities = async (structuralUpdates) => {
+    await showCustomConfirm("سيتم تطبيق التغييرات الهيكلية على كافة الفرص. قد تستغرق العملية بعض الوقت.", 'تنبيه', true);
+    const { getDocs, writeBatch, doc } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+    try {
+        const querySnapshot = await getDocs(state.opportunitiesCollection);
+        const batch = writeBatch(state.db);
+        
+        querySnapshot.forEach(docSnap => {
+            const docRef = doc(state.db, 'opportunities', docSnap.id);
+            batch.update(docRef, structuralUpdates);
+        });
+
+        await batch.commit();
+        await logAuditEvent('تغيير هيكل (كل الفرص)', { changes: Object.keys(structuralUpdates) });
+        await showCustomConfirm("تم تطبيق التغييرات بنجاح على كل الفرص.", 'نجاح', true);
+    } catch (error) {
+        console.error("Error applying structure to all opportunities:", error);
+        await showCustomConfirm("فشل تطبيق الهيكل على كل الفرص.", 'خطأ', true);
+    }
+};
+
+const promptForScopeAndApplyChanges = (docId, allUpdates) => {
+    return new Promise(async (resolve) => {
+        state.dom.applyScopeModal.classList.add('visible');
+
+        const { deleteField } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+
+        const structuralUpdates = {};
+        if (allUpdates.fieldOrder) {
+            structuralUpdates.fieldOrder = allUpdates.fieldOrder;
+        }
+        for (const key in allUpdates) {
+            if (key.startsWith('customFields.') || (allUpdates[key] && typeof allUpdates[key] === 'object' && allUpdates[key]._methodName === 'delete')) {
+                structuralUpdates[key] = allUpdates[key];
+                if(key.includes('.')) {
+                   const plainKey = key.split('.')[1];
+                   structuralUpdates[plainKey] = allUpdates[plainKey];
+                }
+            }
+        }
+        
+        const handleOne = async () => {
+            const { doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+            try {
+                await updateDoc(doc(state.db, 'opportunities', docId), allUpdates);
+                await logAuditEvent('تحديث فرصة مع تغيير هيكلي', { opportunityId: docId, changes: Object.keys(allUpdates) });
+            } catch (error) {
+                 await showCustomConfirm('فشل حفظ التعديلات.', 'خطأ', true);
+            } finally {
+                cleanup();
+                resolve();
+            }
+        };
+
+        const handleAll = async () => {
+            const { doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+            try {
+                 await updateDoc(doc(state.db, 'opportunities', docId), allUpdates);
+            } catch (e) {
+                console.error("Error saving current opportunity before batch update:", e);
+                await showCustomConfirm('فشل حفظ التعديلات على الفرصة الحالية.', 'خطأ', true);
+                cleanup();
+                resolve();
+                return;
+            }
+            
+            await applyStructureToAllOpportunities(structuralUpdates);
+            cleanup();
+            resolve();
+        };
+        
+        const cleanup = () => {
+            state.dom.applyScopeOneBtn.onclick = null;
+            state.dom.applyScopeAllBtn.onclick = null;
+            state.dom.applyScopeModal.classList.remove('visible');
+        };
+
+        state.dom.applyScopeOneBtn.onclick = handleOne;
+        state.dom.applyScopeAllBtn.onclick = handleAll;
+    });
+};
+
+
+const startLocationEdit = (fromForm = false) => {
+    state.isLocationEditMode = true;
+    state.dom.locationEditor.dataset.fromForm = fromForm;
+    if (!fromForm) {
+        state.dom.infoCard.classList.remove('visible');
+    }
+    state.dom.mapSelectionPin.classList.remove('hidden');
+    state.dom.locationEditor.classList.remove('hidden');
+    state.dom.mapContainer.classList.add('location-edit-active');
+
+    const updateCoordsInput = () => {
+        const center = state.map.getCenter();
+        state.dom.coordsEditorInput.value = `${center.lat.toFixed(6)}, ${center.lng.toFixed(6)}`;
+    };
+
+    state.map.on('move', updateCoordsInput);
+    updateCoordsInput(); 
+};
+
+const endLocationEdit = async (save = false) => {
+    state.map.off('move');
+    const fromForm = state.dom.locationEditor.dataset.fromForm === 'true';
+    const docId = state.dom.infoCardActions.dataset.docId;
+    const currentOpportunity = state.opportunitiesData.find(op => op.id === docId);
+    
+    const coordsFromInput = state.dom.coordsEditorInput.value;
+    const [lat, lon] = coordsFromInput.split(',').map(s => parseFloat(s.trim()));
+    
+    if (save && !isNaN(lat) && !isNaN(lon)) {
+        const newCoordsString = `${lat}, ${lon}`;
+        if (fromForm) {
+            const coordsInput = state.dom.opportunityForm.querySelector('input[name="coords"]');
+            if (coordsInput) coordsInput.value = newCoordsString;
+        } else if (docId) {
+            const confirmed = await showCustomConfirm(`هل أنت متأكد من تحديث الموقع إلى: \n${newCoordsString}؟`);
+            if (confirmed) {
+                const { doc, updateDoc, GeoPoint } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+                const newCoords = new GeoPoint(lat, lon);
+                try {
+                    await updateDoc(doc(state.db, 'opportunities', docId), { coords: newCoords });
+                    await logAuditEvent('تحديث الموقع', {
+                        opportunityId: docId,
+                        name: currentOpportunity.name,
+                        newCoords: newCoordsString
+                    });
+                } catch(error) {
+                    console.error("Failed to update location:", error);
+                    await showCustomConfirm("فشل تحديث الموقع.", 'خطأ', true);
+                }
+            } else { 
+                if (fromForm) state.dom.opportunityModal.classList.add('visible');
+                else if (currentOpportunity) handleMarkerClick({ target: { _icon: null, opportunityData: currentOpportunity }, latlng: L.latLng(currentOpportunity.coords.latitude, currentOpportunity.coords.longitude) });
+                
+                state.isLocationEditMode = false;
+                state.dom.mapSelectionPin.classList.add('hidden');
+                state.dom.locationEditor.classList.add('hidden');
+                state.dom.mapContainer.classList.remove('location-edit-active');
+                return;
+            }
+        }
+    }
+    
+    state.isLocationEditMode = false;
+    state.dom.mapSelectionPin.classList.add('hidden');
+    state.dom.locationEditor.classList.add('hidden');
+    state.dom.mapContainer.classList.remove('location-edit-active');
+
+    if (fromForm) {
+        state.dom.opportunityModal.classList.add('visible');
+    } else if (currentOpportunity) {
+        const freshData = state.opportunitiesData.find(op => op.id === docId) || currentOpportunity;
+         const marker = L.marker([freshData.coords.latitude, freshData.coords.longitude]);
+         handleMarkerClick({ target: { _icon: null, opportunityData: freshData }, latlng: marker.getLatLng() });
+    }
+};
+
+const panToCoordsFromInput = async () => {
+    const coords = state.dom.coordsEditorInput.value.split(',').map(s => parseFloat(s.trim()));
+    if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
+        state.map.flyTo([coords[0], coords[1]], state.map.getZoom());
+    } else {
+        await showCustomConfirm('الرجاء إدخال الإحداثيات بصيغة صحيحة، مثال: 24.7136, 46.6753', 'خطأ', true);
+    }
+};
+
+
+// ---===[ 9. دوال لوحة التحكم الجديدة ]===---
+const generateLogMessage = (log) => {
+    const { action, user, details } = log;
+    let message = `قام <strong>${user}</strong> بـ `;
+
+    switch (action) {
+        case 'إضافة فرصة':
+            message += `<strong>إضافة فرصة جديدة</strong> باسم "${details.name || details.opportunityId}"`;
+            break;
+        case 'تعديل فرصة':
+             message += `<strong>تعديل بيانات أساسية</strong> للفرصة "${details.name || details.opportunityId}"`;
+             break;
+        case 'حذف فرصة':
+             message += `<strong>حذف الفرصة</strong> "${details.name || details.opportunityId}"`;
+             break;
+        case 'تحديث حقل':
+            message += `<strong>تحديث حقل</strong> "${details.field}" للفرصة "<strong>${details.opportunityName}</strong>".`;
+            break;
+        case 'تغيير هيكل (فرصة واحدة)':
+            message += `<strong>تغيير هيكل الحقول</strong> للفرصة "${details.opportunityId}".`;
+            break;
+        case 'تغيير هيكل (كل الفرص)':
+            message += `<strong>تغيير هيكل الحقول</strong> لجميع الفرص.`;
+            break;
+        case 'إضافة مستخدم':
+            message += `<strong>إضافة مستخدم جديد</strong>: "${details.username}" بصلاحية "${details.role}".`;
+            break;
+        case 'حذف مستخدم':
+            message += `<strong>حذف المستخدم</strong>: "${details.username}".`;
+            break;
+        case 'تحديث الموقع':
+            message += `<strong>تحديث موقع</strong> الفرصة "${details.name}" إلى ${details.newCoords}.`;
+            break;
+        default:
+            message += `<strong>${action}</strong>`;
+    }
+    return message;
+};
+const showAdminPanel = async () => {
+    if (await requestAdminAccess('admin')) {
+        state.dom.adminPanelModal.classList.add('visible');
+        loadUsers();
+        loadAuditLog(); 
+    }
+};
+
+const handleDeleteUser = async (userId, username) => {
+    if (username === config.superAdmin.username) {
+        await showCustomConfirm('لا يمكن حذف المستخدم المسؤول.', 'خطأ', true);
+        return;
+    }
+    const confirmed = await showCustomConfirm(`هل أنت متأكد من حذف المستخدم "${username}"؟ لا يمكن التراجع عن هذا الإجراء.`);
+    if (confirmed) {
+        const { doc, deleteDoc } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+        try {
+            await deleteDoc(doc(state.db, "users", userId));
+            await logAuditEvent('حذف مستخدم', { username });
+            loadUsers();
+        } catch (error) {
+            console.error("Error deleting user: ", error);
+            await showCustomConfirm("فشل حذف المستخدم.", 'خطأ', true);
+        }
+    }
+};
+
+const loadUsers = async () => {
+    const { getDocs } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+    const snapshot = await getDocs(state.usersCollection);
+    state.dom.usersListContainer.innerHTML = '';
+    snapshot.forEach(doc => {
+        const user = doc.data();
+        const userItem = document.createElement('div');
+        userItem.className = 'user-item';
+        userItem.innerHTML = `
+            <div class="user-info">
+                <span><i class="fas fa-user"></i> ${user.username}</span>
+                <span class="role">${user.role}</span>
+            </div>
+            <button class="delete-user-btn" data-id="${doc.id}" data-username="${user.username}"><i class="fas fa-trash-alt"></i></button>
+        `;
+        state.dom.usersListContainer.appendChild(userItem);
+    });
+
+    document.querySelectorAll('.delete-user-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+            const btn = e.currentTarget;
+            handleDeleteUser(btn.dataset.id, btn.dataset.username);
+        });
+    });
+};
+
+const handleAddUser = async (e) => {
+    e.preventDefault();
+    const { addDoc } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+    
+    try {
+        await addDoc(state.usersCollection, data);
+        await logAuditEvent('إضافة مستخدم', { username: data.username, role: data.role });
+        e.target.reset();
+        loadUsers();
+    } catch(err) {
+        await showCustomConfirm("فشل إضافة المستخدم.", 'خطأ', true);
+    }
+};
+
+const loadAuditLog = async (filterDate = null) => {
+    const { getDocs, query, orderBy, limit, where, Timestamp } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+    
+    let q;
+    if (filterDate) {
+        const start = new Date(filterDate);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(filterDate);
+        end.setHours(23, 59, 59, 999);
+        q = query(state.auditLogCollection, 
+                  where("timestamp", ">=", Timestamp.fromDate(start)),
+                  where("timestamp", "<=", Timestamp.fromDate(end)),
+                  orderBy("timestamp", "desc"));
+    } else {
+        q = query(state.auditLogCollection, orderBy("timestamp", "desc"), limit(50));
+    }
+    
+    const snapshot = await getDocs(q);
+    state.dom.auditLogContainer.innerHTML = '';
+
+    if(snapshot.empty) {
+        state.dom.auditLogContainer.innerHTML = '<p>لا توجد سجلات لهذه الفترة.</p>';
+        return;
+    }
+
+    snapshot.forEach(doc => {
+        const log = doc.data();
+        const logItem = document.createElement('div');
+        logItem.className = 'log-item';
+        const date = log.timestamp?.toDate().toLocaleString('ar-SA', { dateStyle: 'short', timeStyle: 'short' }) || '...';
+        const message = generateLogMessage(log);
+        logItem.innerHTML = `
+            <div class="log-header">${message}</div>
+            <div class="log-meta">${date}</div>
+        `;
+        state.dom.auditLogContainer.appendChild(logItem);
+    });
+};
+
+
+// ---===[ 10. دالة التهيئة الرئيسية (Main Initialization) ]===---
+
+const logAuditEvent = async (action, details) => {
+    if (!state.currentUser) return;
+    try {
+        const { addDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+        await addDoc(state.auditLogCollection, {
+            action,
+            details,
+            user: state.currentUser.username,
+            timestamp: serverTimestamp()
+        });
+    } catch (error) {
+        console.error("Failed to log audit event:", error);
+    }
+};
+
+const handleDeepLink = (retryCount = 0) => {
+    if (retryCount > 5) {
+        console.error("Deep link failed after multiple retries.");
+        return;
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const opportunityId = urlParams.get('opportunity');
+    if (!opportunityId) return;
+
+    const opportunity = state.opportunitiesData.find(op => op.id === opportunityId);
+    if (!opportunity) {
+        if (retryCount < 3) {
+            setTimeout(() => handleDeepLink(retryCount + 1), 500);
+        }
+        return;
+    }
+
+    const isMarkerDisplayed = state.displayedOpportunityMarkers.some(m => m.opportunityData.id === opportunityId);
+
+    if (isMarkerDisplayed) {
+        setTimeout(() => {
+            focusOnOpportunity(opportunity);
+        }, 300);
+    } else {
+        const cityLi = state.dom.cityNavigatorList.querySelector(`li[data-city="${opportunity.city}"]`);
+        if (cityLi) {
+            cityLi.click();
+            setTimeout(() => handleDeepLink(retryCount + 1), 600);
+        } else {
+             setTimeout(() => handleDeepLink(retryCount + 1), 500);
+        }
+    }
+};
+
+
+const renderMapAndNav = async () => {
+    if (!isCitiesDataLoaded || !isOppsDataLoaded) return;
+
+    const citiesInOpps = [...new Set(state.opportunitiesData.map(op => op?.city).filter(Boolean))];
+    
+    state.cityListForMarkers = citiesInOpps.map(cityName => {
+        const cityData = state.citiesData.find(c => c.name === cityName);
+        const firstOpp = state.opportunitiesData.find(op => op.city === cityName && op.coords);
+        return {
+            name: cityName,
+            coords: firstOpp ? [firstOpp.coords.latitude, firstOpp.coords.longitude] : null,
+            displayId: cityData ? cityData.displayId : null
+        };
+    }).filter(c => c.coords && c.displayId !== null);
+    
+    displayCityNavigator();
+    
+    const currentCityElement = state.dom.cityNavigatorList.querySelector(`li[data-city="${state.currentCityFilter}"]`) || state.dom.cityNavigatorList.querySelector(`li[data-city="all"]`);
+    if(currentCityElement) {
+       handleCitySelection({ currentTarget: currentCityElement });
+    }
+
+    if (state.dom.infoCard.classList.contains('visible') && !state.isLocationEditMode) {
+        const docId = state.dom.infoCardActions.dataset.docId;
+        const updatedOpp = state.opportunitiesData.find(op => op.id === docId);
+        if (updatedOpp) {
+            if (!state.isEditMode) {
+                showInfoCard(updatedOpp);
+            }
+        } else {
+            hideInfoCard(true);
+        }
+    }
+
+    if (state.dom.loadingScreen) {
+        state.dom.loadingScreen.classList.add('hidden');
+        setTimeout(() => state.dom.loadingScreen?.remove(), 500);
+        state.dom.loadingScreen = null;
+        handleDeepLink();
+    }
+};
+
+const loadKnowledgeFiles = async () => {
+    const { onSnapshot, query, where } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+    if (!state.auth.currentUser) return;
+    
+    const q = query(state.knowledgeFilesCollection, where("userId", "==", state.auth.currentUser.uid));
+    
+    onSnapshot(q, (snapshot) => {
+        state.knowledgeFiles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderKnowledgeFiles();
+    });
+};
+
+const renderKnowledgeFiles = () => {
+    state.dom.knowledgeFilesContainer.innerHTML = '';
+    if (state.knowledgeFiles.length === 0) {
+        state.dom.knowledgeFilesContainer.innerHTML = '<p>لم يتم رفع أي ملفات بعد.</p>';
+        return;
+    }
+    
+    state.knowledgeFiles.forEach(file => {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'file-item';
+        fileItem.innerHTML = `
+            <div class="file-info">
+                <i class="fas fa-file-alt"></i>
+                <span>${file.name}</span>
+            </div>
+            <button class="delete-file-btn" data-id="${file.id}" data-path="${file.path}" title="حذف الملف"><i class="fas fa-trash-alt"></i></button>
+        `;
+        state.dom.knowledgeFilesContainer.appendChild(fileItem);
+    });
+
+    document.querySelectorAll('.delete-file-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+            const btn = e.currentTarget;
+            handleDeleteFile(btn.dataset.id, btn.dataset.path);
+        });
+    });
+};
+
+const handleDeleteFile = async (fileId, filePath) => {
+    const confirmed = await showCustomConfirm("هل أنت متأكد من حذف هذا الملف؟ لا يمكن التراجع عن هذا الإجراء.");
+    if (confirmed) {
+        const { doc, deleteDoc } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+        const { ref, deleteObject } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js");
+
+        try {
+            // Delete from Firestore
+            await deleteDoc(doc(state.db, "knowledge_files", fileId));
+            
+            // Delete from Storage
+            const fileRef = ref(state.storage, filePath);
+            await deleteObject(fileRef);
+
+            await showCustomConfirm("تم حذف الملف بنجاح.", "نجاح", true);
+        } catch (error) {
+            console.error("Error deleting file:", error);
+            await showCustomConfirm("فشل حذف الملف. قد يكون تم حذفه بالفعل.", "خطأ", true);
+        }
+    }
+};
+
+const attachUIEventListeners = () => {
+    state.dom.addOpportunityBtn.addEventListener('click', async () => { if (await requestAdminAccess('editor')) showOpportunityModal(); });
+    state.dom.addDynamicFieldBtn.addEventListener('click', () => handleAddNewField());
+    state.dom.statusFilterButtons.forEach(button => button.addEventListener('click', (e) => {
+        state.currentStatusFilter = e.currentTarget.getAttribute('data-status');
+        state.dom.statusFilterButtons.forEach(btn => btn.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        displayFilteredMarkers();
+    }));
+    state.dom.infoCardCloseBtn.addEventListener('click', () => hideInfoCard(true));
+    state.dom.opportunityForm.addEventListener('submit', handleFormSubmit);
+    state.dom.editCityNumberForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const cityName = state.dom.editCityNameHidden.value;
+        const newDisplayId = parseInt(state.dom.editCityDisplayIdInput.value);
+
+        if (!cityName || !newDisplayId || newDisplayId <= 0) {
+            await showCustomConfirm("الرجاء إدخال رقم صحيح أكبر من صفر.", 'خطأ', true); return;
+        }
+        const isTaken = state.citiesData.some(c => c.name !== cityName && c.displayId === newDisplayId);
+        if (isTaken) {
+            await showCustomConfirm(`الرقم ${newDisplayId} مستخدم حالياً لمدينة أخرى.`, 'خطأ', true); return;
+        }
+        
+        const { doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+        try {
+            await updateDoc(doc(state.db, "cities", cityName), { displayId: newDisplayId });
+            await logAuditEvent('تعديل ترقيم مدينة', { cityName: cityName, newId: newDisplayId });
+            state.dom.editCityNumberModal.classList.remove('visible');
+        } catch (error) {
+            console.error("Error updating city number:", error);
+            await showCustomConfirm("فشل تحديث رقم المدينة.", 'خطأ', true);
+        }
+    });
+    
+    state.dom.confirmLocationBtn.addEventListener('click', () => endLocationEdit(true));
+    state.dom.cancelLocationBtn.addEventListener('click', () => endLocationEdit(false));
+    state.dom.applyCoordsBtn.addEventListener('click', panToCoordsFromInput);
+    state.dom.coordsEditorInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') panToCoordsFromInput(); });
+
+    state.dom.infoCardDetailsContainer.addEventListener('click', (e) => {
+        const deleteBtn = e.target.closest('.delete-field-btn');
+        if (state.isEditMode && deleteBtn) {
+            const fieldKey = deleteBtn.dataset.fieldKey;
+            handleDeleteField(fieldKey);
+        }
+    });
+    
+    state.dom.adminPanelBtn.addEventListener('click', showAdminPanel);
+    state.dom.addUserForm.addEventListener('submit', handleAddUser);
+    document.querySelectorAll('#admin-panel-modal .admin-tabs .tab-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            document.querySelectorAll('#admin-panel-modal .admin-tabs .tab-btn, #admin-panel-modal .admin-tab-content').forEach(el => el.classList.remove('active'));
+            button.classList.add('active');
+            document.getElementById(button.dataset.tab).classList.add('active');
+        });
+    });
+    
+    document.querySelectorAll('#chatbot-settings-modal .admin-tabs .tab-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            document.querySelectorAll('#chatbot-settings-modal .admin-tabs .tab-btn, #chatbot-settings-modal .admin-tab-content').forEach(el => el.classList.remove('active'));
+            button.classList.add('active');
+            document.getElementById(button.dataset.tab).classList.add('active');
+        });
+    });
+
+    state.dom.logDateFilter.addEventListener('change', (e) => loadAuditLog(e.target.value));
+    state.dom.clearLogFilterBtn.addEventListener('click', () => {
+        state.dom.logDateFilter.value = '';
+        loadAuditLog();
+    });
+
+    state.dom.chatbotFab.addEventListener('click', () => {
+        state.dom.chatbotContainer.classList.toggle('visible');
+        state.dom.chatbotCallout.classList.remove('visible');
+    });
+    state.dom.chatbotCloseBtn.addEventListener('click', () => state.dom.chatbotContainer.classList.remove('visible'));
+    state.dom.chatbotForm.addEventListener('submit', handleChatSubmit);
+
+    setTimeout(() => { if (!state.dom.chatbotContainer.classList.contains('visible')) state.dom.chatbotCallout.classList.add('visible'); }, 5000);
+    state.dom.closeCalloutBtn.addEventListener('click', () => state.dom.chatbotCallout.classList.remove('visible'));
+
+    state.dom.chatbotSettingsBtn.addEventListener('click', async () => {
+        if (await requestAdminAccess('admin')) {
+            state.dom.knowledgeBaseInput.value = localStorage.getItem('knowledgeBase') || '';
+            state.dom.chatbotSettingsModal.classList.add('visible');
+        }
+    });
+    state.dom.chatbotSettingsForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        localStorage.setItem('knowledgeBase', state.dom.knowledgeBaseInput.value);
+        state.dom.chatbotSettingsModal.classList.remove('visible');
+        await showCustomConfirm("تم حفظ إعدادات المساعد الذكي بنجاح.", 'نجاح', true);
+    });
+
+    state.dom.zoomInBtn.addEventListener('click', () => state.map.zoomIn());
+    state.dom.zoomOutBtn.addEventListener('click', () => state.map.zoomOut());
+    state.dom.zoomAllBtn.addEventListener('click', () => {
+        const allCitiesLi = state.dom.cityNavigatorList.querySelector('li[data-city="all"]');
+        if (allCitiesLi) allCitiesLi.click();
+    });
+
+    state.dom.fileUploadInput.addEventListener('change', handleFileUpload);
+    
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const visibleModal = document.querySelector('.modal-container.visible');
+            if (visibleModal) {
+                visibleModal.classList.remove('visible');
+            } else if (state.dom.infoCard.classList.contains('visible')) {
+                hideInfoCard(true);
+            } else if (state.dom.chatbotContainer.classList.contains('visible')) {
+                state.dom.chatbotContainer.classList.remove('visible');
+            }
+        }
+    });
+
+    if (state.map) {
+        state.map.on('click', (e) => { if (e.originalEvent.target.closest('.leaflet-marker-icon') === null && !e.originalEvent.target.closest('.info-card') && !e.originalEvent.target.closest('.location-editor')) hideInfoCard(true); });
+        state.map.on('zoomend', handleZoomEnd);
+        state.map.on('contextmenu', async (e) => {
+            e.originalEvent.preventDefault(); 
+            const confirmed = await showCustomConfirm(`هل تريد إضافة فرصة جديدة في هذا الموقع؟`, 'إضافة فرصة', false);
+            if (confirmed && await requestAdminAccess('editor')) {
+                showOpportunityModal(null, { coords: e.latlng });
+            }
+        });
+    }
+};
+
+const initApp = async () => {
+    if (!cacheDomElements()) return;
+    
+    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js");
+    const { getAuth, onAuthStateChanged, signInAnonymously } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js");
+    const { getFirestore, collection } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+    const { getStorage } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js");
+    const { getFunctions } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-functions.js");
+
+    try {
+        const app = initializeApp(firebaseConfig);
+        state.db = getFirestore(app);
+        state.auth = getAuth(app);
+        state.functions = getFunctions(app, 'us-central1');
+        state.storage = getStorage(app);
+        state.opportunitiesCollection = collection(state.db, 'opportunities');
+        state.citiesCollection = collection(state.db, 'cities');
+        state.usersCollection = collection(state.db, 'users');
+        state.auditLogCollection = collection(state.db, 'audit_log');
+        state.knowledgeFilesCollection = collection(state.db, 'knowledge_files');
+    } catch (error) { 
+        console.error("Firebase initialization failed:", error);
+        state.dom.loadingScreen.innerHTML = `<p>فشل تهيئة التطبيق. (${error.message})</p>`;
+        return; 
+    }
+
+    if (!initializeMap()) return;
+    attachUIEventListeners();
+
+    onAuthStateChanged(state.auth, (user) => {
+        if (user) {
+            console.log("Authentication successful, UID:", user.uid);
+            loadInitialDataAndAttachListeners();
+            loadKnowledgeFiles();
+        } else {
+            signInAnonymously(state.auth).catch((error) => {
+                console.error("Anonymous sign-in failed:", error);
+                state.dom.loadingScreen.innerHTML = `<p>فشل المصادقة. لا يمكن تحميل البيانات.</p>`;
+            });
+        }
+    });
+
+    const storedUser = sessionStorage.getItem('currentUser');
+    if (storedUser) {
+        state.currentUser = JSON.parse(storedUser);
+    }
+};
+
+const loadInitialDataAndAttachListeners = () => {
+    const { onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+    try {
+        state.unsubscribeOpps = onSnapshot(state.opportunitiesCollection, (snapshot) => {
+            state.opportunitiesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            isOppsDataLoaded = true;
+            renderMapAndNav();
+        }, (error) => {
+            console.error("Error fetching opportunities:", error);
+            handleFirestoreError(error);
+        });
+
+        state.unsubscribeCities = onSnapshot(state.citiesCollection, (snapshot) => {
+            state.citiesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            isCitiesDataLoaded = true;
+            renderMapAndNav();
+        }, (error) => {
+            console.error("Error fetching cities:", error);
+            handleFirestoreError(error);
+        });
+    } catch (error) {
+        console.error("Error setting up listeners:", error);
+        handleFirestoreError(error);
+    }
+};
+
+const handleFirestoreError = (error) => {
+    let userMessage = "فشل تحميل البيانات. الرجاء تحديث الصفحة.";
+    if (error.code === 'permission-denied') {
+        userMessage = "فشل تحميل البيانات: خطأ في الصلاحيات. يرجى مراجعة قواعد الأمان في Firebase.";
+    } else {
+        userMessage += `\n(${error.message})`;
+    }
+    if(state.dom.loadingScreen) {
+        state.dom.loadingScreen.innerHTML = `<p>${userMessage}</p>`;
+    } else {
+        showCustomConfirm(userMessage, "خطأ في قاعدة البيانات", true);
+    }
+};
+
 // ---===[ 11. نقطة البداية (Entry Point) ]===---
 document.addEventListener('DOMContentLoaded', initApp);
 
