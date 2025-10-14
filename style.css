@@ -653,18 +653,16 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
     display: flex;
     gap: 10px;
     align-items: center;
-    padding: 10px;
-    border: 1px dashed #ccc;
-    border-radius: 8px;
     margin-bottom: 15px;
 }
-.file-upload-group input[type="file"] {
-    flex-grow: 1;
-    font-size: 0.9em;
+#file-upload-btn {
+    width: 100%;
 }
-.file-upload-group .action-btn {
-    flex-shrink: 0;
-    padding: 8px 12px;
+.spinner.small-spinner {
+    width: 20px;
+    height: 20px;
+    border-width: 3px;
+    margin: 0;
 }
 #uploaded-files-list {
     margin-top: 10px;
