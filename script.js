@@ -687,10 +687,14 @@ const showInfoCard = (opportunity) => {
                     </div>`;
         };
         
+        // ---===[ الإصلاح: إظهار القسم دائماً ]===---
         const createSection = (title, fieldKeys, sectionId) => {
             let content = '';
-            fieldKeys.forEach(key => { if(allOpportunityFields[key] && opportunity[key] !== undefined && opportunity[key] !== null) content += createDetailItem(key, allOpportunityFields[key], opportunity[key]); });
-            if (content.trim() === '') return '';
+            fieldKeys.forEach(key => {
+                if (allOpportunityFields[key]) {
+                    content += createDetailItem(key, allOpportunityFields[key], opportunity[key]);
+                }
+            });
             return `<div class="details-section" data-section-id="${sectionId}"><h4>${title}</h4><div class="details-section-content">${content}</div></div>`;
         };
 
@@ -1314,6 +1318,7 @@ const handleSaveSettings = async (e) => {
     const newKnowledgeBase = state.dom.knowledgeBaseInput.value;
     try {
         const { setDoc } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+        // Use setDoc with merge to create the document if it doesn't exist.
         await setDoc(state.settingsDoc, { knowledgeBase: newKnowledgeBase }, { merge: true });
         await showCustomConfirm("تم حفظ الإعدادات بنجاح.", 'نجاح', true);
         state.dom.chatbotSettingsModal.classList.remove('visible');
@@ -1332,7 +1337,13 @@ const handleFileUpload = async (e) => {
 
     try {
         const { getStorage, ref, uploadBytes } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js");
-        const { updateDoc, arrayUnion } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+        const { updateDoc, arrayUnion, getDoc, setDoc } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+
+        // ---===[ الإصلاح: التأكد من وجود المستند قبل التحديث ]===---
+        const docSnap = await getDoc(state.settingsDoc);
+        if (!docSnap.exists()) {
+            await setDoc(state.settingsDoc, { knowledgeBase: '', fileList: [] });
+        }
 
         const filePath = `chatbot-files/${Date.now()}-${file.name}`;
         const storageRef = ref(state.storage, filePath);
@@ -1458,7 +1469,7 @@ const initApp = async () => {
             await renderMapAndNav();
             state.unsubscribeOpps = onSnapshot(state.opportunitiesCollection, (snapshot) => { state.opportunitiesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderMapAndNav(); });
             state.unsubscribeCities = onSnapshot(state.citiesCollection, (snapshot) => { state.citiesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderMapAndNav(); });
-        } catch (error) { console.error("Error loading initial data:", error); let msg = "فشل تحميل البيانات. الرجاء تحديث الصفحة."; if (error.code === 'permission-denied') msg = "فشل تحميل البيانات: خطأ في الصلاحيات. يرجى مراجعة قواعد الأمان في Firebase."; else msg += `\n(${error.message})`; state.dom.loadingScreen.innerHTML = `<p>${msg}</p>`; }
+        } catch (error) { console.error("Error loading initial data:", error); let msg = "فشل تحميل البيانات. الرجاء تحديث الصفحة."; if (error.code === 'permission-denied') msg = "فشل تحميل البيانات: خطأ في الصلاحيات. يرى مراجعة قواعد الأمان في Firebase."; else msg += `\n(${error.message})`; state.dom.loadingScreen.innerHTML = `<p>${msg}</p>`; }
     };
     
     loadInitialDataAndAttachListeners();
