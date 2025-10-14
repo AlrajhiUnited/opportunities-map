@@ -572,7 +572,7 @@ const addMessageToChat = (text, sender, isLoading = false) => {
 };
 
 const executeMapAction = (action) => {
-    if (!action || !action.type || action.type === 'NO_ACTION') return;
+    if (!action || !action.type) return;
 
     const findAndSwitchCity = (opp) => {
         if (state.currentCityFilter !== opp.city) {
@@ -588,7 +588,7 @@ const executeMapAction = (action) => {
     switch (action.type) {
         case 'HIGHLIGHT_ONLY':
         case 'HIGHLIGHT_AND_SHOW_CARD': {
-            const opportunity = state.opportunitiesData.find(op => op.name === action.opportunityName);
+            const opportunity = state.opportunitiesData.find(op => op.name === action.payload.opportunityName);
             if (opportunity) {
                 const citySwitched = findAndSwitchCity(opportunity);
                 setTimeout(() => {
@@ -602,7 +602,7 @@ const executeMapAction = (action) => {
             break;
         }
         case 'HIGHLIGHT_MULTIPLE': {
-             const opportunities = action.opportunityNames
+             const opportunities = action.payload.opportunityNames
                 .map(name => state.opportunitiesData.find(op => op.name === name))
                 .filter(Boolean); // Filter out any not found
             if (opportunities.length > 0) {
@@ -651,12 +651,15 @@ const handleChatSubmit = async (e) => {
         
         loadingIndicator.remove();
         
-        const botResponse = result.data.textResponse || "عذراً، لم أتمكن من معالجة طلبك حالياً.";
-        addMessageToChat(botResponse, 'bot');
+        // --- FIX START: Correctly access the nested response object ---
+        const botResponseData = result.data.response;
+        const botResponseText = botResponseData.textResponse || "عذراً، لم أتمكن من معالجة طلبك حالياً.";
+        addMessageToChat(botResponseText, 'bot');
 
-        if (result.data.action) {
-            executeMapAction(result.data.action);
+        if (botResponseData.action) {
+            executeMapAction(botResponseData.action);
         }
+        // --- FIX END ---
 
     } catch (error) {
         console.error("Firebase function error:", error);
@@ -1338,8 +1341,41 @@ const handleFileUpload = async (e) => {
     state.dom.fileOpSpinner.classList.remove('hidden');
     const { ref, uploadBytes, getDownloadURL } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js");
     const { updateDoc, arrayUnion } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+
+    // --- NEW: Logic for reading .txt files ---
+    let textContentFromFiles = '';
+    const filesToUpload = [];
+
+    for (const file of files) {
+        if (file.type === "text/plain") {
+            try {
+                const text = await file.text();
+                textContentFromFiles += text + '\n\n';
+            } catch (readError) {
+                console.error("Error reading text file:", readError);
+            }
+        } else {
+            filesToUpload.push(file);
+        }
+    }
+
+    if (textContentFromFiles) {
+        state.dom.knowledgeBaseInput.value += textContentFromFiles;
+        showCustomConfirm(
+            'تم استخلاص المحتوى من الملفات النصية وإضافته إلى "قاعدة المعرفة النصية". يرجى المراجعة والضغط على "حفظ الإعدادات" لتطبيقه.',
+            'تم استخلاص النص',
+            true
+        );
+    }
+    // --- END NEW ---
     
-    const uploadPromises = Array.from(files).map(async (file) => {
+    if (filesToUpload.length === 0) {
+        state.dom.fileOpSpinner.classList.add('hidden');
+        state.dom.fileUploadInput.value = '';
+        return;
+    }
+    
+    const uploadPromises = filesToUpload.map(async (file) => {
         const filePath = `chatbot-files/${Date.now()}-${file.name}`;
         const storageRef = ref(state.storage, filePath);
         await uploadBytes(storageRef, file);
@@ -1352,7 +1388,7 @@ const handleFileUpload = async (e) => {
         await updateDoc(state.chatbotConfigDoc, {
             uploadedFiles: arrayUnion(...newFiles)
         });
-        await showCustomConfirm(`تم رفع ${newFiles.length} ملف بنجاح.`, 'نجاح', true);
+        await showCustomConfirm(`تم رفع ${newFiles.length} ملف بنجاح (تم تجاهل الملفات النصية من الرفع المباشر).`, 'نجاح', true);
     } catch (error) {
         console.error("Error uploading files:", error);
         await showCustomConfirm(`فشل رفع الملفات: ${error.message}`, 'خطأ', true);
@@ -1556,4 +1592,3 @@ const initApp = async () => {
 
 // ---===[ 11. نقطة البداية (Entry Point) ]===---
 document.addEventListener('DOMContentLoaded', initApp);
-
