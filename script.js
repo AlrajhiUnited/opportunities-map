@@ -3,7 +3,7 @@ const firebaseConfig = {
     apiKey: "AIzaSyAqiR1mwkp13nryH_6UYXp1-whAoW6TRPw",
     authDomain: "north-riyadh.firebaseapp.com",
     projectId: "north-riyadh",
-    storageBucket: "north-riyadh.appspot.com", // Corrected storage bucket URL
+    storageBucket: "north-riyadh.firebasestorage.app",
     messagingSenderId: "789464858729",
     appId: "1:789464858729:web:e6a2b887761670103f22f8"
 };
@@ -71,7 +71,7 @@ const state = {
     displayedOpportunityMarkers: [],
     currentCityFilter: 'all',
     currentStatusFilter: 'all',
-    activeMarkerWrapperElements: [], // Changed to handle multiple selections
+    activeMarkerWrapperElements: [], // يمكن أن يحتوي على عدة عناصر محددة
     activeCityListItem: null,
     currentViewMode: 'cities',
     cityListForMarkers: [],
@@ -79,13 +79,15 @@ const state = {
     db: null,
     auth: null,
     functions: null,
-    storage: null, // Added for Firebase Storage
+    storage: null,
     opportunitiesCollection: null,
     citiesCollection: null,
     usersCollection: null,
     auditLogCollection: null,
+    chatbotConfigDoc: null, // مرجع لمستند إعدادات الشات بوت
     unsubscribeOpps: null,
     unsubscribeCities: null,
+    unsubscribeChatbotConfig: null,
     isEditMode: false,
     isLocationEditMode: false,
     sortableInstances: {},
@@ -94,8 +96,10 @@ const state = {
     locationUpdateListener: null,
     editBuffer: null,
     hasStructuralChanges: false,
-    chatHistory: [],
-    uploadedFiles: [], // To keep track of uploaded files
+    chatbotConfig: { // الإعدادات المحلية للشات بوت
+        knowledgeBase: '',
+        uploadedFiles: [],
+    },
 };
 
 // ---===[ 3. الدوال المساعدة (Utilities / Helpers) ]===---
@@ -184,15 +188,15 @@ const cacheDomElements = () => {
         chatbotCallout: document.getElementById('chatbot-callout'),
         closeCalloutBtn: document.getElementById('close-callout-btn'),
         chatbotSettingsModal: document.getElementById('chatbot-settings-modal'),
-        chatbotSettingsForm: document.getElementById('chatbot-settings-form'),
         knowledgeBaseInput: document.getElementById('knowledge-base-input'),
-        addToSectionModal: document.getElementById('add-to-section-modal'),
-        addToMainSectionBtn: document.getElementById('add-to-main-section-btn'),
-        addToStudySectionBtn: document.getElementById('add-to-study-section-btn'),
-        // New file upload elements
+        saveChatbotSettingsBtn: document.getElementById('save-chatbot-settings-btn'),
         fileUploadInput: document.getElementById('file-upload-input'),
         fileUploadBtn: document.getElementById('file-upload-btn'),
         uploadedFilesList: document.getElementById('uploaded-files-list'),
+        fileOpSpinner: document.getElementById('file-op-spinner'),
+        addToSectionModal: document.getElementById('add-to-section-modal'),
+        addToMainSectionBtn: document.getElementById('add-to-main-section-btn'),
+        addToStudySectionBtn: document.getElementById('add-to-study-section-btn'),
     };
     state.dom.statusFilterButtons = state.dom.statusFilterDiv ? Array.from(state.dom.statusFilterDiv.querySelectorAll('button')) : [];
     document.querySelectorAll('.modal-close-btn').forEach(btn => {
@@ -487,94 +491,48 @@ const clearAllMarkers = () => {
 // ---===[ 5. دوال واجهة المستخدم (UI Functions) ]===---
 
 const clearAllHighlights = () => {
-    if (state.activeMarkerWrapperElements && state.activeMarkerWrapperElements.length > 0) {
-        state.activeMarkerWrapperElements.forEach(el => el.classList.remove('marker-selected'));
-    }
+    state.activeMarkerWrapperElements.forEach(el => el.classList.remove('marker-selected'));
     state.activeMarkerWrapperElements = [];
 };
 
-const highlightMultipleOpportunities = (opportunityNames) => {
-    clearAllHighlights();
-    hideInfoCard();
-
-    const opportunities = opportunityNames
-        .map(name => state.opportunitiesData.find(op => op.name === name))
-        .filter(Boolean);
-    
-    if (opportunities.length === 0) return;
-
-    const cityToDisplay = opportunities[0].city;
-
-    const performHighlight = () => {
-        const coordsForBounds = [];
-        opportunities.forEach(opp => {
-            const marker = state.displayedOpportunityMarkers.find(m => m.opportunityData.id === opp.id);
-            if (marker && marker._icon) {
-                marker._icon.classList.add('marker-selected');
-                state.activeMarkerWrapperElements.push(marker._icon);
-                if (opp.coords) {
-                    coordsForBounds.push([opp.coords.latitude, opp.coords.longitude]);
-                }
-            }
-        });
-
-        if (coordsForBounds.length > 0) {
-            const bounds = L.latLngBounds(coordsForBounds);
-            state.map.flyToBounds(bounds, { paddingTopLeft: [40, state.dom.cityNavigatorPanel.offsetWidth + 40], paddingBottomRight: [40, 40], maxZoom: 16, duration: 1.0 });
-        }
-    };
-
-    if (state.currentCityFilter !== cityToDisplay) {
-        const cityLi = state.dom.cityNavigatorList.querySelector(`li[data-city="${cityToDisplay}"]`);
-        if (cityLi) {
-            cityLi.click();
-            setTimeout(performHighlight, 600); // Wait for view to switch and markers to render
-        }
-    } else {
-        performHighlight();
+const highlightOpportunityOnly = (opportunity) => {
+    if (!opportunity) return;
+    const marker = state.displayedOpportunityMarkers.find(m => m.opportunityData.id === opportunity.id);
+    if (marker && marker._icon) {
+        clearAllHighlights();
+        marker._icon.classList.add('marker-selected');
+        state.activeMarkerWrapperElements.push(marker._icon);
+        const targetZoom = Math.max(state.map.getZoom(), 14);
+        state.map.flyTo(marker.getLatLng(), targetZoom, { duration: 1.0 });
     }
 };
 
-const highlightOpportunityOnly = (opportunity) => {
-    if (!opportunity || !opportunity.coords) return;
-
-    if (state.currentCityFilter !== opportunity.city) {
-        const cityLi = state.dom.cityNavigatorList.querySelector(`li[data-city="${opportunity.city}"]`);
-        if (cityLi) {
-            cityLi.click();
-            setTimeout(() => highlightOpportunityOnly(opportunity), 600);
-            return;
-        }
-    }
+const highlightMultipleOpportunities = (opportunities) => {
+    if (!opportunities || opportunities.length === 0) return;
 
     clearAllHighlights();
-    hideInfoCard();
+    const markersToHighlight = [];
+    const coords = [];
 
-    const marker = state.displayedOpportunityMarkers.find(m => m.opportunityData.id === opportunity.id);
-    if (marker && marker._icon) {
-        marker._icon.classList.add('marker-selected');
-        state.activeMarkerWrapperElements.push(marker._icon);
+    opportunities.forEach(opp => {
+        const marker = state.displayedOpportunityMarkers.find(m => m.opportunityData.id === opp.id);
+        if (marker && marker._icon) {
+            marker._icon.classList.add('marker-selected');
+            state.activeMarkerWrapperElements.push(marker._icon);
+            markersToHighlight.push(marker);
+            coords.push(opp.coords);
+        }
+    });
+
+    if (coords.length > 0) {
+        zoomToShowMarkers(coords);
     }
-
-    const latlng = [opportunity.coords.latitude, opportunity.coords.longitude];
-    const targetZoom = Math.max(state.map.getZoom(), 16);
-    state.map.flyTo(latlng, targetZoom, { duration: 1.0 });
 };
 
 const focusOnOpportunity = (opportunity) => {
     if (!opportunity || !opportunity.coords) return;
     
-    if (state.currentCityFilter !== opportunity.city) {
-        const cityLi = state.dom.cityNavigatorList.querySelector(`li[data-city="${opportunity.city}"]`);
-        if (cityLi) {
-            cityLi.click();
-            setTimeout(() => focusOnOpportunity(opportunity), 600);
-            return;
-        }
-    }
-
     clearAllHighlights();
-
     const marker = state.displayedOpportunityMarkers.find(m => m.opportunityData.id === opportunity.id);
     if (marker && marker._icon) {
         marker._icon.classList.add('marker-selected');
@@ -614,30 +572,48 @@ const addMessageToChat = (text, sender, isLoading = false) => {
 };
 
 const executeMapAction = (action) => {
-    if (!action || !action.type || !action.payload) return;
+    if (!action || !action.type || action.type === 'NO_ACTION') return;
 
-    const getOpp = (name) => state.opportunitiesData.find(op => op.name === name);
+    const findAndSwitchCity = (opp) => {
+        if (state.currentCityFilter !== opp.city) {
+            const cityLi = state.dom.cityNavigatorList.querySelector(`li[data-city="${opp.city}"]`);
+            if (cityLi) {
+                cityLi.click();
+                return true; // City switch happened
+            }
+        }
+        return false; // No city switch needed
+    };
 
     switch (action.type) {
         case 'HIGHLIGHT_ONLY':
-            if (action.payload.opportunityName) {
-                const opp = getOpp(action.payload.opportunityName);
-                if (opp) highlightOpportunityOnly(opp);
+        case 'HIGHLIGHT_AND_SHOW_CARD': {
+            const opportunity = state.opportunitiesData.find(op => op.name === action.opportunityName);
+            if (opportunity) {
+                const citySwitched = findAndSwitchCity(opportunity);
+                setTimeout(() => {
+                    if (action.type === 'HIGHLIGHT_ONLY') {
+                        highlightOpportunityOnly(opportunity);
+                    } else {
+                        focusOnOpportunity(opportunity);
+                    }
+                }, citySwitched ? 1600 : 100); // Delay if city is switching
             }
             break;
-        case 'HIGHLIGHT_MULTIPLE_OPPORTUNITIES':
-            if (Array.isArray(action.payload.opportunityNames)) {
-                highlightMultipleOpportunities(action.payload.opportunityNames);
+        }
+        case 'HIGHLIGHT_MULTIPLE': {
+             const opportunities = action.opportunityNames
+                .map(name => state.opportunitiesData.find(op => op.name === name))
+                .filter(Boolean); // Filter out any not found
+            if (opportunities.length > 0) {
+                const firstOppCity = opportunities[0].city;
+                const citySwitched = findAndSwitchCity(opportunities[0]);
+                 setTimeout(() => {
+                    highlightMultipleOpportunities(opportunities);
+                }, citySwitched ? 1600 : 100);
             }
             break;
-        case 'HIGHLIGHT_AND_SHOW_CARD':
-            if (action.payload.opportunityName) {
-                const opp = getOpp(action.payload.opportunityName);
-                if (opp) focusOnOpportunity(opp);
-            }
-            break;
-        default:
-            console.warn(`Unknown action type: ${action.type}`);
+        }
     }
 };
 
@@ -651,20 +627,16 @@ const handleChatSubmit = async (e) => {
     const loadingIndicator = addMessageToChat('', 'bot', true);
 
     const simplifiedData = state.opportunitiesData.map(opp => ({
-        id: opp.id,
         name: opp.name,
         city: opp.city,
         status: opp.status,
         area: opp.area,
         total_cost: opp.total_cost,
-        roi: opp.roi, // Added ROI for analysis
+        roi: opp.roi,
         opportunity_type: opp.opportunity_type,
         development_type: opp.development_type,
         opportunity_date: opp.opportunity_date,
     }));
-
-    const knowledgeBase = localStorage.getItem('knowledgeBase') || '';
-    const uploadedFiles = state.uploadedFiles.map(file => file.name);
 
 
     try {
@@ -673,20 +645,17 @@ const handleChatSubmit = async (e) => {
         const result = await askGemini({ 
             userInput: userInput, 
             contextData: simplifiedData, 
-            knowledgeBase: knowledgeBase,
-            uploadedFiles: uploadedFiles 
+            knowledgeBase: state.chatbotConfig.knowledgeBase,
+            uploadedFiles: state.chatbotConfig.uploadedFiles 
         });
-
+        
         loadingIndicator.remove();
-        const botResponse = result.data.response;
+        
+        const botResponse = result.data.textResponse || "عذراً، لم أتمكن من معالجة طلبك حالياً.";
+        addMessageToChat(botResponse, 'bot');
 
-        if (botResponse && botResponse.textResponse) {
-            addMessageToChat(botResponse.textResponse, 'bot');
-            if (botResponse.action) {
-                executeMapAction(botResponse.action);
-            }
-        } else {
-            addMessageToChat("عذراً، لم أتمكن من معالجة طلبك حالياً.", 'bot');
+        if (result.data.action) {
+            executeMapAction(result.data.action);
         }
 
     } catch (error) {
@@ -920,7 +889,6 @@ const displayFilteredMarkers = () => {
     clearAllMarkers();
     const filteredData = state.opportunitiesData.filter(op => (op.city === state.currentCityFilter) && (state.currentStatusFilter === 'all' || op.status === state.currentStatusFilter || (state.currentStatusFilter === '' && !op.status)));
     
-    // تعديل: ترتيب الفرص حسب المساحة من الأصغر للأكبر
     filteredData.sort((a, b) => {
         const areaA = parseNumberWithCommas(a.area) || 0;
         const areaB = parseNumberWithCommas(b.area) || 0;
@@ -1268,7 +1236,7 @@ const panToCoordsFromInput = async () => {
 };
 
 
-// ---===[ 9. دوال لوحة التحكم الجديدة ]===---
+// ---===[ 9. دوال لوحة التحكم وإعدادات البوت ]===---
 const generateLogMessage = (log) => {
     const { action, user, details } = log; let message = `قام <strong>${user}</strong> بـ `;
     switch (action) {
@@ -1321,6 +1289,93 @@ const loadAuditLog = async (filterDate = null) => {
     snapshot.forEach(doc => { const log = doc.data(); const logItem = document.createElement('div'); logItem.className = 'log-item'; const date = log.timestamp?.toDate().toLocaleString('ar-SA', { dateStyle: 'short', timeStyle: 'short' }) || '...'; const message = generateLogMessage(log); logItem.innerHTML = `<div class="log-header">${message}</div><div class="log-meta">${date}</div>`; state.dom.auditLogContainer.appendChild(logItem); });
 };
 
+const renderUploadedFiles = () => {
+    const list = state.dom.uploadedFilesList.querySelector('.uploaded-file-items');
+    list.innerHTML = '';
+    if (state.chatbotConfig.uploadedFiles.length === 0) {
+        list.innerHTML = '<li>لا توجد ملفات مرفوعة حالياً.</li>';
+        return;
+    }
+    state.chatbotConfig.uploadedFiles.forEach(file => {
+        const li = document.createElement('li');
+        li.innerHTML = `<span><i class="fas fa-file-alt"></i> ${file.name}</span> <button class="delete-file-btn" data-fullpath="${file.fullPath}"><i class="fas fa-trash-alt"></i></button>`;
+        li.querySelector('.delete-file-btn').addEventListener('click', handleDeleteFile);
+        list.appendChild(li);
+    });
+};
+
+const handleDeleteFile = async (e) => {
+    const fullPath = e.currentTarget.dataset.fullpath;
+    const confirmed = await showCustomConfirm(`هل أنت متأكد من حذف هذا الملف؟ لا يمكن التراجع عن هذا الإجراء.`);
+    if (!confirmed) return;
+    
+    state.dom.fileOpSpinner.classList.remove('hidden');
+    try {
+        const { ref, deleteObject } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js");
+        const { updateDoc, arrayRemove } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+
+        const fileRef = ref(state.storage, fullPath);
+        await deleteObject(fileRef);
+
+        const fileToDelete = state.chatbotConfig.uploadedFiles.find(f => f.fullPath === fullPath);
+        await updateDoc(state.chatbotConfigDoc, {
+            uploadedFiles: arrayRemove(fileToDelete)
+        });
+        
+        await showCustomConfirm("تم حذف الملف بنجاح.", 'نجاح', true);
+    } catch (error) {
+        console.error("Error deleting file:", error);
+        await showCustomConfirm(`فشل حذف الملف: ${error.message}`, 'خطأ', true);
+    } finally {
+        state.dom.fileOpSpinner.classList.add('hidden');
+    }
+};
+
+const handleFileUpload = async (e) => {
+    const files = e.target.files;
+    if (files.length === 0) return;
+
+    state.dom.fileOpSpinner.classList.remove('hidden');
+    const { ref, uploadBytes, getDownloadURL } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js");
+    const { updateDoc, arrayUnion } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+    
+    const uploadPromises = Array.from(files).map(async (file) => {
+        const filePath = `chatbot-files/${Date.now()}-${file.name}`;
+        const storageRef = ref(state.storage, filePath);
+        await uploadBytes(storageRef, file);
+        const url = await getDownloadURL(storageRef);
+        return { name: file.name, url: url, fullPath: filePath, uploadedAt: new Date() };
+    });
+
+    try {
+        const newFiles = await Promise.all(uploadPromises);
+        await updateDoc(state.chatbotConfigDoc, {
+            uploadedFiles: arrayUnion(...newFiles)
+        });
+        await showCustomConfirm(`تم رفع ${newFiles.length} ملف بنجاح.`, 'نجاح', true);
+    } catch (error) {
+        console.error("Error uploading files:", error);
+        await showCustomConfirm(`فشل رفع الملفات: ${error.message}`, 'خطأ', true);
+    } finally {
+        state.dom.fileOpSpinner.classList.add('hidden');
+        state.dom.fileUploadInput.value = ''; // Reset input
+    }
+};
+
+const handleSaveChatbotSettings = async () => {
+    const { setDoc } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+    const newKnowledgeBase = state.dom.knowledgeBaseInput.value;
+    try {
+        await setDoc(state.chatbotConfigDoc, {
+            knowledgeBase: newKnowledgeBase
+        }, { merge: true }); // Merge to avoid overwriting files array
+        await showCustomConfirm("تم حفظ إعدادات المساعد الذكي بنجاح.", 'نجاح', true);
+        state.dom.chatbotSettingsModal.classList.remove('visible');
+    } catch(error) {
+        console.error("Error saving chatbot settings:", error);
+        await showCustomConfirm("فشل حفظ الإعدادات.", 'خطأ', true);
+    }
+};
 
 // ---===[ 10. دالة التهيئة الرئيسية (Main Initialization) ]===---
 const logAuditEvent = async (action, details) => {
@@ -1357,112 +1412,28 @@ const renderMapAndNav = async () => {
     if (state.dom.loadingScreen) { state.dom.loadingScreen.classList.add('hidden'); setTimeout(() => state.dom.loadingScreen?.remove(), 500); state.dom.loadingScreen = null; handleDeepLink(); }
 };
 
-// --- NEW FILE UPLOAD FUNCTIONS ---
-
-const renderUploadedFiles = () => {
-    const list = state.dom.uploadedFilesList;
-    list.innerHTML = ''; // Clear the list
-    if (state.uploadedFiles.length === 0) {
-        list.innerHTML = '<p>لا توجد ملفات مرفوعة حالياً.</p>';
-        return;
-    }
-    const ul = document.createElement('ul');
-    ul.className = 'uploaded-file-items';
-    state.uploadedFiles.forEach(file => {
-        const li = document.createElement('li');
-        li.innerHTML = `<span><i class="fas fa-file-alt"></i> ${file.name}</span> <button class="delete-file-btn" data-filename="${file.name}"><i class="fas fa-trash-alt"></i></button>`;
-        ul.appendChild(li);
-    });
-    list.appendChild(ul);
-
-    // Add event listeners to delete buttons
-    list.querySelectorAll('.delete-file-btn').forEach(btn => {
-        btn.addEventListener('click', handleDeleteFile);
-    });
-};
-
-const loadUploadedFiles = async () => {
-    const { ref, listAll } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js");
-    const listRef = ref(state.storage, 'knowledge_base_files');
-    try {
-        const res = await listAll(listRef);
-        state.uploadedFiles = res.items.map(itemRef => ({ name: itemRef.name, ref: itemRef }));
-        renderUploadedFiles();
-    } catch (error) {
-        console.error("Error listing files: ", error);
-        state.dom.uploadedFilesList.innerHTML = '<p>خطأ في تحميل قائمة الملفات.</p>';
-    }
-};
-
-const handleFileUpload = async () => {
-    const { ref, uploadBytes } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js");
-    const file = state.dom.fileUploadInput.files[0];
-    if (!file) {
-        await showCustomConfirm("الرجاء اختيار ملف أولاً.", "تنبيه", true);
-        return;
-    }
-    const storageRef = ref(state.storage, `knowledge_base_files/${file.name}`);
-    const uploadBtn = state.dom.fileUploadBtn;
-    uploadBtn.disabled = true;
-    uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الرفع...';
-
-    try {
-        await uploadBytes(storageRef, file);
-        await showCustomConfirm(`تم رفع الملف "${file.name}" بنجاح.`, "نجاح", true);
-        await loadUploadedFiles(); // Refresh the file list
-    } catch (error) {
-        console.error("File upload error: ", error);
-        await showCustomConfirm("فشل رفع الملف.", "خطأ", true);
-    } finally {
-        uploadBtn.disabled = false;
-        uploadBtn.innerHTML = 'رفع ملف';
-        state.dom.fileUploadInput.value = ''; // Clear the input
-    }
-};
-
-const handleDeleteFile = async (e) => {
-    const { ref, deleteObject } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js");
-    const button = e.currentTarget;
-    const fileName = button.dataset.filename;
-    
-    const confirmed = await showCustomConfirm(`هل أنت متأكد من حذف الملف "${fileName}"؟`, "تأكيد الحذف");
-    if (!confirmed) return;
-
-    const fileRef = ref(state.storage, `knowledge_base_files/${fileName}`);
-    try {
-        await deleteObject(fileRef);
-        await showCustomConfirm(`تم حذف الملف "${fileName}" بنجاح.`, "نجاح", true);
-        await loadUploadedFiles(); // Refresh the list
-    } catch (error) {
-        console.error("Error deleting file: ", error);
-        await showCustomConfirm("فشل حذف الملف.", "خطأ", true);
-    }
-};
-
-
-// --- END NEW FILE UPLOAD FUNCTIONS ---
-
 const initApp = async () => {
     if (!cacheDomElements()) return;
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js");
     const { getAuth, signInAnonymously } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js");
     const { getFunctions } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-functions.js");
-    const { getFirestore, collection, getDocs, onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+    const { getFirestore, collection, getDocs, onSnapshot, doc } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
     const { getStorage } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js");
-    
+
     const storedUser = sessionStorage.getItem('currentUser');
     if (storedUser) state.currentUser = JSON.parse(storedUser);
     try { 
         const app = initializeApp(firebaseConfig); 
         state.db = getFirestore(app); 
         state.auth = getAuth(app); 
-        state.functions = getFunctions(app);
-        state.storage = getStorage(app); // Initialize Storage
+        state.functions = getFunctions(app); 
+        state.storage = getStorage(app);
         await signInAnonymously(state.auth); 
         state.opportunitiesCollection = collection(state.db, 'opportunities'); 
         state.citiesCollection = collection(state.db, 'cities'); 
         state.usersCollection = collection(state.db, 'users'); 
         state.auditLogCollection = collection(state.db, 'audit_log'); 
+        state.chatbotConfigDoc = doc(state.db, 'chatbot_config', 'main');
     } 
     catch (error) { console.error("Firebase initialization failed:", error); state.dom.loadingScreen.innerHTML = `<p>فشل تهيئة التطبيق. (${error.message})</p>`; return; }
     if (!initializeMap()) return;
@@ -1475,6 +1446,21 @@ const initApp = async () => {
             await renderMapAndNav();
             state.unsubscribeOpps = onSnapshot(state.opportunitiesCollection, (snapshot) => { state.opportunitiesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderMapAndNav(); });
             state.unsubscribeCities = onSnapshot(state.citiesCollection, (snapshot) => { state.citiesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderMapAndNav(); });
+            
+            // Listener for chatbot config
+            state.unsubscribeChatbotConfig = onSnapshot(state.chatbotConfigDoc, (doc) => {
+                if (doc.exists()) {
+                    const data = doc.data();
+                    state.chatbotConfig.knowledgeBase = data.knowledgeBase || '';
+                    state.chatbotConfig.uploadedFiles = data.uploadedFiles || [];
+                }
+                // If modal is visible, re-render its content
+                if (state.dom.chatbotSettingsModal.classList.contains('visible')) {
+                    state.dom.knowledgeBaseInput.value = state.chatbotConfig.knowledgeBase;
+                    renderUploadedFiles();
+                }
+            });
+
         } catch (error) { console.error("Error loading initial data:", error); let msg = "فشل تحميل البيانات. الرجاء تحديث الصفحة."; if (error.code === 'permission-denied') msg = "فشل تحميل البيانات: خطأ في الصلاحيات. يرجى مراجعة قواعد الأمان في Firebase."; else msg += `\n(${error.message})`; state.dom.loadingScreen.innerHTML = `<p>${msg}</p>`; }
     };
     loadInitialDataAndAttachListeners();
@@ -1484,9 +1470,16 @@ const initApp = async () => {
     state.dom.chatbotForm.addEventListener('submit', handleChatSubmit);
     setTimeout(() => { if (!state.dom.chatbotContainer.classList.contains('visible')) state.dom.chatbotCallout.classList.add('visible'); }, 5000);
     state.dom.closeCalloutBtn.addEventListener('click', () => state.dom.chatbotCallout.classList.remove('visible'));
-    state.dom.chatbotSettingsBtn.addEventListener('click', async () => { if (await requestAdminAccess('admin')) { state.dom.knowledgeBaseInput.value = localStorage.getItem('knowledgeBase') || ''; state.dom.chatbotSettingsModal.classList.add('visible'); await loadUploadedFiles(); } });
-    state.dom.chatbotSettingsForm.addEventListener('submit', async (e) => { e.preventDefault(); localStorage.setItem('knowledgeBase', state.dom.knowledgeBaseInput.value); state.dom.chatbotSettingsModal.classList.remove('visible'); await showCustomConfirm("تم حفظ إعدادات المساعد الذكي بنجاح.", 'نجاح', true); });
-    state.dom.fileUploadBtn.addEventListener('click', handleFileUpload);
+    state.dom.chatbotSettingsBtn.addEventListener('click', async () => { 
+        if (await requestAdminAccess('admin')) { 
+            state.dom.knowledgeBaseInput.value = state.chatbotConfig.knowledgeBase;
+            renderUploadedFiles();
+            state.dom.chatbotSettingsModal.classList.add('visible');
+        } 
+    });
+    state.dom.saveChatbotSettingsBtn.addEventListener('click', handleSaveChatbotSettings);
+    state.dom.fileUploadBtn.addEventListener('click', () => state.dom.fileUploadInput.click());
+    state.dom.fileUploadInput.addEventListener('change', handleFileUpload);
     state.dom.zoomInBtn.addEventListener('click', () => state.map.zoomIn());
     state.dom.zoomOutBtn.addEventListener('click', () => state.map.zoomOut());
     state.dom.zoomAllBtn.addEventListener('click', () => { const allCitiesLi = state.dom.cityNavigatorList.querySelector('li[data-city="all"]'); if (allCitiesLi) allCitiesLi.click(); });
@@ -1494,7 +1487,6 @@ const initApp = async () => {
     state.dom.addDynamicFieldBtn.addEventListener('click', () => handleAddNewField(state.dom.opportunityFormGrid));
     state.dom.statusFilterButtons.forEach(button => button.addEventListener('click', (e) => { state.currentStatusFilter = e.currentTarget.getAttribute('data-status'); state.dom.statusFilterButtons.forEach(btn => btn.classList.remove('active')); e.currentTarget.classList.add('active'); displayFilteredMarkers(); }));
     
-    // تعديل: ضمان الإغلاق من أول ضغطة
     state.dom.infoCardCloseBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         hideInfoCard();
@@ -1535,7 +1527,6 @@ const initApp = async () => {
     state.dom.logDateFilter.addEventListener('change', (e) => loadAuditLog(e.target.value));
     state.dom.clearLogFilterBtn.addEventListener('click', () => { state.dom.logDateFilter.value = ''; loadAuditLog(); });
     
-    // تعديل: توسيع وظيفة زر ESC لإغلاق جميع النوافذ المنبثقة
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             const openModals = [
