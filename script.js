@@ -608,7 +608,7 @@ const handleChatSubmit = async (e) => {
     state.dom.chatbotInput.value = '';
     const loadingIndicator = addMessageToChat('', 'bot', true);
 
-    // ---===[ الإصلاح: إرسال كافة البيانات التحليلية للمساعد الذكي ]===---
+    // ---===[ الإصلاح: إعادة إرسال بيانات الإحداثيات للمساعد الذكي ]===---
     const simplifiedData = state.opportunitiesData.map(opp => ({
         name: opp.name,
         city: opp.city,
@@ -616,8 +616,9 @@ const handleChatSubmit = async (e) => {
         area: opp.area,
         total_cost: opp.total_cost,
         opportunity_type: opp.opportunity_type,
-        roi: opp.roi, // إعادة إضافة حقل العائد
-        irr: opp.irr  // إعادة إضافة حقل العائد الداخلي
+        roi: opp.roi,
+        irr: opp.irr,
+        coords: opp.coords ? { lat: opp.coords.latitude, lng: opp.coords.longitude } : null // إعادة إضافة الإحداثيات
     }));
 
     try {
@@ -1566,5 +1567,6 @@ const initApp = async () => {
 
 // ---===[ 12. نقطة البداية (Entry Point) ]===---
 document.addEventListener('DOMContentLoaded', initApp);
+
 
 
