@@ -94,6 +94,7 @@
             <div id="info-card-actions" class="info-card-actions">
                  <div class="action-buttons">
                     <button id="edit-mode-btn" class="action-btn edit-btn"><i class="fas fa-edit"></i> تحرير</button>
+                    <!-- تعديل: تم تغيير الزر إلى "تم" وإظهاره فقط في وضع التحرير -->
                     <button id="done-edit-btn" class="action-btn edit-btn hidden"><i class="fas fa-check"></i> تم</button>
                     <button id="share-opportunity-btn" class="action-btn"><i class="fas fa-share-alt"></i> مشاركة</button>
                     <button id="edit-location-btn" class="action-btn edit-btn hidden"><i class="fas fa-map-marker-alt"></i> تعديل الموقع</button>
@@ -134,26 +135,30 @@
         <div class="modal-content">
             <button class="modal-close-btn" data-modal-id="chatbot-settings-modal">×</button>
             <h3>إعدادات المساعد الذكي</h3>
-            <p class="modal-subtitle">قم بتغذية المساعد بمعلومات إضافية وملفات خاصة بالمشروع.</p>
-            
-            <div class="form-group full-width">
-                <label for="knowledge-base-input">قاعدة المعرفة النصية</label>
-                <textarea id="knowledge-base-input" rows="6" placeholder="مثال: مدير المشروع هو المهندس سامر. الهدف الاستراتيجي هو التركيز على الفرص السكنية."></textarea>
-            </div>
+            <p class="modal-subtitle">قم بتغذية المساعد بمعلومات إضافية خاصة بالمشروع.</p>
+            <form id="chatbot-settings-form">
+                <div class="form-group full-width">
+                    <label for="knowledge-base-input">قاعدة المعرفة النصية</label>
+                    <textarea id="knowledge-base-input" rows="6" placeholder="مثال: مدير المشروع هو المهندس سامر. الهدف الاستراتيجي هو التركيز على الفرص السكنية."></textarea>
+                </div>
+                
+                <hr class="admin-divider">
+                
+                <h4>تغذية المساعد بالملفات</h4>
+                <div class="file-upload-group">
+                    <input type="file" id="file-upload-input" style="display: none;">
+                    <button type="button" id="file-upload-btn" class="action-btn"><i class="fas fa-upload"></i> اختر ملف...</button>
+                    <div class="spinner small-spinner hidden" id="file-upload-spinner"></div>
+                </div>
+                 <!-- تعديل: إضافة ملاحظة حول أنواع الملفات -->
+                <p class="file-type-note">ملاحظة: للحصول على أفضل النتائج، يفضل رفع ملفات نصية (.txt).</p>
 
-            <hr class="admin-divider">
+                <div id="uploaded-files-list">
+                    <ul class="uploaded-file-items"></ul>
+                </div>
 
-            <h4>مكتبة الملفات</h4>
-            <div class="file-upload-group">
-                <input type="file" id="file-upload-input" class="hidden" multiple>
-                <button type="button" id="file-upload-btn" class="action-btn"><i class="fas fa-upload"></i> اختيار ملفات</button>
-                 <div id="file-op-spinner" class="spinner small-spinner hidden"></div>
-            </div>
-            <div id="uploaded-files-list">
-                <ul class="uploaded-file-items"></ul>
-            </div>
-            
-            <button type="button" id="save-chatbot-settings-btn" class="form-submit-btn">حفظ الإعدادات</button>
+                <button type="submit" class="form-submit-btn">حفظ الإعدادات</button>
+            </form>
         </div>
     </div>
 
