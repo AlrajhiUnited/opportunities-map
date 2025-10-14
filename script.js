@@ -69,9 +69,10 @@ const state = {
     citiesData: [],
     cityMarkers: [],
     displayedOpportunityMarkers: [],
+    highlightedOpportunityMarkers: [],
     currentCityFilter: 'all',
     currentStatusFilter: 'all',
-    activeMarkerWrapperElements: [], // يمكن أن يحتوي على عدة عناصر محددة
+    activeMarkerWrapperElement: null,
     activeCityListItem: null,
     currentViewMode: 'cities',
     cityListForMarkers: [],
@@ -84,10 +85,10 @@ const state = {
     citiesCollection: null,
     usersCollection: null,
     auditLogCollection: null,
-    chatbotConfigDoc: null, // مرجع لمستند إعدادات الشات بوت
+    settingsDoc: null,
     unsubscribeOpps: null,
     unsubscribeCities: null,
-    unsubscribeChatbotConfig: null,
+    unsubscribeSettings: null,
     isEditMode: false,
     isLocationEditMode: false,
     sortableInstances: {},
@@ -96,10 +97,7 @@ const state = {
     locationUpdateListener: null,
     editBuffer: null,
     hasStructuralChanges: false,
-    chatbotConfig: { // الإعدادات المحلية للشات بوت
-        knowledgeBase: '',
-        uploadedFiles: [],
-    },
+    chatbotSettings: { knowledgeBase: '', fileList: [] },
 };
 
 // ---===[ 3. الدوال المساعدة (Utilities / Helpers) ]===---
@@ -188,15 +186,15 @@ const cacheDomElements = () => {
         chatbotCallout: document.getElementById('chatbot-callout'),
         closeCalloutBtn: document.getElementById('close-callout-btn'),
         chatbotSettingsModal: document.getElementById('chatbot-settings-modal'),
+        chatbotSettingsForm: document.getElementById('chatbot-settings-form'),
         knowledgeBaseInput: document.getElementById('knowledge-base-input'),
-        saveChatbotSettingsBtn: document.getElementById('save-chatbot-settings-btn'),
-        fileUploadInput: document.getElementById('file-upload-input'),
-        fileUploadBtn: document.getElementById('file-upload-btn'),
-        uploadedFilesList: document.getElementById('uploaded-files-list'),
-        fileOpSpinner: document.getElementById('file-op-spinner'),
         addToSectionModal: document.getElementById('add-to-section-modal'),
         addToMainSectionBtn: document.getElementById('add-to-main-section-btn'),
         addToStudySectionBtn: document.getElementById('add-to-study-section-btn'),
+        fileUploadInput: document.getElementById('file-upload-input'),
+        fileUploadBtn: document.getElementById('file-upload-btn'),
+        fileUploadSpinner: document.getElementById('file-upload-spinner'),
+        uploadedFilesList: document.getElementById('uploaded-files-list'),
     };
     state.dom.statusFilterButtons = state.dom.statusFilterDiv ? Array.from(state.dom.statusFilterDiv.querySelectorAll('button')) : [];
     document.querySelectorAll('.modal-close-btn').forEach(btn => {
@@ -489,69 +487,99 @@ const clearAllMarkers = () => {
 };
 
 // ---===[ 5. دوال واجهة المستخدم (UI Functions) ]===---
-
 const clearAllHighlights = () => {
-    state.activeMarkerWrapperElements.forEach(el => el.classList.remove('marker-selected'));
-    state.activeMarkerWrapperElements = [];
+    state.highlightedOpportunityMarkers.forEach(marker => {
+        if(marker && marker._icon) marker._icon.classList.remove('marker-selected');
+    });
+    state.highlightedOpportunityMarkers = [];
 };
 
 const highlightOpportunityOnly = (opportunity) => {
     if (!opportunity) return;
+    clearAllHighlights();
+    
     const marker = state.displayedOpportunityMarkers.find(m => m.opportunityData.id === opportunity.id);
     if (marker && marker._icon) {
-        clearAllHighlights();
         marker._icon.classList.add('marker-selected');
-        state.activeMarkerWrapperElements.push(marker._icon);
-        const targetZoom = Math.max(state.map.getZoom(), 14);
-        state.map.flyTo(marker.getLatLng(), targetZoom, { duration: 1.0 });
+        state.highlightedOpportunityMarkers.push(marker);
+        state.map.flyTo(marker.getLatLng(), Math.max(state.map.getZoom(), 15), { duration: 1.0 });
     }
 };
 
 const highlightMultipleOpportunities = (opportunities) => {
     if (!opportunities || opportunities.length === 0) return;
-
     clearAllHighlights();
-    const markersToHighlight = [];
-    const coords = [];
 
-    opportunities.forEach(opp => {
-        const marker = state.displayedOpportunityMarkers.find(m => m.opportunityData.id === opp.id);
-        if (marker && marker._icon) {
-            marker._icon.classList.add('marker-selected');
-            state.activeMarkerWrapperElements.push(marker._icon);
-            markersToHighlight.push(marker);
-            coords.push(opp.coords);
-        }
-    });
-
-    if (coords.length > 0) {
-        zoomToShowMarkers(coords);
+    const city = opportunities[0].city;
+    if (state.currentCityFilter !== city) {
+        const cityLi = state.dom.cityNavigatorList.querySelector(`li[data-city="${city}"]`);
+        if (cityLi) { cityLi.click(); }
     }
+    
+    setTimeout(() => {
+        const markersToHighlight = opportunities
+            .map(opp => state.displayedOpportunityMarkers.find(m => m.opportunityData.id === opp.id))
+            .filter(Boolean);
+
+        if (markersToHighlight.length > 0) {
+            markersToHighlight.forEach(marker => {
+                if(marker._icon) marker._icon.classList.add('marker-selected');
+                state.highlightedOpportunityMarkers.push(marker);
+            });
+            const bounds = L.latLngBounds(markersToHighlight.map(m => m.getLatLng()));
+            state.map.flyToBounds(bounds, { paddingTopLeft: [40, state.dom.cityNavigatorPanel.offsetWidth + 40], paddingBottomRight: [40, 40], maxZoom: 16, duration: 1.0 });
+        }
+    }, state.currentCityFilter !== city ? 600 : 0);
 };
 
 const focusOnOpportunity = (opportunity) => {
     if (!opportunity || !opportunity.coords) return;
-    
     clearAllHighlights();
+
     const marker = state.displayedOpportunityMarkers.find(m => m.opportunityData.id === opportunity.id);
     if (marker && marker._icon) {
         marker._icon.classList.add('marker-selected');
-        state.activeMarkerWrapperElements.push(marker._icon);
+        state.highlightedOpportunityMarkers.push(marker);
     }
-
+    
     const latlng = [opportunity.coords.latitude, opportunity.coords.longitude];
     const targetZoom = Math.max(state.map.getZoom(), 16);
-    const cardWidth = state.dom.infoCard.offsetWidth || 740;
-    const offsetX = -(cardWidth / 2) - 80;
-
-    const markerPoint = state.map.project(latlng, targetZoom);
-    const newCenterPoint = markerPoint.add(new L.Point(offsetX, 0));
-    const newCenterLatLng = state.map.unproject(newCenterPoint, targetZoom);
-
-    state.map.flyTo(newCenterLatLng, targetZoom, { duration: 1.0 });
+    state.map.flyTo(latlng, targetZoom, { duration: 1.0 });
 
     showInfoCard(opportunity);
 };
+
+const executeMapAction = (action) => {
+    if (!action || !action.type) return;
+
+    let targetOpportunities = [];
+    if (action.opportunityName) {
+        const opp = state.opportunitiesData.find(o => o.name === action.opportunityName);
+        if (opp) targetOpportunities.push(opp);
+    } else if (action.opportunityNames) {
+        targetOpportunities = action.opportunityNames
+            .map(name => state.opportunitiesData.find(o => o.name === name))
+            .filter(Boolean);
+    }
+    
+    if (targetOpportunities.length === 0) {
+        console.warn("Action requested for opportunity not found:", action.opportunityName || action.opportunityNames);
+        return;
+    }
+    
+    switch(action.type) {
+        case 'HIGHLIGHT_ONLY':
+            highlightOpportunityOnly(targetOpportunities[0]);
+            break;
+        case 'HIGHLIGHT_AND_SHOW_CARD':
+            focusOnOpportunity(targetOpportunities[0]);
+            break;
+        case 'HIGHLIGHT_MULTIPLE_OPPORTUNITIES':
+            highlightMultipleOpportunities(targetOpportunities);
+            break;
+    }
+};
+
 
 const addMessageToChat = (text, sender, isLoading = false) => {
     const messageDiv = document.createElement('div');
@@ -571,52 +599,6 @@ const addMessageToChat = (text, sender, isLoading = false) => {
     return messageDiv;
 };
 
-const executeMapAction = (action) => {
-    if (!action || !action.type || action.type === 'NO_ACTION') return;
-
-    const findAndSwitchCity = (opp) => {
-        if (state.currentCityFilter !== opp.city) {
-            const cityLi = state.dom.cityNavigatorList.querySelector(`li[data-city="${opp.city}"]`);
-            if (cityLi) {
-                cityLi.click();
-                return true; // City switch happened
-            }
-        }
-        return false; // No city switch needed
-    };
-
-    switch (action.type) {
-        case 'HIGHLIGHT_ONLY':
-        case 'HIGHLIGHT_AND_SHOW_CARD': {
-            const opportunity = state.opportunitiesData.find(op => op.name === action.opportunityName);
-            if (opportunity) {
-                const citySwitched = findAndSwitchCity(opportunity);
-                setTimeout(() => {
-                    if (action.type === 'HIGHLIGHT_ONLY') {
-                        highlightOpportunityOnly(opportunity);
-                    } else {
-                        focusOnOpportunity(opportunity);
-                    }
-                }, citySwitched ? 1600 : 100); // Delay if city is switching
-            }
-            break;
-        }
-        case 'HIGHLIGHT_MULTIPLE': {
-             const opportunities = action.opportunityNames
-                .map(name => state.opportunitiesData.find(op => op.name === name))
-                .filter(Boolean); // Filter out any not found
-            if (opportunities.length > 0) {
-                const firstOppCity = opportunities[0].city;
-                const citySwitched = findAndSwitchCity(opportunities[0]);
-                 setTimeout(() => {
-                    highlightMultipleOpportunities(opportunities);
-                }, citySwitched ? 1600 : 100);
-            }
-            break;
-        }
-    }
-};
-
 const handleChatSubmit = async (e) => {
     e.preventDefault();
     const userInput = state.dom.chatbotInput.value.trim();
@@ -632,30 +614,32 @@ const handleChatSubmit = async (e) => {
         status: opp.status,
         area: opp.area,
         total_cost: opp.total_cost,
-        roi: opp.roi,
         opportunity_type: opp.opportunity_type,
-        development_type: opp.development_type,
-        opportunity_date: opp.opportunity_date,
     }));
-
 
     try {
         const { httpsCallable } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-functions.js");
         const askGemini = httpsCallable(state.functions, 'askGemini');
+        
         const result = await askGemini({ 
             userInput: userInput, 
             contextData: simplifiedData, 
-            knowledgeBase: state.chatbotConfig.knowledgeBase,
-            uploadedFiles: state.chatbotConfig.uploadedFiles 
+            knowledgeBase: state.chatbotSettings.knowledgeBase,
+            uploadedFiles: state.chatbotSettings,
         });
         
-        loadingIndicator.remove();
-        
-        const botResponse = result.data.textResponse || "عذراً، لم أتمكن من معالجة طلبك حالياً.";
-        addMessageToChat(botResponse, 'bot');
+        const botResponse = result.data;
 
-        if (result.data.action) {
-            executeMapAction(result.data.action);
+        loadingIndicator.remove();
+
+        if(botResponse && botResponse.textResponse) {
+             addMessageToChat(botResponse.textResponse, 'bot');
+        } else {
+             addMessageToChat("عذراً، لم أتمكن من فهم الرد.", 'bot');
+        }
+
+        if(botResponse && botResponse.action) {
+            executeMapAction(botResponse.action);
         }
 
     } catch (error) {
@@ -705,7 +689,8 @@ const showInfoCard = (opportunity) => {
         
         const createSection = (title, fieldKeys, sectionId) => {
             let content = '';
-            fieldKeys.forEach(key => { if(allOpportunityFields[key]) content += createDetailItem(key, allOpportunityFields[key], opportunity[key]); });
+            fieldKeys.forEach(key => { if(allOpportunityFields[key] && opportunity[key] !== undefined && opportunity[key] !== null) content += createDetailItem(key, allOpportunityFields[key], opportunity[key]); });
+            if (content.trim() === '') return '';
             return `<div class="details-section" data-section-id="${sectionId}"><h4>${title}</h4><div class="details-section-content">${content}</div></div>`;
         };
 
@@ -734,6 +719,7 @@ const hideInfoCard = () => {
     exitEditMode(false);
     state.dom.infoCard.classList.remove('visible');
     clearAllHighlights();
+    
     if (state.currentCityFilter === 'all') {
         flyToCity('all');
     } else {
@@ -1236,22 +1222,13 @@ const panToCoordsFromInput = async () => {
 };
 
 
-// ---===[ 9. دوال لوحة التحكم وإعدادات البوت ]===---
-const generateLogMessage = (log) => {
-    const { action, user, details } = log; let message = `قام <strong>${user}</strong> بـ `;
-    switch (action) {
-        case 'إضافة فرصة': message += `<strong>إضافة فرصة جديدة</strong> باسم "${details.name || details.opportunityId}"`; break;
-        case 'تعديل فرصة': message += `<strong>تعديل بيانات أساسية</strong> للفرصة "${details.name || details.opportunityId}"`; break;
-        case 'حذف فرصة': message += `<strong>حذف الفرصة</strong> "${details.name || details.opportunityId}"`; break;
-        case 'تحديث حقل': message += `<strong>تحديث حقل</strong> "${details.field}" للفرصة "<strong>${details.opportunityName}</strong>".`; break;
-        case 'تغيير هيكل (فرصة واحدة)': message += `<strong>تغيير هيكل الحقول</strong> للفرصة "${details.opportunityId}".`; break;
-        case 'تغيير هيكل (كل الفرص)': message += `<strong>تغيير هيكل الحقول</strong> لجميع الفرص.`; break;
-        case 'إضافة مستخدم': message += `<strong>إضافة مستخدم جديد</strong>: "${details.username}" بصلاحية "${details.role}".`; break;
-        case 'حذف مستخدم': message += `<strong>حذف المستخدم</strong>: "${details.username}".`; break;
-        case 'تحديث الموقع': message += `<strong>تحديث موقع</strong> الفرصة "${details.name}" إلى ${details.newCoords}.`; break;
-        default: message += `<strong>${action}</strong>`;
-    } return message;
+// ---===[ 9. دوال لوحة التحكم وإدارة المساعد الذكي ]===---
+const logAuditEvent = async (action, details) => {
+    if (!state.currentUser) return;
+    try { const { addDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js"); await addDoc(state.auditLogCollection, { action, details, user: state.currentUser.username, timestamp: serverTimestamp() }); } 
+    catch (error) { console.error("Failed to log audit event:", error); }
 };
+
 const showAdminPanel = async () => { if (await requestAdminAccess('admin')) { state.dom.adminPanelModal.classList.add('visible'); loadUsers(); loadAuditLog(); } };
 
 const handleDeleteUser = async (userId, username) => {
@@ -1288,102 +1265,128 @@ const loadAuditLog = async (filterDate = null) => {
     if(snapshot.empty) { state.dom.auditLogContainer.innerHTML = '<p>لا توجد سجلات لهذه الفترة.</p>'; return; }
     snapshot.forEach(doc => { const log = doc.data(); const logItem = document.createElement('div'); logItem.className = 'log-item'; const date = log.timestamp?.toDate().toLocaleString('ar-SA', { dateStyle: 'short', timeStyle: 'short' }) || '...'; const message = generateLogMessage(log); logItem.innerHTML = `<div class="log-header">${message}</div><div class="log-meta">${date}</div>`; state.dom.auditLogContainer.appendChild(logItem); });
 };
+const generateLogMessage = (log) => {
+    const { action, user, details } = log; let message = `قام <strong>${user}</strong> بـ `;
+    switch (action) {
+        case 'إضافة فرصة': message += `<strong>إضافة فرصة جديدة</strong> باسم "${details.name || details.opportunityId}"`; break;
+        case 'تعديل فرصة': message += `<strong>تعديل بيانات أساسية</strong> للفرصة "${details.name || details.opportunityId}"`; break;
+        case 'حذف فرصة': message += `<strong>حذف الفرصة</strong> "${details.name || details.opportunityId}"`; break;
+        case 'تحديث حقل': message += `<strong>تحديث حقل</strong> "${details.field}" للفرصة "<strong>${details.opportunityName}</strong>".`; break;
+        case 'تغيير هيكل (فرصة واحدة)': message += `<strong>تغيير هيكل الحقول</strong> للفرصة "${details.opportunityId}".`; break;
+        case 'تغيير هيكل (كل الفرص)': message += `<strong>تغيير هيكل الحقول</strong> لجميع الفرص.`; break;
+        case 'إضافة مستخدم': message += `<strong>إضافة مستخدم جديد</strong>: "${details.username}" بصلاحية "${details.role}".`; break;
+        case 'حذف مستخدم': message += `<strong>حذف المستخدم</strong>: "${details.username}".`; break;
+        case 'تحديث الموقع': message += `<strong>تحديث موقع</strong> الفرصة "${details.name}" إلى ${details.newCoords}.`; break;
+        default: message += `<strong>${action}</strong>`;
+    } return message;
+};
 
-const renderUploadedFiles = () => {
-    const list = state.dom.uploadedFilesList.querySelector('.uploaded-file-items');
-    list.innerHTML = '';
-    if (state.chatbotConfig.uploadedFiles.length === 0) {
-        list.innerHTML = '<li>لا توجد ملفات مرفوعة حالياً.</li>';
+// ---===[ 10. دوال إدارة إعدادات المساعد الذكي (الجديدة) ]===---
+const renderUploadedFiles = (fileList = []) => {
+    const listElement = state.dom.uploadedFilesList.querySelector('.uploaded-file-items');
+    listElement.innerHTML = '';
+    if (fileList.length === 0) {
+        listElement.innerHTML = '<li>لا توجد ملفات مرفوعة حالياً.</li>';
         return;
     }
-    state.chatbotConfig.uploadedFiles.forEach(file => {
+    fileList.forEach(file => {
         const li = document.createElement('li');
-        li.innerHTML = `<span><i class="fas fa-file-alt"></i> ${file.name}</span> <button class="delete-file-btn" data-fullpath="${file.fullPath}"><i class="fas fa-trash-alt"></i></button>`;
-        li.querySelector('.delete-file-btn').addEventListener('click', handleDeleteFile);
-        list.appendChild(li);
+        li.innerHTML = `
+            <span><i class="fas fa-file-alt"></i> ${file.fileName}</span>
+            <button class="delete-file-btn" data-filepath="${file.filePath}" data-filename="${file.fileName}" title="حذف الملف">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+        `;
+        listElement.appendChild(li);
     });
 };
 
-const handleDeleteFile = async (e) => {
-    const fullPath = e.currentTarget.dataset.fullpath;
-    const confirmed = await showCustomConfirm(`هل أنت متأكد من حذف هذا الملف؟ لا يمكن التراجع عن هذا الإجراء.`);
-    if (!confirmed) return;
-    
-    state.dom.fileOpSpinner.classList.remove('hidden');
-    try {
-        const { ref, deleteObject } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js");
-        const { updateDoc, arrayRemove } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
-
-        const fileRef = ref(state.storage, fullPath);
-        await deleteObject(fileRef);
-
-        const fileToDelete = state.chatbotConfig.uploadedFiles.find(f => f.fullPath === fullPath);
-        await updateDoc(state.chatbotConfigDoc, {
-            uploadedFiles: arrayRemove(fileToDelete)
-        });
-        
-        await showCustomConfirm("تم حذف الملف بنجاح.", 'نجاح', true);
-    } catch (error) {
-        console.error("Error deleting file:", error);
-        await showCustomConfirm(`فشل حذف الملف: ${error.message}`, 'خطأ', true);
-    } finally {
-        state.dom.fileOpSpinner.classList.add('hidden');
+const showChatbotSettings = async () => {
+    if (await requestAdminAccess('admin')) {
+        state.dom.knowledgeBaseInput.value = state.chatbotSettings.knowledgeBase || '';
+        renderUploadedFiles(state.chatbotSettings.fileList);
+        state.dom.chatbotSettingsModal.classList.add('visible');
     }
 };
 
-const handleFileUpload = async (e) => {
-    const files = e.target.files;
-    if (files.length === 0) return;
-
-    state.dom.fileOpSpinner.classList.remove('hidden');
-    const { ref, uploadBytes, getDownloadURL } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js");
-    const { updateDoc, arrayUnion } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
-    
-    const uploadPromises = Array.from(files).map(async (file) => {
-        const filePath = `chatbot-files/${Date.now()}-${file.name}`;
-        const storageRef = ref(state.storage, filePath);
-        await uploadBytes(storageRef, file);
-        const url = await getDownloadURL(storageRef);
-        return { name: file.name, url: url, fullPath: filePath, uploadedAt: new Date() };
-    });
-
-    try {
-        const newFiles = await Promise.all(uploadPromises);
-        await updateDoc(state.chatbotConfigDoc, {
-            uploadedFiles: arrayUnion(...newFiles)
-        });
-        await showCustomConfirm(`تم رفع ${newFiles.length} ملف بنجاح.`, 'نجاح', true);
-    } catch (error) {
-        console.error("Error uploading files:", error);
-        await showCustomConfirm(`فشل رفع الملفات: ${error.message}`, 'خطأ', true);
-    } finally {
-        state.dom.fileOpSpinner.classList.add('hidden');
-        state.dom.fileUploadInput.value = ''; // Reset input
-    }
-};
-
-const handleSaveChatbotSettings = async () => {
-    const { setDoc } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+const handleSaveSettings = async (e) => {
+    e.preventDefault();
     const newKnowledgeBase = state.dom.knowledgeBaseInput.value;
     try {
-        await setDoc(state.chatbotConfigDoc, {
-            knowledgeBase: newKnowledgeBase
-        }, { merge: true }); // Merge to avoid overwriting files array
-        await showCustomConfirm("تم حفظ إعدادات المساعد الذكي بنجاح.", 'نجاح', true);
+        const { setDoc } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+        await setDoc(state.settingsDoc, { knowledgeBase: newKnowledgeBase }, { merge: true });
+        await showCustomConfirm("تم حفظ الإعدادات بنجاح.", 'نجاح', true);
         state.dom.chatbotSettingsModal.classList.remove('visible');
-    } catch(error) {
-        console.error("Error saving chatbot settings:", error);
+    } catch (error) {
+        console.error("Error saving settings:", error);
         await showCustomConfirm("فشل حفظ الإعدادات.", 'خطأ', true);
     }
 };
 
-// ---===[ 10. دالة التهيئة الرئيسية (Main Initialization) ]===---
-const logAuditEvent = async (action, details) => {
-    if (!state.currentUser) return;
-    try { const { addDoc, serverTimestamp } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js"); await addDoc(state.auditLogCollection, { action, details, user: state.currentUser.username, timestamp: serverTimestamp() }); } 
-    catch (error) { console.error("Failed to log audit event:", error); }
+const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    state.dom.fileUploadSpinner.classList.remove('hidden');
+    state.dom.fileUploadBtn.disabled = true;
+
+    try {
+        const { getStorage, ref, uploadBytes } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js");
+        const { updateDoc, arrayUnion } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+
+        const filePath = `chatbot-files/${Date.now()}-${file.name}`;
+        const storageRef = ref(state.storage, filePath);
+        
+        await uploadBytes(storageRef, file);
+        
+        const newFile = { fileName: file.name, filePath: filePath };
+        await updateDoc(state.settingsDoc, {
+            fileList: arrayUnion(newFile)
+        });
+
+        await logAuditEvent('رفع ملف للمساعد', { fileName: file.name });
+    } catch (error) {
+        console.error("File upload failed:", error);
+        await showCustomConfirm(`فشل رفع الملفات: ${error.message}`, 'خطأ', true);
+    } finally {
+        state.dom.fileUploadInput.value = ''; 
+        state.dom.fileUploadSpinner.classList.add('hidden');
+        state.dom.fileUploadBtn.disabled = false;
+    }
 };
 
+const handleDeleteFile = async (e) => {
+    const button = e.target.closest('.delete-file-btn');
+    if (!button) return;
+
+    const filePath = button.dataset.filepath;
+    const fileName = button.dataset.filename;
+
+    const confirmed = await showCustomConfirm(`هل أنت متأكد من حذف الملف "${fileName}"؟`);
+    if (!confirmed) return;
+
+    try {
+        const { getStorage, ref, deleteObject } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js");
+        const { updateDoc, arrayRemove } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+
+        const storageRef = ref(state.storage, filePath);
+        await deleteObject(storageRef);
+
+        const fileToRemove = state.chatbotSettings.fileList.find(f => f.filePath === filePath);
+        if (fileToRemove) {
+            await updateDoc(state.settingsDoc, {
+                fileList: arrayRemove(fileToRemove)
+            });
+        }
+        await logAuditEvent('حذف ملف من المساعد', { fileName });
+
+    } catch (error) {
+        console.error("Error deleting file:", error);
+        await showCustomConfirm(`فشل حذف الملف: ${error.message}`, 'خطأ', true);
+    }
+};
+
+// ---===[ 11. دالة التهيئة الرئيسية (Main Initialization) ]===---
 const handleDeepLink = (retryCount = 0) => {
     if (retryCount > 5) { console.error("Deep link failed after multiple retries."); return; }
     const urlParams = new URLSearchParams(window.location.search);
@@ -1433,10 +1436,19 @@ const initApp = async () => {
         state.citiesCollection = collection(state.db, 'cities'); 
         state.usersCollection = collection(state.db, 'users'); 
         state.auditLogCollection = collection(state.db, 'audit_log'); 
-        state.chatbotConfigDoc = doc(state.db, 'chatbot_config', 'main');
+        state.settingsDoc = doc(state.db, 'settings', 'chatbot');
     } 
     catch (error) { console.error("Firebase initialization failed:", error); state.dom.loadingScreen.innerHTML = `<p>فشل تهيئة التطبيق. (${error.message})</p>`; return; }
     if (!initializeMap()) return;
+    
+    // Listen for chatbot settings changes
+    state.unsubscribeSettings = onSnapshot(state.settingsDoc, (doc) => {
+        state.chatbotSettings = doc.data() || { knowledgeBase: '', fileList: [] };
+        if (state.dom.chatbotSettingsModal.classList.contains('visible')) {
+            renderUploadedFiles(state.chatbotSettings.fileList);
+        }
+    });
+
     const loadInitialDataAndAttachListeners = async () => {
         try {
             const [oppsSnapshot, citiesSnapshot] = await Promise.all([getDocs(state.opportunitiesCollection), getDocs(state.citiesCollection)]);
@@ -1446,23 +1458,9 @@ const initApp = async () => {
             await renderMapAndNav();
             state.unsubscribeOpps = onSnapshot(state.opportunitiesCollection, (snapshot) => { state.opportunitiesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderMapAndNav(); });
             state.unsubscribeCities = onSnapshot(state.citiesCollection, (snapshot) => { state.citiesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderMapAndNav(); });
-            
-            // Listener for chatbot config
-            state.unsubscribeChatbotConfig = onSnapshot(state.chatbotConfigDoc, (doc) => {
-                if (doc.exists()) {
-                    const data = doc.data();
-                    state.chatbotConfig.knowledgeBase = data.knowledgeBase || '';
-                    state.chatbotConfig.uploadedFiles = data.uploadedFiles || [];
-                }
-                // If modal is visible, re-render its content
-                if (state.dom.chatbotSettingsModal.classList.contains('visible')) {
-                    state.dom.knowledgeBaseInput.value = state.chatbotConfig.knowledgeBase;
-                    renderUploadedFiles();
-                }
-            });
-
         } catch (error) { console.error("Error loading initial data:", error); let msg = "فشل تحميل البيانات. الرجاء تحديث الصفحة."; if (error.code === 'permission-denied') msg = "فشل تحميل البيانات: خطأ في الصلاحيات. يرجى مراجعة قواعد الأمان في Firebase."; else msg += `\n(${error.message})`; state.dom.loadingScreen.innerHTML = `<p>${msg}</p>`; }
     };
+    
     loadInitialDataAndAttachListeners();
     state.dom.cityNavigatorPanel.classList.add('visible');
     state.dom.chatbotFab.addEventListener('click', () => { state.dom.chatbotContainer.classList.toggle('visible'); state.dom.chatbotCallout.classList.remove('visible'); });
@@ -1470,16 +1468,14 @@ const initApp = async () => {
     state.dom.chatbotForm.addEventListener('submit', handleChatSubmit);
     setTimeout(() => { if (!state.dom.chatbotContainer.classList.contains('visible')) state.dom.chatbotCallout.classList.add('visible'); }, 5000);
     state.dom.closeCalloutBtn.addEventListener('click', () => state.dom.chatbotCallout.classList.remove('visible'));
-    state.dom.chatbotSettingsBtn.addEventListener('click', async () => { 
-        if (await requestAdminAccess('admin')) { 
-            state.dom.knowledgeBaseInput.value = state.chatbotConfig.knowledgeBase;
-            renderUploadedFiles();
-            state.dom.chatbotSettingsModal.classList.add('visible');
-        } 
-    });
-    state.dom.saveChatbotSettingsBtn.addEventListener('click', handleSaveChatbotSettings);
+    
+    // ---===[ الإصلاح: ربط أحداث رفع وحذف الملفات ]===---
+    state.dom.chatbotSettingsBtn.addEventListener('click', showChatbotSettings);
+    state.dom.chatbotSettingsForm.addEventListener('submit', handleSaveSettings);
     state.dom.fileUploadBtn.addEventListener('click', () => state.dom.fileUploadInput.click());
     state.dom.fileUploadInput.addEventListener('change', handleFileUpload);
+    state.dom.uploadedFilesList.addEventListener('click', handleDeleteFile);
+
     state.dom.zoomInBtn.addEventListener('click', () => state.map.zoomIn());
     state.dom.zoomOutBtn.addEventListener('click', () => state.map.zoomOut());
     state.dom.zoomAllBtn.addEventListener('click', () => { const allCitiesLi = state.dom.cityNavigatorList.querySelector('li[data-city="all"]'); if (allCitiesLi) allCitiesLi.click(); });
@@ -1554,6 +1550,6 @@ const initApp = async () => {
     }
 };
 
-// ---===[ 11. نقطة البداية (Entry Point) ]===---
+// ---===[ 12. نقطة البداية (Entry Point) ]===---
 document.addEventListener('DOMContentLoaded', initApp);
 
