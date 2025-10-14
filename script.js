@@ -3,7 +3,7 @@ const firebaseConfig = {
     apiKey: "AIzaSyAqiR1mwkp13nryH_6UYXp1-whAoW6TRPw",
     authDomain: "north-riyadh.firebaseapp.com",
     projectId: "north-riyadh",
-    storageBucket: "north-riyadh.firebasestorage.app",
+    storageBucket: "north-riyadh.appspot.com", // Corrected storage bucket URL
     messagingSenderId: "789464858729",
     appId: "1:789464858729:web:e6a2b887761670103f22f8"
 };
@@ -95,7 +95,7 @@ const state = {
     editBuffer: null,
     hasStructuralChanges: false,
     chatHistory: [],
-    chatFileRefs: [], // Added to store uploaded file references
+    uploadedFiles: [], // To keep track of uploaded files
 };
 
 // ---===[ 3. الدوال المساعدة (Utilities / Helpers) ]===---
@@ -189,10 +189,10 @@ const cacheDomElements = () => {
         addToSectionModal: document.getElementById('add-to-section-modal'),
         addToMainSectionBtn: document.getElementById('add-to-main-section-btn'),
         addToStudySectionBtn: document.getElementById('add-to-study-section-btn'),
-        // New chatbot elements
-        chatbotAttachBtn: document.getElementById('chatbot-attach-btn'),
-        chatbotFileInput: document.getElementById('chatbot-file-input'),
-        chatbotFileAttachments: document.getElementById('chatbot-file-attachments'),
+        // New file upload elements
+        fileUploadInput: document.getElementById('file-upload-input'),
+        fileUploadBtn: document.getElementById('file-upload-btn'),
+        uploadedFilesList: document.getElementById('uploaded-files-list'),
     };
     state.dom.statusFilterButtons = state.dom.statusFilterDiv ? Array.from(state.dom.statusFilterDiv.querySelectorAll('button')) : [];
     document.querySelectorAll('.modal-close-btn').forEach(btn => {
@@ -248,7 +248,7 @@ const requestAdminAccess = (requiredRole = 'editor') => {
             const password = state.dom.passwordInput.value;
 
             if (username === config.superAdmin.username && password === config.superAdmin.password) {
-                state.currentUser = { username: config.superAdmin.username, role: 'admin', uid: 'super_admin' }; // Add a UID for super admin
+                state.currentUser = { username: config.superAdmin.username, role: 'admin' };
                 sessionStorage.setItem('currentUser', JSON.stringify(state.currentUser));
                 displayCityNavigator(); 
                 cleanup();
@@ -259,9 +259,8 @@ const requestAdminAccess = (requiredRole = 'editor') => {
             const querySnapshot = await getDocs(q);
             
             if (!querySnapshot.empty) {
-                const userDoc = querySnapshot.docs[0];
-                const userData = userDoc.data();
-                state.currentUser = { username: userData.username, role: userData.role, uid: userDoc.id }; // Use doc ID as UID
+                const userDoc = querySnapshot.docs[0].data();
+                state.currentUser = { username: userDoc.username, role: userDoc.role };
                 sessionStorage.setItem('currentUser', JSON.stringify(state.currentUser));
                 
                 const hasAccess = state.currentUser.role === 'admin' || (requiredRole === 'editor' && state.currentUser.role === 'editor');
@@ -488,126 +487,39 @@ const clearAllMarkers = () => {
 // ---===[ 5. دوال واجهة المستخدم (UI Functions) ]===---
 const focusOnOpportunity = (opportunity) => {
     if (!opportunity || !opportunity.coords) return;
-
-    // Show the info card first
-    showInfoCard(opportunity);
-
-    // Wait a brief moment for the card to potentially influence layout, then fly
-    setTimeout(() => {
-        const marker = state.displayedOpportunityMarkers.find(m => m.opportunityData.id === opportunity.id);
-        if (marker && marker._icon) {
-            if (state.activeMarkerWrapperElement) {
-                state.activeMarkerWrapperElement.classList.remove('marker-selected');
-            }
-            marker._icon.classList.add('marker-selected');
-            state.activeMarkerWrapperElement = marker._icon;
-        }
-
-        const latlng = [opportunity.coords.latitude, opportunity.coords.longitude];
-        const targetZoom = Math.max(state.map.getZoom(), 16);
-        
-        // Dynamic offset calculation based on info card visibility and position
-        let offsetX = 0;
-        if (state.dom.infoCard.classList.contains('visible')) {
-            const cardWidth = state.dom.infoCard.offsetWidth;
-            const windowWidth = window.innerWidth;
-            // If card takes up most of the screen (mobile), don't offset much. Otherwise, offset to the side.
-            if (cardWidth < windowWidth * 0.8) {
-                 offsetX = -(cardWidth / 2) - 80;
-            }
-        }
-
-        const markerPoint = state.map.project(latlng, targetZoom);
-        const newCenterPoint = markerPoint.add(new L.Point(offsetX, 0));
-        const newCenterLatLng = state.map.unproject(newCenterPoint, targetZoom);
-
-        state.map.flyTo(newCenterLatLng, targetZoom, { duration: 1.0 });
-    }, 150); // Small delay to ensure card is rendered
-};
-
-const focusOnOpportunityById = (opportunityId) => {
-    const opportunity = state.opportunitiesData.find(op => op.id === opportunityId);
-    if (!opportunity) {
-        console.warn(`Could not find opportunity with ID: ${opportunityId}`);
-        return;
-    }
     
-    // Check if we are in the correct city view
-    if (state.currentCityFilter !== 'all' && state.currentCityFilter !== opportunity.city) {
-        // Switch to the correct city
+    // If not in the correct city view, switch to it first
+    if (state.currentCityFilter !== opportunity.city) {
         const cityLi = state.dom.cityNavigatorList.querySelector(`li[data-city="${opportunity.city}"]`);
         if (cityLi) {
             cityLi.click();
-            // Need to wait for markers to be rendered before focusing
-            setTimeout(() => focusOnOpportunity(opportunity), 1500); // Wait for flyTo animation and marker rendering
-        } else {
-             focusOnOpportunity(opportunity); // Fallback if city not in list for some reason
-        }
-    } else {
-        focusOnOpportunity(opportunity);
-    }
-};
-
-
-// Function to render attached files in the chat UI
-const renderAttachments = () => {
-    state.dom.chatbotFileAttachments.innerHTML = '';
-    if (state.chatFileRefs.length === 0) {
-        state.dom.chatbotFileAttachments.style.display = 'none';
-        return;
-    }
-    state.dom.chatbotFileAttachments.style.display = 'flex';
-    state.chatFileRefs.forEach((fileRef, index) => {
-        const item = document.createElement('div');
-        item.className = 'attachment-item';
-        // Get just the filename from the full path
-        const fileName = fileRef.split('/').pop();
-        item.innerHTML = `
-            <span>${fileName}</span>
-            <button class="remove-file-btn" data-index="${index}" title="إزالة الملف">&times;</button>
-        `;
-        item.querySelector('.remove-file-btn').addEventListener('click', (e) => {
-            const fileIndex = parseInt(e.currentTarget.dataset.index);
-            state.chatFileRefs.splice(fileIndex, 1);
-            renderAttachments();
-        });
-        state.dom.chatbotFileAttachments.appendChild(item);
-    });
-};
-
-const handleFileUpload = async (files) => {
-    if (!files || files.length === 0) return;
-    // Ensure user is logged in to get a UID for the storage path
-    if (!state.currentUser?.uid && !state.auth.currentUser?.uid) {
-        await requestAdminAccess('viewer'); // Request at least viewer access to get a UID
-        if(!state.currentUser?.uid) {
-            await showCustomConfirm('يجب تسجيل الدخول أولاً لرفع الملفات.', 'خطأ', true);
+            // Wait for markers to be rendered before focusing
+            setTimeout(() => focusOnOpportunity(opportunity), 600);
             return;
         }
     }
-    const uid = state.currentUser?.uid || state.auth.currentUser.uid;
 
-    const { ref, uploadBytes } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js");
-    let uploadIndicator = addMessageToChat(`جاري رفع ${files.length} ملف...`, 'bot', true);
-
-    const uploadPromises = Array.from(files).map(file => {
-        const filePath = `knowledge_files/${uid}/${Date.now()}_${file.name}`;
-        if (state.chatFileRefs.includes(filePath)) return Promise.resolve();
-        const storageRef = ref(state.storage, filePath);
-        return uploadBytes(storageRef, file).then(() => {
-            state.chatFileRefs.push(filePath);
-        });
-    });
-
-    try {
-        await Promise.all(uploadPromises);
-        uploadIndicator.remove();
-        renderAttachments();
-    } catch (error) {
-        console.error("File upload error:", error);
-        uploadIndicator.remove();
-        await showCustomConfirm(`فشل رفع بعض الملفات.`, 'خطأ', true);
+    const marker = state.displayedOpportunityMarkers.find(m => m.opportunityData.id === opportunity.id);
+    if (marker && marker._icon) {
+        if (state.activeMarkerWrapperElement) {
+            state.activeMarkerWrapperElement.classList.remove('marker-selected');
+        }
+        marker._icon.classList.add('marker-selected');
+        state.activeMarkerWrapperElement = marker._icon;
     }
+
+    const latlng = [opportunity.coords.latitude, opportunity.coords.longitude];
+    const targetZoom = Math.max(state.map.getZoom(), 16);
+    const cardWidth = state.dom.infoCard.offsetWidth || 740;
+    const offsetX = -(cardWidth / 2) - 80;
+
+    const markerPoint = state.map.project(latlng, targetZoom);
+    const newCenterPoint = markerPoint.add(new L.Point(offsetX, 0));
+    const newCenterLatLng = state.map.unproject(newCenterPoint, targetZoom);
+
+    state.map.flyTo(newCenterLatLng, targetZoom, { duration: 1.0 });
+
+    showInfoCard(opportunity);
 };
 
 const addMessageToChat = (text, sender, isLoading = false) => {
@@ -616,37 +528,37 @@ const addMessageToChat = (text, sender, isLoading = false) => {
 
     if (isLoading) {
         messageDiv.classList.add('loading-message');
-        messageDiv.innerHTML = `<div class="typing-indicator"><span></span><span></span><span></span></div><p style="margin-right: 10px;">${text || ''}</p>`;
+        messageDiv.innerHTML = `<div class="typing-indicator"><span></span><span></span><span></span></div>`;
     } else {
-        // Basic markdown-to-HTML conversion
-        let html = text
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;")
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
-            .replace(/\*(.*?)\*/g, '<em>$1</em>')       // Italic
-            .replace(/(\r\n|\n|\r)/gm, '<br>') // Line breaks
-            .replace(/<br>\s*<br>/g, '</p><p>'); // Paragraphs from double line breaks
-        
-        html = html.replace(/<br>(\d+\.)/g, '<ol><li>').replace(/<br>\*/g, '<ul><li>');
-        html = html.replace(/<br>(\d+\.)/g, '</li><li>').replace(/<br>\*/g, '</li><li>');
-        
-        if (html.includes('<li>')) {
-            html = html.replace(/<\/li>$/, ''); // clean up potential dangling tags
-            if (html.includes('<ol>')) html += '</li></ol>';
-            if (html.includes('<ul>')) html += '</li></ul>';
-        }
-
-        const contentHolder = document.createElement('div');
-        contentHolder.innerHTML = `<p>${html}</p>`;
-        messageDiv.appendChild(contentHolder);
+        const p = document.createElement('p');
+        p.textContent = text;
+        messageDiv.appendChild(p);
     }
     
     state.dom.chatbotMessages.appendChild(messageDiv);
     state.dom.chatbotMessages.scrollTop = state.dom.chatbotMessages.scrollHeight;
     return messageDiv;
+};
+
+const executeMapAction = (action) => {
+    if (!action || !action.type) return;
+
+    switch (action.type) {
+        case 'HIGHLIGHT_OPPORTUNITY':
+            if (action.payload && action.payload.opportunityName) {
+                const opportunityToFocus = state.opportunitiesData.find(
+                    (op) => op.name === action.payload.opportunityName
+                );
+                if (opportunityToFocus) {
+                    focusOnOpportunity(opportunityToFocus);
+                } else {
+                    console.warn(`Action failed: Opportunity "${action.payload.opportunityName}" not found.`);
+                }
+            }
+            break;
+        default:
+            console.warn(`Unknown action type: ${action.type}`);
+    }
 };
 
 const handleChatSubmit = async (e) => {
@@ -665,13 +577,15 @@ const handleChatSubmit = async (e) => {
         status: opp.status,
         area: opp.area,
         total_cost: opp.total_cost,
-        roi: opp.roi,
+        roi: opp.roi, // Added ROI for analysis
         opportunity_type: opp.opportunity_type,
         development_type: opp.development_type,
         opportunity_date: opp.opportunity_date,
     }));
 
     const knowledgeBase = localStorage.getItem('knowledgeBase') || '';
+    const uploadedFiles = state.uploadedFiles.map(file => file.name);
+
 
     try {
         const { httpsCallable } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-functions.js");
@@ -680,28 +594,21 @@ const handleChatSubmit = async (e) => {
             userInput: userInput, 
             contextData: simplifiedData, 
             knowledgeBase: knowledgeBase,
-            fileRefs: state.chatFileRefs
+            uploadedFiles: uploadedFiles 
         });
-        
-        let botResponse = result.data.response || "عذراً، لم أتمكن من معالجة طلبك حالياً.";
-        const highlightCommand = "ACTION_HIGHLIGHT_OPPORTUNITY::";
-        
-        if (botResponse.includes(highlightCommand)) {
-            try {
-                const jsonString = botResponse.substring(botResponse.indexOf(highlightCommand) + highlightCommand.length);
-                const actionData = JSON.parse(jsonString);
-                if (actionData.opportunityId) {
-                    focusOnOpportunityById(actionData.opportunityId);
-                }
-                botResponse = botResponse.substring(0, botResponse.indexOf(highlightCommand)).trim();
-            } catch (e) {
-                console.error("Error parsing highlight action:", e);
-                botResponse = botResponse.substring(0, botResponse.indexOf(highlightCommand)).trim();
-            }
-        }
 
         loadingIndicator.remove();
-        addMessageToChat(botResponse, 'bot');
+        const botResponse = result.data.response;
+
+        if (botResponse && botResponse.textResponse) {
+            addMessageToChat(botResponse.textResponse, 'bot');
+            if (botResponse.action) {
+                executeMapAction(botResponse.action);
+            }
+        } else {
+            addMessageToChat("عذراً، لم أتمكن من معالجة طلبك حالياً.", 'bot');
+        }
+
     } catch (error) {
         console.error("Firebase function error:", error);
         loadingIndicator.remove();
@@ -1373,6 +1280,91 @@ const renderMapAndNav = async () => {
     if (state.dom.loadingScreen) { state.dom.loadingScreen.classList.add('hidden'); setTimeout(() => state.dom.loadingScreen?.remove(), 500); state.dom.loadingScreen = null; handleDeepLink(); }
 };
 
+// --- NEW FILE UPLOAD FUNCTIONS ---
+
+const renderUploadedFiles = () => {
+    const list = state.dom.uploadedFilesList;
+    list.innerHTML = ''; // Clear the list
+    if (state.uploadedFiles.length === 0) {
+        list.innerHTML = '<p>لا توجد ملفات مرفوعة حالياً.</p>';
+        return;
+    }
+    const ul = document.createElement('ul');
+    ul.className = 'uploaded-file-items';
+    state.uploadedFiles.forEach(file => {
+        const li = document.createElement('li');
+        li.innerHTML = `<span><i class="fas fa-file-alt"></i> ${file.name}</span> <button class="delete-file-btn" data-filename="${file.name}"><i class="fas fa-trash-alt"></i></button>`;
+        ul.appendChild(li);
+    });
+    list.appendChild(ul);
+
+    // Add event listeners to delete buttons
+    list.querySelectorAll('.delete-file-btn').forEach(btn => {
+        btn.addEventListener('click', handleDeleteFile);
+    });
+};
+
+const loadUploadedFiles = async () => {
+    const { ref, listAll } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js");
+    const listRef = ref(state.storage, 'knowledge_base_files');
+    try {
+        const res = await listAll(listRef);
+        state.uploadedFiles = res.items.map(itemRef => ({ name: itemRef.name, ref: itemRef }));
+        renderUploadedFiles();
+    } catch (error) {
+        console.error("Error listing files: ", error);
+        state.dom.uploadedFilesList.innerHTML = '<p>خطأ في تحميل قائمة الملفات.</p>';
+    }
+};
+
+const handleFileUpload = async () => {
+    const { ref, uploadBytes } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js");
+    const file = state.dom.fileUploadInput.files[0];
+    if (!file) {
+        await showCustomConfirm("الرجاء اختيار ملف أولاً.", "تنبيه", true);
+        return;
+    }
+    const storageRef = ref(state.storage, `knowledge_base_files/${file.name}`);
+    const uploadBtn = state.dom.fileUploadBtn;
+    uploadBtn.disabled = true;
+    uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الرفع...';
+
+    try {
+        await uploadBytes(storageRef, file);
+        await showCustomConfirm(`تم رفع الملف "${file.name}" بنجاح.`, "نجاح", true);
+        await loadUploadedFiles(); // Refresh the file list
+    } catch (error) {
+        console.error("File upload error: ", error);
+        await showCustomConfirm("فشل رفع الملف.", "خطأ", true);
+    } finally {
+        uploadBtn.disabled = false;
+        uploadBtn.innerHTML = 'رفع ملف';
+        state.dom.fileUploadInput.value = ''; // Clear the input
+    }
+};
+
+const handleDeleteFile = async (e) => {
+    const { ref, deleteObject } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js");
+    const button = e.currentTarget;
+    const fileName = button.dataset.filename;
+    
+    const confirmed = await showCustomConfirm(`هل أنت متأكد من حذف الملف "${fileName}"؟`, "تأكيد الحذف");
+    if (!confirmed) return;
+
+    const fileRef = ref(state.storage, `knowledge_base_files/${fileName}`);
+    try {
+        await deleteObject(fileRef);
+        await showCustomConfirm(`تم حذف الملف "${fileName}" بنجاح.`, "نجاح", true);
+        await loadUploadedFiles(); // Refresh the list
+    } catch (error) {
+        console.error("Error deleting file: ", error);
+        await showCustomConfirm("فشل حذف الملف.", "خطأ", true);
+    }
+};
+
+
+// --- END NEW FILE UPLOAD FUNCTIONS ---
+
 const initApp = async () => {
     if (!cacheDomElements()) return;
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js");
@@ -1380,18 +1372,16 @@ const initApp = async () => {
     const { getFunctions } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-functions.js");
     const { getFirestore, collection, getDocs, onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
     const { getStorage } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js");
+    
     const storedUser = sessionStorage.getItem('currentUser');
     if (storedUser) state.currentUser = JSON.parse(storedUser);
     try { 
         const app = initializeApp(firebaseConfig); 
         state.db = getFirestore(app); 
         state.auth = getAuth(app); 
-        state.functions = getFunctions(app); 
-        state.storage = getStorage(app); // Initialize storage
+        state.functions = getFunctions(app);
+        state.storage = getStorage(app); // Initialize Storage
         await signInAnonymously(state.auth); 
-        if(state.auth.currentUser && !state.currentUser) { // Set a basic user if not logged in via password
-            state.currentUser = { uid: state.auth.currentUser.uid, role: 'viewer', username: 'Anonymous' };
-        }
         state.opportunitiesCollection = collection(state.db, 'opportunities'); 
         state.citiesCollection = collection(state.db, 'cities'); 
         state.usersCollection = collection(state.db, 'users'); 
@@ -1412,25 +1402,27 @@ const initApp = async () => {
     };
     loadInitialDataAndAttachListeners();
     state.dom.cityNavigatorPanel.classList.add('visible');
-    // Chatbot listeners
     state.dom.chatbotFab.addEventListener('click', () => { state.dom.chatbotContainer.classList.toggle('visible'); state.dom.chatbotCallout.classList.remove('visible'); });
     state.dom.chatbotCloseBtn.addEventListener('click', () => state.dom.chatbotContainer.classList.remove('visible'));
     state.dom.chatbotForm.addEventListener('submit', handleChatSubmit);
-    state.dom.chatbotAttachBtn.addEventListener('click', () => state.dom.chatbotFileInput.click());
-    state.dom.chatbotFileInput.addEventListener('change', (e) => handleFileUpload(e.target.files));
     setTimeout(() => { if (!state.dom.chatbotContainer.classList.contains('visible')) state.dom.chatbotCallout.classList.add('visible'); }, 5000);
     state.dom.closeCalloutBtn.addEventListener('click', () => state.dom.chatbotCallout.classList.remove('visible'));
-    state.dom.chatbotSettingsBtn.addEventListener('click', async () => { if (await requestAdminAccess('admin')) { state.dom.knowledgeBaseInput.value = localStorage.getItem('knowledgeBase') || ''; state.dom.chatbotSettingsModal.classList.add('visible'); } });
+    state.dom.chatbotSettingsBtn.addEventListener('click', async () => { if (await requestAdminAccess('admin')) { state.dom.knowledgeBaseInput.value = localStorage.getItem('knowledgeBase') || ''; state.dom.chatbotSettingsModal.classList.add('visible'); await loadUploadedFiles(); } });
     state.dom.chatbotSettingsForm.addEventListener('submit', async (e) => { e.preventDefault(); localStorage.setItem('knowledgeBase', state.dom.knowledgeBaseInput.value); state.dom.chatbotSettingsModal.classList.remove('visible'); await showCustomConfirm("تم حفظ إعدادات المساعد الذكي بنجاح.", 'نجاح', true); });
-    
-    // Map control listeners
+    state.dom.fileUploadBtn.addEventListener('click', handleFileUpload);
     state.dom.zoomInBtn.addEventListener('click', () => state.map.zoomIn());
     state.dom.zoomOutBtn.addEventListener('click', () => state.map.zoomOut());
     state.dom.zoomAllBtn.addEventListener('click', () => { const allCitiesLi = state.dom.cityNavigatorList.querySelector('li[data-city="all"]'); if (allCitiesLi) allCitiesLi.click(); });
     state.dom.addOpportunityBtn.addEventListener('click', async () => { if (await requestAdminAccess('editor')) showOpportunityModal(); });
     state.dom.addDynamicFieldBtn.addEventListener('click', () => handleAddNewField(state.dom.opportunityFormGrid));
     state.dom.statusFilterButtons.forEach(button => button.addEventListener('click', (e) => { state.currentStatusFilter = e.currentTarget.getAttribute('data-status'); state.dom.statusFilterButtons.forEach(btn => btn.classList.remove('active')); e.currentTarget.classList.add('active'); displayFilteredMarkers(); }));
-    state.dom.infoCardCloseBtn.addEventListener('click', (e) => { e.stopPropagation(); hideInfoCard(); });
+    
+    // تعديل: ضمان الإغلاق من أول ضغطة
+    state.dom.infoCardCloseBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        hideInfoCard();
+    });
+
     state.dom.opportunityForm.addEventListener('submit', handleFormSubmit);
     state.dom.editCityNumberForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -1466,6 +1458,7 @@ const initApp = async () => {
     state.dom.logDateFilter.addEventListener('change', (e) => loadAuditLog(e.target.value));
     state.dom.clearLogFilterBtn.addEventListener('click', () => { state.dom.logDateFilter.value = ''; loadAuditLog(); });
     
+    // تعديل: توسيع وظيفة زر ESC لإغلاق جميع النوافذ المنبثقة
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             const openModals = [
@@ -1495,4 +1488,3 @@ const initApp = async () => {
 
 // ---===[ 11. نقطة البداية (Entry Point) ]===---
 document.addEventListener('DOMContentLoaded', initApp);
-
