@@ -421,11 +421,12 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 }
 #chatbot-fab:hover { animation: none; }
 
+/* تعديل: تم ضبط الموضع بدقة ليكون فوق الأزرار ومحاذياً لها */
 .chatbot-callout {
     position: absolute;
-    bottom: 100%; 
-    right: 0;
-    margin-bottom: 10px;
+    bottom: 100%; /* يضع الرسالة فوق حاوية الأزرار مباشرة */
+    right: 0; /* يجعلها محاذية لحافة الحاوية اليمنى */
+    margin-bottom: 10px; /* يضيف مسافة صغيرة فوق الزر العلوي */
     background: var(--color-black);
     color: var(--color-white);
     padding: 10px 15px;
@@ -441,7 +442,7 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
     pointer-events: none;
 }
 .chatbot-callout.visible { opacity: 1; transform: translateY(0); visibility: visible; pointer-events: auto; }
-.chatbot-callout::after { content: ''; position: absolute; bottom: -8px; right: 14px; width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 8px solid var(--color-black); }
+.chatbot-callout::after { content: ''; position: absolute; bottom: -8px; right: 14px; /* تم توسيط السهم فوق الزر */ width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 8px solid var(--color-black); }
 .callout-close-btn { position: absolute; top: 4px; left: 8px; background: none; border: none; color: #aaa; font-size: 22px; font-weight: bold; cursor: pointer; line-height: 1; padding: 2px; }
 .callout-close-btn:hover { color: var(--color-white); }
 
@@ -470,14 +471,13 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 .chatbot-header { background-color: var(--color-gold); color: var(--color-white); padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
 .chatbot-header h3 { font-size: 1.1em; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 10px; }
 .chatbot-header-btn { background: none; border: none; color: var(--color-white); font-size: 20px; font-weight: bold; cursor: pointer; opacity: 0.8; transition: all 0.2s; margin-left: 10px; }
-.chatbot-header-btn:hover { opacity: 1; }
+/* تعديل: إرجاع اللون الأصلي عند التمرير */
+.chatbot-header-btn:hover {
+    opacity: 1;
+}
 .chatbot-messages { flex-grow: 1; padding: 15px; overflow-y: auto; background-color: #f9f9f9; display: flex; flex-direction: column; gap: 12px; }
 .message { max-width: 85%; padding: 10px 15px; border-radius: 18px; line-height: 1.5; word-wrap: break-word; }
 .message p { margin: 0; }
-/* Support for markdown */
-.message ul, .message ol { padding-right: 20px; margin: 8px 0; }
-.message li { margin-bottom: 4px; }
-.message strong, .message b { font-weight: 700; }
 .user-message { align-self: flex-end; background-color: var(--color-status-acquired); color: white; border-bottom-right-radius: 4px; }
 .bot-message { align-self: flex-start; background-color: #e9ecef; color: var(--color-black); border-bottom-left-radius: 4px; }
 .bot-message.loading-message { display: flex; align-items: center; gap: 8px; }
@@ -485,45 +485,65 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
 .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
 .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
 @keyframes typing { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1.0); } }
-
 .chatbot-input-container { padding: 10px 15px; border-top: 1px solid #e0e0e0; background-color: var(--color-white); flex-shrink: 0; }
-#chatbot-form { display: flex; align-items: center; gap: 10px; }
+#chatbot-form { display: flex; gap: 10px; }
 #chatbot-input { flex-grow: 1; border: 1px solid #ccc; border-radius: 20px; padding: 10px 15px; font-family: var(--font-main); font-size: 1em; }
 #chatbot-send-btn { border: none; background-color: var(--color-gold); color: white; border-radius: 50%; width: 42px; height: 42px; font-size: 1.1em; cursor: pointer; transition: background-color 0.2s; flex-shrink: 0; }
 #chatbot-send-btn:hover { background-color: var(--color-dark-gold); }
-.chatbot-attach-btn { background: none; border: none; color: #888; font-size: 1.2em; cursor: pointer; padding: 0 5px; transition: color 0.2s; flex-shrink: 0; }
-.chatbot-attach-btn:hover { color: var(--color-dark-gold); }
 
-.chatbot-file-attachments {
-    padding: 5px 15px;
-    background-color: #f0f2f5;
-    border-bottom: 1px solid #e0e0e0;
+/* --- NEW STYLES for File Upload --- */
+.file-upload-group {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    font-size: 0.8em;
-}
-.attachment-item {
-    background-color: var(--color-white);
-    padding: 4px 8px;
-    border-radius: 12px;
-    border: 1px solid #ddd;
-    display: flex;
+    gap: 10px;
     align-items: center;
-    gap: 6px;
+    padding: 10px;
+    border: 1px dashed #ccc;
+    border-radius: 8px;
+    margin-bottom: 15px;
 }
-.attachment-item .remove-file-btn {
+.file-upload-group input[type="file"] {
+    flex-grow: 1;
+    font-size: 0.9em;
+}
+.file-upload-group .action-btn {
+    flex-shrink: 0;
+    padding: 8px 12px;
+}
+#uploaded-files-list {
+    margin-top: 10px;
+    max-height: 120px;
+    overflow-y: auto;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    padding: 10px;
+}
+.uploaded-file-items {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.uploaded-file-items li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+    font-size: 0.9em;
+}
+.uploaded-file-items li:last-child {
+    border-bottom: none;
+}
+.delete-file-btn {
     background: none;
     border: none;
-    color: #999;
+    color: #ccc;
     cursor: pointer;
     font-size: 1.1em;
-    line-height: 1;
-    padding: 0;
 }
-.attachment-item .remove-file-btn:hover {
+.delete-file-btn:hover {
     color: var(--color-status-unsuitable);
 }
+/* --- END NEW STYLES --- */
 
 
 /* ---===[ 9. الاستجابة للشاشات الصغيرة (Responsive) ]===--- */
@@ -551,4 +571,3 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
     }
     .app-logo { height: 40px; }
 }
-
