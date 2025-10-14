@@ -71,7 +71,7 @@ const state = {
     displayedOpportunityMarkers: [],
     currentCityFilter: 'all',
     currentStatusFilter: 'all',
-    activeMarkerWrapperElement: null,
+    activeMarkerWrapperElements: [], // Changed to handle multiple selections
     activeCityListItem: null,
     currentViewMode: 'cities',
     cityListForMarkers: [],
@@ -486,63 +486,99 @@ const clearAllMarkers = () => {
 
 // ---===[ 5. دوال واجهة المستخدم (UI Functions) ]===---
 
+const clearAllHighlights = () => {
+    if (state.activeMarkerWrapperElements && state.activeMarkerWrapperElements.length > 0) {
+        state.activeMarkerWrapperElements.forEach(el => el.classList.remove('marker-selected'));
+    }
+    state.activeMarkerWrapperElements = [];
+};
+
+const highlightMultipleOpportunities = (opportunityNames) => {
+    clearAllHighlights();
+    hideInfoCard();
+
+    const opportunities = opportunityNames
+        .map(name => state.opportunitiesData.find(op => op.name === name))
+        .filter(Boolean);
+    
+    if (opportunities.length === 0) return;
+
+    const cityToDisplay = opportunities[0].city;
+
+    const performHighlight = () => {
+        const coordsForBounds = [];
+        opportunities.forEach(opp => {
+            const marker = state.displayedOpportunityMarkers.find(m => m.opportunityData.id === opp.id);
+            if (marker && marker._icon) {
+                marker._icon.classList.add('marker-selected');
+                state.activeMarkerWrapperElements.push(marker._icon);
+                if (opp.coords) {
+                    coordsForBounds.push([opp.coords.latitude, opp.coords.longitude]);
+                }
+            }
+        });
+
+        if (coordsForBounds.length > 0) {
+            const bounds = L.latLngBounds(coordsForBounds);
+            state.map.flyToBounds(bounds, { paddingTopLeft: [40, state.dom.cityNavigatorPanel.offsetWidth + 40], paddingBottomRight: [40, 40], maxZoom: 16, duration: 1.0 });
+        }
+    };
+
+    if (state.currentCityFilter !== cityToDisplay) {
+        const cityLi = state.dom.cityNavigatorList.querySelector(`li[data-city="${cityToDisplay}"]`);
+        if (cityLi) {
+            cityLi.click();
+            setTimeout(performHighlight, 600); // Wait for view to switch and markers to render
+        }
+    } else {
+        performHighlight();
+    }
+};
+
 const highlightOpportunityOnly = (opportunity) => {
     if (!opportunity || !opportunity.coords) return;
 
-    // Switch to the city view if necessary
     if (state.currentCityFilter !== opportunity.city) {
         const cityLi = state.dom.cityNavigatorList.querySelector(`li[data-city="${opportunity.city}"]`);
         if (cityLi) {
             cityLi.click();
-            // Wait for markers to render before highlighting
             setTimeout(() => highlightOpportunityOnly(opportunity), 600);
             return;
         }
     }
 
+    clearAllHighlights();
+    hideInfoCard();
+
     const marker = state.displayedOpportunityMarkers.find(m => m.opportunityData.id === opportunity.id);
     if (marker && marker._icon) {
-        // Deselect any previously selected marker
-        if (state.activeMarkerWrapperElement) {
-            state.activeMarkerWrapperElement.classList.remove('marker-selected');
-        }
-        // Select the new marker
         marker._icon.classList.add('marker-selected');
-        state.activeMarkerWrapperElement = marker._icon;
+        state.activeMarkerWrapperElements.push(marker._icon);
     }
 
-    // Fly to the marker's location
     const latlng = [opportunity.coords.latitude, opportunity.coords.longitude];
     const targetZoom = Math.max(state.map.getZoom(), 16);
     state.map.flyTo(latlng, targetZoom, { duration: 1.0 });
-
-    // Ensure the info card is hidden if it's open for another opportunity
-    if (state.dom.infoCard.classList.contains('visible') && state.dom.infoCardActions.dataset.docId !== opportunity.id) {
-        hideInfoCard();
-    }
 };
 
 const focusOnOpportunity = (opportunity) => {
     if (!opportunity || !opportunity.coords) return;
     
-    // If not in the correct city view, switch to it first
     if (state.currentCityFilter !== opportunity.city) {
         const cityLi = state.dom.cityNavigatorList.querySelector(`li[data-city="${opportunity.city}"]`);
         if (cityLi) {
             cityLi.click();
-            // Wait for markers to be rendered before focusing
             setTimeout(() => focusOnOpportunity(opportunity), 600);
             return;
         }
     }
 
+    clearAllHighlights();
+
     const marker = state.displayedOpportunityMarkers.find(m => m.opportunityData.id === opportunity.id);
     if (marker && marker._icon) {
-        if (state.activeMarkerWrapperElement) {
-            state.activeMarkerWrapperElement.classList.remove('marker-selected');
-        }
         marker._icon.classList.add('marker-selected');
-        state.activeMarkerWrapperElement = marker._icon;
+        state.activeMarkerWrapperElements.push(marker._icon);
     }
 
     const latlng = [opportunity.coords.latitude, opportunity.coords.longitude];
@@ -578,28 +614,27 @@ const addMessageToChat = (text, sender, isLoading = false) => {
 };
 
 const executeMapAction = (action) => {
-    if (!action || !action.type) return;
+    if (!action || !action.type || !action.payload) return;
 
-    const getOpportunity = (name) => {
-        const opportunity = state.opportunitiesData.find(op => op.name === name);
-        if (!opportunity) {
-            console.warn(`Action failed: Opportunity "${name}" not found.`);
-        }
-        return opportunity;
-    };
-
-    const opportunityName = action.payload?.opportunityName;
-    if (!opportunityName) return;
-
-    const opportunity = getOpportunity(opportunityName);
-    if (!opportunity) return;
+    const getOpp = (name) => state.opportunitiesData.find(op => op.name === name);
 
     switch (action.type) {
         case 'HIGHLIGHT_ONLY':
-            highlightOpportunityOnly(opportunity);
+            if (action.payload.opportunityName) {
+                const opp = getOpp(action.payload.opportunityName);
+                if (opp) highlightOpportunityOnly(opp);
+            }
+            break;
+        case 'HIGHLIGHT_MULTIPLE_OPPORTUNITIES':
+            if (Array.isArray(action.payload.opportunityNames)) {
+                highlightMultipleOpportunities(action.payload.opportunityNames);
+            }
             break;
         case 'HIGHLIGHT_AND_SHOW_CARD':
-            focusOnOpportunity(opportunity);
+            if (action.payload.opportunityName) {
+                const opp = getOpp(action.payload.opportunityName);
+                if (opp) focusOnOpportunity(opp);
+            }
             break;
         default:
             console.warn(`Unknown action type: ${action.type}`);
@@ -729,10 +764,7 @@ const showInfoCard = (opportunity) => {
 const hideInfoCard = () => {
     exitEditMode(false);
     state.dom.infoCard.classList.remove('visible');
-    if (state.activeMarkerWrapperElement) {
-        state.activeMarkerWrapperElement.classList.remove('marker-selected');
-        state.activeMarkerWrapperElement = null;
-    }
+    clearAllHighlights();
     if (state.currentCityFilter === 'all') {
         flyToCity('all');
     } else {
