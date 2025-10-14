@@ -653,7 +653,13 @@ html, body { height: 100%; width: 100%; overflow: hidden; font-family: var(--fon
     display: flex;
     gap: 10px;
     align-items: center;
+    margin-bottom: 5px; /* تقليل الهامش السفلي */
+}
+.file-type-note {
+    font-size: 0.8em;
+    color: #a0aec0;
     margin-bottom: 15px;
+    text-align: right;
 }
 #file-upload-btn {
     width: 100%;
