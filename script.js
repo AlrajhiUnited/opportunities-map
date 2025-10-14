@@ -485,6 +485,43 @@ const clearAllMarkers = () => {
 };
 
 // ---===[ 5. دوال واجهة المستخدم (UI Functions) ]===---
+
+const highlightOpportunityOnly = (opportunity) => {
+    if (!opportunity || !opportunity.coords) return;
+
+    // Switch to the city view if necessary
+    if (state.currentCityFilter !== opportunity.city) {
+        const cityLi = state.dom.cityNavigatorList.querySelector(`li[data-city="${opportunity.city}"]`);
+        if (cityLi) {
+            cityLi.click();
+            // Wait for markers to render before highlighting
+            setTimeout(() => highlightOpportunityOnly(opportunity), 600);
+            return;
+        }
+    }
+
+    const marker = state.displayedOpportunityMarkers.find(m => m.opportunityData.id === opportunity.id);
+    if (marker && marker._icon) {
+        // Deselect any previously selected marker
+        if (state.activeMarkerWrapperElement) {
+            state.activeMarkerWrapperElement.classList.remove('marker-selected');
+        }
+        // Select the new marker
+        marker._icon.classList.add('marker-selected');
+        state.activeMarkerWrapperElement = marker._icon;
+    }
+
+    // Fly to the marker's location
+    const latlng = [opportunity.coords.latitude, opportunity.coords.longitude];
+    const targetZoom = Math.max(state.map.getZoom(), 16);
+    state.map.flyTo(latlng, targetZoom, { duration: 1.0 });
+
+    // Ensure the info card is hidden if it's open for another opportunity
+    if (state.dom.infoCard.classList.contains('visible') && state.dom.infoCardActions.dataset.docId !== opportunity.id) {
+        hideInfoCard();
+    }
+};
+
 const focusOnOpportunity = (opportunity) => {
     if (!opportunity || !opportunity.coords) return;
     
@@ -543,18 +580,26 @@ const addMessageToChat = (text, sender, isLoading = false) => {
 const executeMapAction = (action) => {
     if (!action || !action.type) return;
 
+    const getOpportunity = (name) => {
+        const opportunity = state.opportunitiesData.find(op => op.name === name);
+        if (!opportunity) {
+            console.warn(`Action failed: Opportunity "${name}" not found.`);
+        }
+        return opportunity;
+    };
+
+    const opportunityName = action.payload?.opportunityName;
+    if (!opportunityName) return;
+
+    const opportunity = getOpportunity(opportunityName);
+    if (!opportunity) return;
+
     switch (action.type) {
-        case 'HIGHLIGHT_OPPORTUNITY':
-            if (action.payload && action.payload.opportunityName) {
-                const opportunityToFocus = state.opportunitiesData.find(
-                    (op) => op.name === action.payload.opportunityName
-                );
-                if (opportunityToFocus) {
-                    focusOnOpportunity(opportunityToFocus);
-                } else {
-                    console.warn(`Action failed: Opportunity "${action.payload.opportunityName}" not found.`);
-                }
-            }
+        case 'HIGHLIGHT_ONLY':
+            highlightOpportunityOnly(opportunity);
+            break;
+        case 'HIGHLIGHT_AND_SHOW_CARD':
+            focusOnOpportunity(opportunity);
             break;
         default:
             console.warn(`Unknown action type: ${action.type}`);
@@ -1488,3 +1533,4 @@ const initApp = async () => {
 
 // ---===[ 11. نقطة البداية (Entry Point) ]===---
 document.addEventListener('DOMContentLoaded', initApp);
+
