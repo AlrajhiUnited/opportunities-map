@@ -45,6 +45,7 @@ const config = {
         },
         gmaps_link: { label: 'رابط خرائط جوجل', icon: 'fa-link', type: 'text' },
         notes: { label: 'تفاصيل إضافية', icon: 'fa-align-left', type: 'textarea', isFullWidth: true },
+        opportunity_source: { label: 'مصدر الفرصة', icon: 'fa-user-tie' }, // <-- MODIFICATION 4: Added new field config
         district: { label: 'الحي', icon: 'fa-map-signs' },
         design_cost: { label: 'تكاليف التصميم', icon: 'fa-drafting-compass', type: 'number', isCurrency: true },
         execution_cost: { label: 'تكاليف التنفيذ', icon: 'fa-tools', type: 'number', isCurrency: true },
@@ -365,7 +366,8 @@ const showOpportunityModal = (opportunity = null, prefillData = {}) => {
     
     const mainInfoFields = ['opportunity_date', 'opportunity_type', 'area', 'buy_price_sqm', 'total_cost'];
     const studyFields = ['design_cost', 'execution_cost', 'roi', 'irr'];
-    const otherFields = ['city', 'coords', 'status', 'development_type', 'gmaps_link'];
+    // --- MODIFICATION 4: Added 'opportunity_source' to this array ---
+    const otherFields = ['city', 'coords', 'status', 'development_type', 'opportunity_source', 'gmaps_link'];
 
     const fieldOrder = opportunity?.fieldOrder || [...mainInfoFields, ...studyFields, ...otherFields];
     
@@ -737,12 +739,17 @@ const hideInfoCard = () => {
     exitEditMode(false);
     state.dom.infoCard.classList.remove('visible');
     clearAllHighlights();
+    
+    // --- MODIFICATION 1: Disabled automatic zoom-out on card close ---
+    /*
     if (state.currentCityFilter === 'all') {
         flyToCity('all');
     } else {
         const cityOpps = state.opportunitiesData.filter(op => op.city === state.currentCityFilter);
         zoomToShowMarkers(cityOpps.map(op => op.coords));
     }
+    */
+    // --- END MODIFICATION 1 ---
 };
 
 const displayCityNavigator = () => {
@@ -1218,8 +1225,18 @@ const endLocationEdit = async (save = false) => {
             const confirmed = await showCustomConfirm(`هل أنت متأكد من تحديث الموقع إلى: \n${newCoordsString}؟`);
             if (confirmed) {
                 const { doc, updateDoc, GeoPoint } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
-                try { await updateDoc(doc(state.db, 'opportunities', docId), { coords: new GeoPoint(lat, lon) }); await logAuditEvent('تحديث الموقع', { opportunityId: docId, name: currentOpportunity.name, newCoords: newCoordsString }); } 
-                catch(error) { console.error("Failed to update location:", error); await showCustomConfirm("فشل تحديث الموقع.", 'خطأ', true); }
+                try { 
+                    await updateDoc(doc(state.db, 'opportunities', docId), { coords: new GeoPoint(lat, lon) }); 
+                    await logAuditEvent('تحديث الموقع', { opportunityId: docId, name: currentOpportunity.name, newCoords: newCoordsString });
+                    // --- MODIFICATION 2: Add success confirmation and update local state ---
+                    await showCustomConfirm("تم تحديث الموقع بنجاح.", 'نجاح', true);
+                    currentOpportunity.coords = { latitude: lat, longitude: lon }; // Update local state immediately
+                    // --- END MODIFICATION 2 ---
+                } 
+                catch(error) { 
+                    console.error("Failed to update location:", error); 
+                    await showCustomConfirm("فشل تحديث الموقع.", 'خطأ', true); 
+                }
             } else { 
                 if (fromForm) state.dom.opportunityModal.classList.add('visible');
                 else if (currentOpportunity) handleMarkerClick({ target: { _icon: null, opportunityData: currentOpportunity }, latlng: L.latLng(currentOpportunity.coords.latitude, currentOpportunity.coords.longitude) });
@@ -1229,7 +1246,12 @@ const endLocationEdit = async (save = false) => {
     }
     state.isLocationEditMode = false; state.dom.mapSelectionPin.classList.add('hidden'); state.dom.locationEditor.classList.add('hidden'); state.dom.mapContainer.classList.remove('location-edit-active');
     if (fromForm) state.dom.opportunityModal.classList.add('visible');
-    else if (currentOpportunity) { const freshData = state.opportunitiesData.find(op => op.id === docId) || currentOpportunity; const marker = L.marker([freshData.coords.latitude, freshData.coords.longitude]); handleMarkerClick({ target: { _icon: null, opportunityData: freshData }, latlng: marker.getLatLng() }); }
+    else if (currentOpportunity) { 
+        // This block will now use the manually updated currentOpportunity.coords if save was successful
+        const freshData = state.opportunitiesData.find(op => op.id === docId) || currentOpportunity; 
+        const marker = L.marker([freshData.coords.latitude, freshData.coords.longitude]); 
+        handleMarkerClick({ target: { _icon: null, opportunityData: freshData }, latlng: marker.getLatLng() }); 
+    }
 };
 
 const panToCoordsFromInput = async () => {
